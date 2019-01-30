@@ -13,5 +13,7 @@ class Level:
     def render(self):
         pass
 
-    def get_image(self):
-        return self.surface
+    def get_image(self, size=None):
+        if size is None:
+            size = self.size[:]
+        return pygame.transform.scale(self.surface, size)
