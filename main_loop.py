@@ -2,7 +2,7 @@ import pygame
 import traceback
 import sys
 import time
-from level_class import Level
+from base_class import Level
 
 
 APP_NAME = 'Game'
