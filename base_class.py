@@ -1,19 +1,21 @@
 import pygame
-
+import random
 
 class Level:
 
     def __init__(self, size=None):
-        self.size = size if size is not None else [1024, 720]
+        self.size = size if size is not None else [4000, 7200]
         self.surface = pygame.Surface(self.size)
         self.sprite_group = pygame.sprite.Group()
-        sprite1 = pygame.sprite.Sprite(self.sprite_group)
-        sprite1.image = pygame.Surface((50, 50))
-        sprite1.rect = sprite1.image.get_rect()
-        sprite1.rect.topleft = [200, 200]
-        pygame.draw.circle(sprite1.image, (0,200, 107), (25,2), 25)
+        for i in range(50):
+            sprite = pygame.sprite.Sprite(self.sprite_group)
+            sprite.image = pygame.Surface((20, 20))
+            sprite.rect = sprite.image.get_rect()
 
-        #self.circle2 = pygame.draw.circle(self.surface, (0,200, 107), (200, 100), 30)
+            sprite.rect.topleft = [random.randrange(500), random.randrange(500)]
+            pygame.draw.circle(sprite.image, (0, 200, 107), (10, 10), 10)
+
+            #self.circle2 = pygame.draw.circle(self.surface, (0,200, 107), (200, 100), 30)
 
 
     def update(self):
@@ -22,9 +24,10 @@ class Level:
     def render(self):
         self.sprite_group.draw(self.surface)
 
-    def get_image(self):
-        return self.surface
-
+    def get_image(self, size=None, rect=pygame.Rect(0, 0, 102.4, 72)):
+        if size is None:
+            size = self.size[:]
+        return pygame.transform.scale(self.surface.subsurface(rect), size)
 
 if __name__ == '__main__':
     level = Level()
@@ -37,8 +40,8 @@ if __name__ == '__main__':
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
-                    level.surface = pygame.transform.scale(level.surface, [int(e * 2) for e in level.surface.get_rect().size])
+                    pass
         screen.fill((0, 0, 0))
         level.render()
-        screen.blit(level.get_image(), (0, 0))
+        screen.blit(level.get_image((1024, 720)), (0, 0))
         pygame.display.flip()

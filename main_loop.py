@@ -36,9 +36,15 @@ class Main:
 
     def __init__(self):
         self.size = [600, 600]
-        self.screen = pygame.display.set_mode(self.size)
+        self.winflag = pygame.RESIZABLE
+        self.screen = pygame.display.set_mode(self.size, self.winflag)
+
+    def load_level(self, level):
+        self.level = level
 
     def start(self):
+        self.load_level(Level(self.size))
+
         self.running = True
         while self.running:
             self.update()
@@ -48,12 +54,18 @@ class Main:
         for event in events:
             if event.type == pygame.QUIT:
                 self.running = False
+            elif event.type == pygame.VIDEORESIZE:
+                self.size = list(event.size)
+                pygame.display.set_mode(self.size, self.winflag)
 
+        self.level.update()
         self.render()
         pygame.display.flip()
 
     def render(self):
         self.screen.fill((0, 0, 0))
+        self.level.render()
+        self.screen.blit(self.level.get_image(self.size), (0, 0))
 
 
 if __name__ == '__main__':
