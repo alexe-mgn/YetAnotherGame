@@ -1,8 +1,21 @@
-################## http://www.pygame.org/wiki/2DVectorClass ##################
 import operator
 import math
 
 
+def between(p, a, b, eq=None):
+    if a >= b:
+        en = a
+        st = b
+    else:
+        en = b
+        st = a
+    if eq is None:
+        eq = [True, True]
+    return (st <= p if eq[0] else st < p) and (p <= en if eq[1] else p < en)
+
+
+# Extended version of
+# http://www.pygame.org/wiki/2DVectorClass
 class Vec2d(object):
     """2d vector class, supports vector and scalar operators,
        and also provides a bunch of high level functions
@@ -336,8 +349,43 @@ class Vec2d(object):
         projected_length_times_other_length = self.dot(other)
         return other * (projected_length_times_other_length / other_length_sqrd)
 
+    def scalar_projection(self, other):
+        return self.dot(other) / math.sqrt(other[0] ** 2 + other[1] ** 2)
+
+    def axis_projection(self, other, to_self):
+        """
+        Calculates projection vector of self to other
+        Returns start pos of projection and projection vector
+        """
+        other, to_self = Vec2d(other), Vec2d(to_self)
+        return [to_self.projection(other), self.projection(other)]
+
+    def scalar_axis_projection(self, other, to_self):
+        """
+        Return start and end cords of self projected on axis
+        when to_self represents self start cords in this axis's plane
+        """
+        ln2 = math.sqrt(other[0] ** 2 + other[1] ** 2)
+        st = (other[0] * to_self[0] + other[1] * to_self[1]) / ln2
+        return [st, st + self.dot(other) / ln2]
+
     def cross(self, other):
         return self.x * other[1] - self.y * other[0]
+
+    def intersection(self, other, to_other):
+        """
+        Builds a vector from self to intersection point of infinite lines build on self and other
+        """
+        other = Vec2d(other)
+        to_other = Vec2d(to_other)
+        proj = self.scalar_axis_projection(other.perpendicular(), -to_other)
+        return self * (proj[0] / abs(proj[1] - proj[0]))
+
+    def scalar_intersection(self, other, to_other):
+        other = Vec2d(other)
+        to_other = Vec2d(to_other)
+        proj = self.scalar_axis_projection(other.perpendicular(), -to_other)
+        return self * (proj[0] / abs(proj[1] - proj[0]))
 
     def interpolate_to(self, other, range):
         return Vec2d(self.x + (other[0] - self.x) * range, self.y + (other[1] - self.y) * range)
@@ -345,22 +393,26 @@ class Vec2d(object):
     def convert_to_basis(self, x_vector, y_vector):
         return Vec2d(self.dot(x_vector) / x_vector.get_length_sqrd(), self.dot(y_vector) / y_vector.get_length_sqrd())
 
+    def get_quarter(self):
+        if self.y >= 0:
+            return 1 if self.x >= 0 else 2
+        else:
+            return 4 if self.x >= 0 else 3
+
     def __getstate__(self):
         return [self.x, self.y]
 
-    def __setstate__(self, dict):
-        self.x, self.y = dict
+    def __setstate__(self, dct):
+        self.x, self.y = dct
 
 
 ########################################################################
-## Unit Testing                                                       ##
-########################################################################
+# Unit Testing
 if __name__ == "__main__":
     import unittest
     import pickle
 
 
-    ####################################################################
     class UnitTestVec2D(unittest.TestCase):
 
         def setUp(self):
