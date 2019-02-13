@@ -65,7 +65,7 @@ class Main:
     def render(self):
         self.screen.fill((0, 0, 0))
         self.level.render()
-        self.screen.blit(self.level.get_image(self.size), (0, 0))
+        self.screen.blit(self.level.get_screen(self.size), (0, 0))
 
 
 if __name__ == '__main__':
