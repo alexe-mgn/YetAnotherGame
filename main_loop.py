@@ -43,7 +43,7 @@ class Main:
         self.level = level
 
     def start(self):
-        self.load_level(Level(self.size))
+        self.load_level(Level([6000, 6000]))
 
         self.running = True
         while self.running:
@@ -58,6 +58,7 @@ class Main:
                 self.size = list(event.size)
                 pygame.display.set_mode(self.size, self.winflag)
 
+        self.level.send_events(events)
         self.level.update()
         self.render()
         pygame.display.flip()
