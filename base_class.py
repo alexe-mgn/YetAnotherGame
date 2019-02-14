@@ -8,6 +8,7 @@ class Camera:
     def __init__(self, center, size, constraint, zoom_con=None):
         self.constraint = pygame.Rect(constraint)
         self.i_size = list(size)
+
         if zoom_con is None:
             self.zoom_con = [None, None]
         else:
@@ -17,12 +18,42 @@ class Camera:
             self._zoom = self.zoom_con[0]
         if self.zoom_con[1] is not None and self._zoom > self.zoom_con[1]:
             self._zoom = self.zoom_con[1]
-        self.rect = FRect(0, 0, *size)
+
+        self.rect = FRect(0, 0, *self.i_size)
         self.rect.center = center
         self.rect.clamp_ip(self.constraint)
 
+        self.c_rect = FRect(self.rect)
+
+    def update(self, time):
+        speed = 10
+        s_speed = 1
+        tc, cc = self.rect.center, self.c_rect.center
+        ts, cs = self.rect.size, self.c_rect.size
+        dis_x, dis_y = tc[0] - cc[0], tc[1] - cc[1]
+        ds_x, ds_y = ts[0] - cs[0], ts[1] - cs[1]
+
+        if abs(ds_x) < 2:
+            self.c_rect.w = ts[0]
+        else:
+            self.c_rect.w += ds_x * s_speed * time / 1000
+        if abs(ds_y) < 2:
+            self.c_rect.h = ts[1]
+        else:
+            self.c_rect.h += ds_y * s_speed * time / 1000
+
+        if abs(dis_x) < 100:
+            self.c_rect.centerx = tc[0]
+        else:
+            self.c_rect.centerx = cc[0] + dis_x * speed * time / 1000
+        if abs(dis_y) < 100:
+            self.c_rect.centery = tc[1]
+        else:
+            self.c_rect.centery = cc[1] + dis_y * speed * time / 1000
+        self.c_rect.clamp_ip(self.constraint)
+
     def get_rect(self):
-        return self.rect.pygame
+        return self.c_rect.pygame
 
     def move(self, shift):
         self.rect.x += shift[0]
@@ -84,9 +115,12 @@ class Level:
                 self.camera.zoom *= 1 / .75
             elif event.button == 5:
                 self.camera.zoom /= 1 / .75
-        if event.type == pygame.VIDEORESIZE:
+        elif event.type == pygame.VIDEORESIZE:
             self.screen_size = event.size
             # Camera update needed
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                self.camera.rect.make_int()
 
     def send_keys(self, pressed):
         if pressed[pygame.K_RIGHT]:
@@ -98,8 +132,8 @@ class Level:
         if pressed[pygame.K_DOWN]:
             self.camera.move_smooth([0, 1])
 
-    def update(self):
-        pass
+    def update(self, time):
+        self.camera.update(time)
 
     def render(self):
         self.sprite_group.draw(self.surface)
@@ -118,6 +152,7 @@ if __name__ == '__main__':
     size = [800, 600]
     screen = pygame.display.set_mode(size)
     level = Level(screen_size=size)
+    clock = pygame.time.Clock()
     running = True
     while running:
         pressed = pygame.key.get_pressed()
@@ -130,7 +165,7 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     pass
-        level.update()
+        level.update(clock.tick())
         screen.fill((0, 0, 0))
         level.render()
         screen.blit(level.get_screen(), (0, 0))

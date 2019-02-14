@@ -11,7 +11,7 @@ class FRect:
         if isinstance(x, pygame.Rect):
             self.pygame = x
         elif isinstance(x, FRect):
-            for i in range(3):
+            for i in range(4):
                 self[i] = x[i]
         else:
             if x is None:
@@ -96,11 +96,25 @@ class FRect:
                (rect[1] <= self.x <= rect[1] + rect[3] or
                 rect[1] <= self.right <= rect[1] + rect[3])
 
+    def make_int(self):
+        for n in range(4):
+            self[n] = int(self[n])
+
+    def round(self, digs):
+        for n in range(4):
+            self[n] = round(self[n], digs)
+
     def __getitem__(self, ind):
         return [self._x, self._y, self._w, self._h][ind]
 
     def __setitem__(self, ind, val):
         setattr(self, ['_x', '_y', '_w', '_h'][ind], val)
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        return 'FRect(%s, %s, %s, %s)' % (self._x, self._y, self._w, self._h)
 
     @property
     def size(self):
