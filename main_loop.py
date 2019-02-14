@@ -11,7 +11,7 @@ EXCEPTION_FILE = 'Game_traceback.txt'
 
 def except_hook(cls, exception, c_traceback):
     if not getattr(sys, 'frozen', False):
-        sys.__excepthook__(cls, exception, traceback)
+        sys.__excepthook__(cls, exception, c_traceback)
     with open(EXCEPTION_FILE,
               mode='a') as error_file:
         error_file.write('\n' + time.asctime() + '\n')
