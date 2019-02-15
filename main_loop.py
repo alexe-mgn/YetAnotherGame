@@ -44,12 +44,15 @@ class Main:
 
     def start(self):
         self.load_level(Level([6000, 6000]))
-
+        self.clock = pygame.time.Clock()
         self.running = True
         while self.running:
             self.update()
 
     def update(self):
+        upd_time = self.clock.tick()
+        pressed = pygame.key.get_pressed()
+        self.level.send_keys(pressed)
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
@@ -57,16 +60,16 @@ class Main:
             elif event.type == pygame.VIDEORESIZE:
                 self.size = list(event.size)
                 pygame.display.set_mode(self.size, self.winflag)
+            self.level.send_event(event)
 
-        self.level.send_events(events)
-        self.level.update()
+        self.level.update(upd_time)
         self.render()
         pygame.display.flip()
 
     def render(self):
         self.screen.fill((0, 0, 0))
         self.level.render()
-        self.screen.blit(self.level.get_screen(self.size), (0, 0))
+        self.screen.blit(self.level.get_screen(), (0, 0))
 
 
 if __name__ == '__main__':
