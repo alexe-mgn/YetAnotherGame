@@ -19,6 +19,9 @@ class Camera:
         if self.zoom_con[1] is not None and self._zoom > self.zoom_con[1]:
             self._zoom = self.zoom_con[1]
 
+        self.move_speed = 6
+        self.zoom_speed = 2
+
         self.rect = FRect(0, 0, *self.i_size)
         self.rect.center = center
         self.rect.clamp_ip(self.constraint)
@@ -26,8 +29,6 @@ class Camera:
         self.c_rect = FRect(self.rect)
 
     def update(self, time):
-        speed = 10
-        s_speed = 1
         tc, cc = self.rect.center, self.c_rect.center
         ts, cs = self.rect.size, self.c_rect.size
         dis_x, dis_y = tc[0] - cc[0], tc[1] - cc[1]
@@ -36,24 +37,27 @@ class Camera:
         if abs(ds_x) < 2:
             self.c_rect.w = ts[0]
         else:
-            self.c_rect.w += ds_x * s_speed * time / 1000
+            self.c_rect.w += ds_x * self.zoom_speed * time / 1000
         if abs(ds_y) < 2:
             self.c_rect.h = ts[1]
         else:
-            self.c_rect.h += ds_y * s_speed * time / 1000
+            self.c_rect.h += ds_y * self.zoom_speed * time / 1000
 
-        if abs(dis_x) < 100:
+        if abs(dis_x) < .5:
             self.c_rect.centerx = tc[0]
         else:
-            self.c_rect.centerx = cc[0] + dis_x * speed * time / 1000
-        if abs(dis_y) < 100:
+            self.c_rect.centerx = cc[0] + dis_x * self.move_speed * time / 1000
+        if abs(dis_y) < .5:
             self.c_rect.centery = tc[1]
         else:
-            self.c_rect.centery = cc[1] + dis_y * speed * time / 1000
+            self.c_rect.centery = cc[1] + dis_y * self.move_speed * time / 1000
         self.c_rect.clamp_ip(self.constraint)
 
     def get_rect(self):
-        return self.c_rect.pygame
+        rect = pygame.Rect(0, 0, 0, 0)
+        rect.center = self.c_rect.center
+        rect.inflate_ip(self.c_rect.width // 2 * 2, self.c_rect.height // 2 * 2)
+        return rect
 
     def move(self, shift):
         self.rect.x += shift[0]
@@ -61,8 +65,8 @@ class Camera:
         self.rect.clamp_ip(self.constraint)
 
     def move_smooth(self, coef):
-        self.rect.x += self.rect.width * coef[0] / 100
-        self.rect.y += self.rect.height * coef[1] / 100
+        self.rect.x += self.c_rect.width * coef[0] / 100
+        self.rect.y += self.c_rect.height * coef[1] / 100
         self.rect.clamp_ip(self.constraint)
 
     def get_zoom(self):
