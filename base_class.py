@@ -2,8 +2,7 @@ import pygame
 import random
 import os
 import sys
-from geometry import FRect
-
+from geometry import Vec2d, FRect
 
 # For one file .exe to work
 def get_file_path(path):
@@ -24,6 +23,43 @@ def load_image(name, color_key=None):
             color_key = image.get_at((0, 0))
         image.set_colorkey(color_key)
     return image.convert_alpha()
+
+
+class PhysObject(pygame.sprite.Sprite):
+
+    def __init__(self, *groups):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(10, 10, 50, 50)
+        self.f_rect = FRect(self.rect)
+        self.image = pygame.Surface((50, 50)).convert_alpha()
+        self.image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.image, (255, 255, 255), (25, 25), 10)
+        self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
+        # self.prev_pos = self.f_rect.center - self.v / 1000
+
+    def collide(self, obj):
+        pass
+
+    def update(self, time):
+        center = self.f_rect.center
+        # prev_pos = Vec2d(center)
+        self.f_rect.move_ip(*self.v * time / 1000)
+        # self.f_rect.move_ip((center[0] - self.prev_pos[0]),
+        #                     (center[1] - self.prev_pos[1]))
+        # self.f_rect.move_ip(*(center - self.prev_pos))
+        # self.prev_pos = prev_pos
+        self.rect = self.f_rect.pygame
+
+    @property
+    def pos(self):
+        return self.f_rect.center
+
+    @pos.setter
+    def pos(self, p):
+        vel = self.f_rect.center - self.prev_pos
+        self.f_rect.center = p
+        self.prev_pos = p - vel
+        self.rect = self.f_rect.pygame
 
 
 class Camera:
@@ -135,7 +171,8 @@ class Level:
                                (10, 10), 10)
         Effect(self.sprite_group, (300, 300), 'shield4', 10)
 
-    def load_effects(self):
+    @staticmethod
+    def load_effects():
         global effects
         effects = {}
 
@@ -143,7 +180,6 @@ class Level:
             sp_dir = os.path.split(currentdir)
             if sp_dir[0] == 'effects':
                 effects[sp_dir[-1]] = [load_image(os.path.join(*sp_dir, e), -1) for e in files]
-        print('done')
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -170,6 +206,8 @@ class Level:
 
     def update(self, time):
         self.camera.update(time)
+        self.surface.set_clip(self.camera.get_rect())
+        self.surface.fill((0, 0, 0))
         self.sprite_group.update(time)
 
     def render(self):
