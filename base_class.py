@@ -1,10 +1,32 @@
 import pygame
 import random
+import os
+import sys
 from geometry import FRect
 
 
-class Camera:
+# For one file .exe to work
+def get_file_path(path):
+    if getattr(sys, 'frozen', False):
+        return '\\'.join([sys._MEIPASS, path])
+    else:
+        return path
 
+
+def load_image(name, color_key=None):
+    try:
+        image = pygame.image.load(name)
+    except pygame.error as message:
+        print('Cannot load image:', name)
+        raise SystemExit(message)
+    if color_key is not None:
+        if color_key == -1:
+            color_key = image.get_at((0, 0))
+        image.set_colorkey(color_key)
+    return image.convert_alpha()
+
+
+class Camera:
     def __init__(self, center, size, constraint, zoom_con=None):
         self.constraint = pygame.Rect(constraint)
         self.i_size = list(size)
@@ -87,12 +109,13 @@ class Camera:
         self.rect.center = center
         self.rect.clamp_ip(self.constraint)
         self._zoom = zoom
+
     zoom = property(get_zoom, set_zoom)
 
 
 class Level:
-
     def __init__(self, size=None, screen_size=None):
+        self.load_effects()
         self.size = size if size is not None else [6000, 6000]
         self.screen_size = screen_size if screen_size is not None else [600, 600]
         self.surface = pygame.Surface(self.size)
@@ -110,8 +133,17 @@ class Level:
                                 random.randint(0, 255),
                                 random.randint(0, 255)),
                                (10, 10), 10)
+        Effect(self.sprite_group, (300, 300), 'shield4', 10)
 
-            # self.circle2 = pygame.draw.circle(self.surface, (0,200, 107), (200, 100), 30)
+    def load_effects(self):
+        global effects
+        effects = {}
+
+        for currentdir, dirs, files in os.walk('effects'):
+            sp_dir = os.path.split(currentdir)
+            if sp_dir[0] == 'effects':
+                effects[sp_dir[-1]] = [load_image(os.path.join(*sp_dir, e), -1) for e in files]
+        print('done')
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -138,8 +170,10 @@ class Level:
 
     def update(self, time):
         self.camera.update(time)
+        self.sprite_group.update(time)
 
     def render(self):
+        self.surface.fill((0, 0, 0))
         self.sprite_group.draw(self.surface)
 
     def get_screen(self):
@@ -149,6 +183,28 @@ class Level:
         if rect is None:
             rect = self.camera.get_rect()
         return self.surface.subsurface(rect)
+
+
+class Effect(pygame.sprite.Sprite):
+    def __init__(self, group, pos, name, time):
+        super().__init__(group)
+        self.clock = 0
+        self.dt = time
+        self.frames = effects[name]
+        self.len = len(self.frames)
+        self.n = 0
+        self.image = self.frames[self.n]
+        self.rect = self.image.get_rect()
+        self.rect.center = pos
+
+    def update(self, time):
+        if self.clock < self.dt:
+            self.clock += time
+        else:
+            self.clock = 0
+            self.n += 1
+            self.n %= self.len
+            self.image = self.frames[self.n]
 
 
 if __name__ == '__main__':
