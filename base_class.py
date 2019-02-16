@@ -13,19 +13,19 @@ class PhysObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (255, 255, 255), (25, 25), 10)
         self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
-        # self.prev_pos = self.f_rect.center - self.v / 1000
+        self.prev_pos = self.f_rect.center - self.v / 1000
 
     def collide(self, obj):
         pass
 
     def update(self, time):
         center = self.f_rect.center
-        # prev_pos = Vec2d(center)
+        prev_pos = Vec2d(center)
         self.f_rect.move_ip(*self.v * time / 1000)
         # self.f_rect.move_ip((center[0] - self.prev_pos[0]),
         #                     (center[1] - self.prev_pos[1]))
-        # self.f_rect.move_ip(*(center - self.prev_pos))
-        # self.prev_pos = prev_pos
+        self.f_rect.move_ip(*(center - self.prev_pos))
+        self.prev_pos = prev_pos
         self.rect = self.f_rect.pygame
 
     @property
