@@ -1,6 +1,41 @@
 import pygame
 import random
-from geometry import FRect
+from geometry import Vec2d, FRect
+
+
+class PhysObject(pygame.sprite.Sprite):
+
+    def __init__(self, *groups):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(10, 10, 50, 50)
+        self.f_rect = FRect(self.rect)
+        self.image = pygame.Surface((50, 50)).convert_alpha()
+        self.image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.image, (255, 255, 255), (25, 25), 10)
+        self.v = Vec2d(random.randrange(-50, 50),random.randrange(-50, 50))
+        self.prev_pos = self.f_rect.center - self.v
+
+    def collide(self, obj):
+        pass
+
+    def update(self, time):
+        prev_pos = Vec2d(self.f_rect.center)
+        # self.f_rect.move_ip((self.f_rect.center[0] - self.prev_pos[0]) * time / 1000,
+        #                     (self.f_rect.center[1] - self.prev_pos[1]) * time / 1000)
+        self.f_rect.move_ip(*((-self.prev_pos + self.f_rect.center)))
+        self.prev_pos = prev_pos
+        self.rect = self.f_rect.pygame
+
+    @property
+    def pos(self):
+        return self.f_rect.center
+
+    @pos.setter
+    def pos(self, p):
+        vel = self.f_rect.center - self.prev_pos
+        self.f_rect.center = p
+        self.prev_pos = p - vel
+        self.rect = self.f_rect.pygame
 
 
 class Camera:
@@ -99,19 +134,8 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = pygame.sprite.Group()
         for i in range(1000):
-            sprite = pygame.sprite.Sprite(self.sprite_group)
-            sprite.image = pygame.Surface((20, 20)).convert_alpha()
-            sprite.image.fill((255, 255, 255, 0))
-            sprite.rect = sprite.image.get_rect()
-
-            sprite.rect.topleft = [random.randrange(self.size[0]), random.randrange(self.size[1])]
-            pygame.draw.circle(sprite.image,
-                               (random.randint(0, 255),
-                                random.randint(0, 255),
-                                random.randint(0, 255)),
-                               (10, 10), 10)
-
-            # self.circle2 = pygame.draw.circle(self.surface, (0,200, 107), (200, 100), 30)
+            sprite = PhysObject(self.sprite_group)
+            sprite.pos = (random.randrange(self.size[0]),random.randrange(self.size[1]))
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -138,6 +162,9 @@ class Level:
 
     def update(self, time):
         self.camera.update(time)
+        self.surface.set_clip(self.camera.get_rect())
+        self.surface.fill((0, 0, 0))
+        self.sprite_group.update(time)
 
     def render(self):
         self.sprite_group.draw(self.surface)
