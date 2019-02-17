@@ -207,7 +207,6 @@ class Level:
     def update(self, time):
         self.camera.update(time)
         self.surface.set_clip(self.camera.get_rect())
-        self.surface.fill((0, 0, 0))
         self.sprite_group.update(time)
 
     def render(self):
