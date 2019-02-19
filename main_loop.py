@@ -35,7 +35,7 @@ def get_file_path(path):
 class Main:
 
     def __init__(self):
-        self.size = [600, 600]
+        self.size = [900, 600]
         self.winflag = pygame.RESIZABLE
         self.screen = pygame.display.set_mode(self.size, self.winflag)
 
@@ -43,7 +43,7 @@ class Main:
         self.level = level
 
     def start(self):
-        self.load_level(Level([6000, 6000]))
+        self.load_level(Level([6000, 6000], self.size))
         self.clock = pygame.time.Clock()
         self.running = True
         while self.running:
@@ -52,9 +52,9 @@ class Main:
     def update(self):
         upd_time = self.clock.tick()
         pressed = pygame.key.get_pressed()
+        ms_pos = pygame.mouse.get_pos()
         self.level.send_keys(pressed)
-        events = pygame.event.get()
-        for event in events:
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.VIDEORESIZE:
@@ -68,8 +68,7 @@ class Main:
 
     def render(self):
         self.screen.fill((0, 0, 0))
-        self.level.render()
-        self.screen.blit(self.level.get_screen(), (0, 0))
+        self.level.draw(self.screen)
 
 
 if __name__ == '__main__':
