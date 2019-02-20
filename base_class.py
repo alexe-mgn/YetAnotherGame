@@ -38,6 +38,61 @@ class SpriteGroup(pygame.sprite.Group):
         return cols
 
 
+class StaticObject(pygame.sprite.Sprite):
+
+    def __init__(self, *groups):
+        super().__init__(*groups)
+        self.rect = pygame.Rect(0, 0, 20, 20)
+        self.f_rect = FRect(self.rect)
+
+        self.image = pygame.Surface((20, 20)).convert_alpha()
+        self.image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.image, (0, 255, 0), (10, 10), 10)
+
+        self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
+        self.prev_time = 1000
+        self.prev_pos = self.f_rect.center - self.v * (self.prev_time / 1000)
+
+        self.force = Vec2d(0, 1000)
+
+        self.mass = 1
+        self.energy_coef = 1
+
+    def collide(self, obj):
+        oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
+        if oc == sc:
+            return
+        to_other = oc - sc
+        d = Vec2d(to_other)
+        d_len = (20 - to_other.length)
+        if d_len > 0:
+            d.length = d_len
+            self.move(d * (-obj.mass / (self.mass + obj.mass) * self.energy_coef))
+            obj.move(d * (self.mass / (self.mass + obj.mass) * obj.energy_coef))
+        self.rect = self.f_rect.pygame
+
+    def move(self, shift):
+        return
+
+    def update(self, time):
+        return
+
+    @property
+    def pos(self):
+        return self.f_rect.center
+
+    @pos.setter
+    def pos(self, p):
+        center = self.f_rect.center
+        shift = self.prev_pos - center
+        self.f_rect.center = p
+        self.prev_pos = p + shift
+        # vel = self.f_rect.center - self.prev_pos
+        # self.f_rect.center = p
+        # self.prev_pos = p - vel
+        self.rect = self.f_rect.pygame
+
+
 class KinematicObject(pygame.sprite.Sprite):
 
     def __init__(self, *groups):
@@ -130,9 +185,12 @@ class DynamicObject(pygame.sprite.Sprite):
         d_len = (20 - to_other.length)
         if d_len > 0:
             d.length = d_len
-            self.f_rect.center -= d * (obj.mass / (self.mass + obj.mass) * self.energy_coef)
-            obj.f_rect.center += d * (self.mass / (self.mass + obj.mass) * obj.energy_coef)
+            self.move(d * (-obj.mass / (self.mass + obj.mass) * self.energy_coef))
+            obj.move(d * (self.mass / (self.mass + obj.mass) * obj.energy_coef))
         self.rect = self.f_rect.pygame
+
+    def move(self, shift):
+        self.f_rect.center += shift
 
     def update(self, time):
         center = Vec2d(self.f_rect.center)
@@ -256,7 +314,7 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
         for i in range(50):
-            sprite = KinematicObject(self.sprite_group)
+            sprite = DynamicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
 
     def send_event(self, event):
