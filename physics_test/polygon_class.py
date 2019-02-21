@@ -4,14 +4,6 @@ from random import randint
 import math
 
 
-def normalize_angle(ang):
-    if ang < 0:
-        ang = 360 - abs(ang) % 360
-    if ang > 360:
-        ang %= 360
-    return ang
-
-
 def between(p, a, b, eq=None):
     if a >= b:
         en = a
@@ -39,7 +31,9 @@ class Polygon:
         It's recommended to have polygon points sorted clockwise.
         """
         first = points[0]
+        self._angle = 0
         if isinstance(first, Polygon):
+            self._angle = first._angle
             points = first.points
         elif isinstance(first, pygame.Rect):
             points = [first.bottomright, first.bottomleft, first.topleft, first.topright]
@@ -47,11 +41,24 @@ class Polygon:
         if user:
             self.polys.append(self)
 
+    @staticmethod
+    def normalized_angle(ang):
+        """
+        Return equivalent of given ang, but inside [0, 360)
+        """
+        if ang < 0:
+            ang = 360 - abs(ang) % 360
+        if ang >= 360:
+            ang %= 360
+        return ang
+
     def copy(self):
         """
         Return same polygon as self is, without any reference links.
         """
-        return Polygon(*[Vec2d(point) for point in self])
+        new = Polygon(*[Vec2d(point) for point in self])
+        new._angle = self._angle
+        return new
 
     def sort(self, clockwise=True):
         """
@@ -59,7 +66,7 @@ class Polygon:
         (A few bad method - uses inverse trigonometry functions)
         """
         center = self.center
-        self.points.sort(key=lambda p: normalize_angle((p - center).get_angle()),
+        self.points.sort(key=lambda p: self.normalized_angle((p - center).get_angle()),
                          reverse=clockwise)
 
     def sorted(self, clockwise=True):
@@ -143,6 +150,7 @@ class Polygon:
         for n, p in enumerate(self):
             vec_to = p - pos
             self[n] = pos + vec_to.rotated(ang)
+        self._angle += ang
 
     def rotated(self, ang, pos=None):
         """
@@ -170,6 +178,22 @@ class Polygon:
         """
         return self[ind + 1] - self[ind]
 
+    def flip(self, by_vertical=True, by_horizontal=False):
+        """
+        Flip polygon by (vertical) (and) (horizontal) axis
+        """
+        center = self.center
+        for n, p in enumerate(self):
+            if by_vertical:
+                self.points[n][0] = 2 * center[0] - p[0]
+            if by_horizontal:
+                self.points[n][1] = 2 * center[1] - p[1]
+
+    def flipped(self, by_vertical=True, by_horizontal=False):
+        new = self.copy()
+        new.flip(by_vertical, by_horizontal)
+        return new
+
     @property
     def center(self):
         x, y = 0, 0
@@ -182,8 +206,16 @@ class Polygon:
     @center.setter
     def center(self, pos):
         shift = pos - self.center
-        for p in self:
-            p += shift
+        self.move(shift)
+
+    @property
+    def angle(self):
+        return self._angle
+
+    @angle.setter
+    def angle(self, ang):
+        rot = ang - self.normalized_angle(self._angle)
+        self.rotate(rot)
 
     def bounding(self, return_pygame=False):
         """
@@ -239,7 +271,7 @@ class Polygon:
 
     def nearest_line(self, point):
         """
-        Return edge index assuming that INFINITE LINE build on it would be the nearest to the point.
+        Return edge index assuming that INFINITE LINE build on it would be the nearest to the point, distance
         """
         mx = [None, None]
         for n, p in enumerate(self):
@@ -253,7 +285,7 @@ class Polygon:
 
     def nearest_edge(self, point):
         """
-        Return index of edge, that is the nearest to the given point.
+        Return index of edge, that is the nearest to the given point, distance
         """
         mx = [None, None]
         for n, p in enumerate(self):
@@ -269,7 +301,7 @@ class Polygon:
 
     def nearest_vertex(self, point):
         """
-        Return index of vertex, that is the nearest to the given point
+        Return index of vertex, that is the nearest to the given point, distance from vertex to point
         """
         mx = [None, None]
         for n, p in enumerate(self):
@@ -282,11 +314,12 @@ class Polygon:
     def nearest_point(self, point):
         """
         Return point on perimeter of polygon, that is the nearest to the given one.
-        return:
-            point
-            distance
-            vertex/edge index
-            bool(is vertex)
+
+        Return
+            - point
+            - distance
+            - vertex/edge index
+            - bool(is vertex)
         """
         mx = [None, None, None]
         for n, p in enumerate(self):
@@ -321,6 +354,14 @@ class Polygon:
             for p2 in other:
                 points.append(Vec2d(p1 + p2))
         return Polygon(*points)
+
+    def __add__(self, other):
+        """
+        Polygon is a set of points
+        When we sum set of points we get minkowski addiction
+        Return minkowski addiction of two polygons
+        """
+        return self.minkowski(other)
 
     def winding(self, wp):
         """
@@ -395,14 +436,22 @@ class Polygon:
         cso.convex()
         return [0, 0] in cso
 
+    def collision_data(self, other):
+        """
+        Uses self.GJK(other)
+        Check Polygon.GJK
+        """
+        return self.GJK(other)
+
     def GJK(self, other):
         """
         Call Gilbert-Johnson-Keerthi algorithm and return distance/penetration depth of two polygons,
         check if two polygons intersect and compute vector, by which other should be moved to stop/start intersecting
-        return:
-            distance/depth
-            bool(polygons intersect)
-            vector
+
+        Return
+           - distance/depth
+           - bool(polygons intersect)
+           - vector
         """
         other = Polygon(other)
         cso = self.minkowski(-other)
@@ -415,7 +464,7 @@ class Polygon:
         return Vec2d(self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))])
 
     def __setitem__(self, ind, value):
-        self.points[ind] = value
+        self.points[ind] = Vec2d(value)
 
     def __delitem__(self, ind):
         del self.points[ind]
