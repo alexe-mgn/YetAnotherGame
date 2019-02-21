@@ -1,6 +1,7 @@
 import pygame
 from physics_test.vec2d import Vec2d
 from random import randint
+import math
 
 
 def normalize_angle(ang):
@@ -24,11 +25,18 @@ def between(p, a, b, eq=None):
 
 
 class Polygon:
+    """
+    Polygon class with support of most common methods/algorithms.
+    (Not tested with concave, would work only in some cases.
+    Also some algorithms don't support concave at all)
+    It's not so optimal, a few unfinished, and need a lot of work on it.
+    © github.com/alexe-mgn, alexe-mgn@mail.ru
+    """
     polys = []
 
     def __init__(self, *points, user=False):
         """
-        Clockwise point sorting
+        It's recommended to have polygon points sorted clockwise.
         """
         first = points[0]
         if isinstance(first, Polygon):
@@ -40,22 +48,33 @@ class Polygon:
             self.polys.append(self)
 
     def copy(self):
+        """
+        Return same polygon as self is, without any reference links.
+        """
         return Polygon(*[Vec2d(point) for point in self])
 
     def sort(self, clockwise=True):
-        center = self.center()
+        """
+        Sort polygon points by angle.
+        (A few bad method - uses inverse trigonometry functions)
+        """
+        center = self.center
         self.points.sort(key=lambda p: normalize_angle((p - center).get_angle()),
                          reverse=clockwise)
 
     def sorted(self, clockwise=True):
+        """
+        Return sorted version of self.
+        """
         new = self.copy()
         new.sort(clockwise)
         return new
 
     def convex(self):
         """
-        Make polygon convex depending on outer points
+        Make possibly-concave polygon convex depending on outer points.
         """
+        self.sort()
         marked = []
         for n, p in enumerate(self.get_points()):
             poly = self.copy()
@@ -66,6 +85,9 @@ class Polygon:
             del self[n]
 
     def is_convex(self):
+        """
+        Check if polygon is convex.
+        """
         for n, p in enumerate(self):
             poly = self.copy()
             del poly[n]
@@ -74,45 +96,67 @@ class Polygon:
         return True
 
     def convexed(self):
+        """
+        Return convex version of self.
+        """
         new = self.copy()
         new.convex()
         return new
 
     def shift(self, shift):
+        """
+        Move polygon by shift vector.
+        """
         for point in self.points:
             point += shift
 
     def shifted(self, shift):
+        """
+        Shifted version of self.
+        """
         new = self.copy()
         new.shift(shift)
         return new
 
     def move(self, pos, point=None):
+        """
+        Move polygon such way, that point (default=center) would be in given pos.
+        """
         if point is None:
-            point = self.center()
+            point = self.center
         self.shift(Vec2d(pos) - point)
 
     def moved(self, pos, point=None):
+        """
+        Moved version of self
+        """
         if point is None:
-            point = self.center()
+            point = self.center
         return self.shifted(Vec2d(pos) - point)
 
     def rotate(self, ang, pos=None):
         """
-        Clockwise rotation angle in degrees
+        Rotate self around pos (default=center) by specified in degrees angle.
         """
         if pos is None:
-            pos = self.center()
+            pos = self.center
         for n, p in enumerate(self):
             vec_to = p - pos
             self[n] = pos + vec_to.rotated(ang)
 
     def rotated(self, ang, pos=None):
+        """
+        Return rotated version of self.
+        """
         new = self.copy()
         new.rotate(ang, pos)
         return new
 
     def get_points(self):
+        """
+        Return points of polygon (Without reference links)
+        For direct access use Polygon.points list
+        """
         return [Vec2d(point) for point in self.points]
 
     def set_points(self, points):
@@ -126,6 +170,7 @@ class Polygon:
         """
         return self[ind + 1] - self[ind]
 
+    @property
     def center(self):
         x, y = 0, 0
         n = 1
@@ -134,9 +179,15 @@ class Polygon:
             y += p[1]
         return Vec2d(x / n, y / n)
 
-    def bounding(self, center=None, return_pygame=False):
+    @center.setter
+    def center(self, pos):
+        shift = pos - self.center
+        for p in self:
+            p += shift
+
+    def bounding(self, return_pygame=False):
         """
-        Return bounding rectangle build around point (default = polygon center)
+        Return bounding rectangle of polygon.
         """
         def get_x(e):
             return e[0]
@@ -148,20 +199,33 @@ class Polygon:
         right = max(self, key=get_x)[0]
         top = max(self, key=get_y)[1]
         bottom = min(self, key=get_y)[1]
-        if center is not None:
-            mdx = max([left, right], key=lambda e: abs(center[0] - e))
-            left, right = center[0] - mdx, center[1] + mdx
-            mdy = max([top, bottom], key=lambda e: abs(center[1] - e))
-            top, bottom = center[1] + mdy, center[1] - mdy
+        # if center is not None:
+        #     mdx = max([left, right], key=lambda e: abs(center[0] - e))
+        #     left, right = center[0] - mdx, center[1] + mdx
+        #     mdy = max([top, bottom], key=lambda e: abs(center[1] - e))
+        #     top, bottom = center[1] + mdy, center[1] - mdy
         if return_pygame:
             return pygame.Rect(left, bottom, right - left, top - bottom)
         else:
             return [Vec2d(left, top), Vec2d(right, bottom)]
 
-    def contains(self, point, crossing=True):
-        return self.__contains__(point, crossing)
+    def maximum_bounding(self, pos=None, return_pygame=False):
+        """
+        Build rectangle with center in pos.
+        Any rotated version of self around pos argument would be inside it.
+        """
+        if pos is None:
+            pos = self.center
+        dis = (max(self, key=lambda p: (p - pos).get_length_sqrd()) - pos).length
+        if return_pygame:
+            return pygame.Rect(pos[0] - dis, pos[1] - dis, 2 * dis, 2 * dis)
+        else:
+            return [Vec2d(pos[0] - dis, pos[1] - dis), Vec2d(pos[0] + dis, pos[1] + dis)]
 
-    def __contains__(self, point, crossing=True):
+    def contains(self, point, crossing=True):
+        """
+        Check if point is inside polygon.
+        """
         if Vec2d(point) in self.points:
             return True
         else:
@@ -170,24 +234,87 @@ class Polygon:
             else:
                 return abs(self.winding(point)) == 1
 
+    def __contains__(self, point, crossing=True):
+        return self.contains(point)
+
     def nearest_line(self, point):
         """
-        Return edge index assuming that INFINITE LINE build on it would be the nearest to the point from others
+        Return edge index assuming that INFINITE LINE build on it would be the nearest to the point.
         """
         mx = [None, None]
         for n, p in enumerate(self):
             edge = self.edge(n)
             to_point = point - p
-            proj_y = to_point.projection(edge.perpendicular()).get_length_sqrd()
+            proj_y = abs(to_point.scalar_projection(edge.perpendicular()))
             if mx[1] is None or proj_y < mx[1]:
                 mx[0] = n
                 mx[1] = proj_y
-        return mx[0]
+        return mx[0], mx[1]
+
+    def nearest_edge(self, point):
+        """
+        Return index of edge, that is the nearest to the given point.
+        """
+        mx = [None, None]
+        for n, p in enumerate(self):
+            edge = self.edge(n)
+            to_point = point - p
+            proj = to_point.scalar_projection(edge)
+            if 0 <= proj <= edge.length:
+                proj_y = abs(to_point.scalar_projection(edge.perpendicular()))
+                if mx[1] is None or proj_y < mx[1]:
+                    mx[0] = n
+                    mx[1] = proj_y
+        return mx[0], mx[1]
+
+    def nearest_vertex(self, point):
+        """
+        Return index of vertex, that is the nearest to the given point
+        """
+        mx = [None, None]
+        for n, p in enumerate(self):
+            ln = (point - p).get_length_sqrd()
+            if mx[1] is None or ln < mx[1]:
+                mx[0] = n
+                mx[1] = ln
+        return [mx[0], math.sqrt(mx[1])]
+
+    def nearest_point(self, point):
+        """
+        Return point on perimeter of polygon, that is the nearest to the given one.
+        return:
+            point
+            distance
+            vertex/edge index
+            bool(is vertex)
+        """
+        mx = [None, None, None]
+        for n, p in enumerate(self):
+            edge = self.edge(n)
+            to_point = point - p
+            proj = to_point.scalar_projection(edge)
+            if 0 < proj < edge.length:
+                proj_y = abs(to_point.scalar_projection(edge.perpendicular()))
+                if mx[1] is None or proj_y < mx[1]:
+                    mx[0] = n
+                    mx[1] = proj_y
+                    mx[2] = False
+            ln = (point - p).length
+            if mx[1] is None or ln < mx[1]:
+                mx[0] = n
+                mx[1] = ln
+                mx[2] = True
+        if mx[2]:
+            return self[mx[0]], mx[1], mx[0], mx[2]
+        elif mx[2] is not None:
+            p = self[mx[0]]
+            to_point = point - p
+            return p + to_point.projection(self.edge(mx[0])), mx[1], mx[0], mx[2]
 
     def minkowski(self, other):
         """
-        UNSORTED AND UNFILTERED Minkowski addiction
-        Call convex() after sorting clockwise for resulting Minkowski polygon
+        UNSORTED AND UNFILTERED Minkowski addiction.
+        Call convex() after sorting clockwise for resulting Minkowski polygon.
         """
         points = []
         for p1 in self:
@@ -197,7 +324,7 @@ class Polygon:
 
     def winding(self, wp):
         """
-        Winding number of polygon around point
+        Winding number of polygon around point.
         """
         w = 0
         for n in range(len(self)):
@@ -215,7 +342,7 @@ class Polygon:
 
     def hor_raycast_edge(self, edge_ind, point, track_border=True, include_start=True, include_end=True):
         """
-        Check if horizontal ray from point intersects edge
+        Check if horizontal ray from point intersects edge.
         """
         vec = self.edge(edge_ind)
         p = self[edge_ind]
@@ -241,7 +368,8 @@ class Polygon:
 
     def horizontal_intersection_num(self, point):
         """
-        How much edges horizontal to-right ray from point would intersect
+        How much edges horizontal ray build from point would intersect.
+        In other words, count crossing number of point and polygon.
         """
         c = 0
         for n in range(len(self)):
@@ -256,6 +384,32 @@ class Polygon:
             if self.hor_raycast_edge(n, point, include_start=not vert_angle, include_end=False):
                 c += 1
         return c
+
+    def collide(self, other):
+        """
+        Check if two polygons intersect.
+        (Uses Gilbert-Johnson-Keerthi algorithm)
+        """
+        other = Polygon(other)
+        cso = self.minkowski(-other)
+        cso.convex()
+        return [0, 0] in cso
+
+    def GJK(self, other):
+        """
+        Call Gilbert-Johnson-Keerthi algorithm and return distance/penetration depth of two polygons,
+        check if two polygons intersect and compute vector, by which other should be moved to stop/start intersecting
+        return:
+            distance/depth
+            bool(polygons intersect)
+            vector
+        """
+        other = Polygon(other)
+        cso = self.minkowski(-other)
+        cso.convex()
+        ndata = cso.nearest_point([0, 0])
+        pygame.draw.line(screen, (255, 0, 0), [0, 0], ndata[0], 1)
+        return ndata[1], [0, 0] in cso, ndata[0]
 
     def __getitem__(self, ind):
         return Vec2d(self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))])
@@ -279,6 +433,9 @@ class Polygon:
         return 'Polygon({0})'.format('; '.join('[{0}, {1}]'.format(*point) for point in self))
 
     def draw(self, surface, color=(255, 0, 0), width=1):
+        """
+        Draw polygon onto pygame.Surface
+        """
         pygame.draw.polygon(surface, color, [list(point) for point in self.points], width)
 
 
@@ -286,6 +443,7 @@ if __name__ == '__main__':
     pygame.init()
 
     size = [800, 800]
+    font = pygame.font.SysFont(None, 50)
 
     screen_real = pygame.display.set_mode(size)
     screen = pygame.Surface(size)
@@ -293,44 +451,74 @@ if __name__ == '__main__':
     p1.shift([100, 50])
     p2.shift([100, 400])
     p2 = p1.rotated(90, p1.bounding(return_pygame=True).topleft)
-    msm = p1.minkowski(-p2).sorted()
-    msm_con = msm.convexed()
-    # Polygon.polys.append(msm_con)
+    msm = p1.minkowski(-p2)
+    msm.convex()
     Polygon.polys.append(p2)
     Polygon.polys.append(msm)
     cols = [[randint(0, 4) * 63, randint(0, 4) * 63, randint(0, 4) * 63] for _ in Polygon.polys]
+    ruler = None
     poly = None
 
     running = True
     flip = True
     while running:
         ms = [pygame.mouse.get_pos()[0], size[1] - pygame.mouse.get_pos()[1]] if flip else pygame.mouse.get_pos()
+        pressed = pygame.key.get_pressed()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if poly is not None:
-                    poly = None
-                elif event.button == 1:
-                    for p in Polygon.polys:
-                        if ms in p:
-                            poly = p
-                            break
+                if event.button == 1:
+                    if poly is not None:
+                        poly = None
+                    else:
+                        for p in Polygon.polys:
+                            if ms in p:
+                                poly = p
+                                break
                 elif event.button == 3:
-                    print(msm.nearest_line(ms))
+                    print(msm.nearest_edge(ms))
+                    print(p1.collide(p2))
+                elif event.button == 4:
+                    if poly is not None:
+                        poly.rotate(10)
+                elif event.button == 5:
+                    if poly is not None:
+                        poly.rotate(-10)
+                elif event.button == 2:
+                    ruler = ms
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 2:
+                    ruler = None
         if poly is not None:
             poly.move(ms)
-            msm.set_points(p1.minkowski(-p2).sorted().convexed())
+            msm.set_points(p1.minkowski(-p2).convexed())
 
         screen.fill((255, 255, 255))
+        if ruler is not None:
+            pygame.draw.line(screen, (255, 0, 0), ruler, ms, 1)
+            screen.blit(
+                pygame.transform.flip(
+                    font.render(
+                        str((Vec2d(ms) - ruler).length),
+                        1,
+                        (255, 0, 0)),
+                    False,
+                    flip),
+                [0, 0])
         # p1.draw(screen)
         # p2.draw(screen, (0, 255, 0))
         # msm.draw(screen, (0, 0, 255))
-        # for i in msm.points + [msm.center()]:
+        # for i in msm.points + [msm.center]:
         #     pygame.draw.circle(screen, (0, 0, 255), [int(e) for e in i], 3)
         # msm_con.draw(screen, (255, 0, 255))
         # pygame.draw.line(screen, (0, 0, 0), [ms[0] - 200, ms[1]], [ms[0] + 200, ms[1]])
         # pygame.draw.rect(screen, (255, 0, 0), [ms[0], ms[1] - 1, 1, 3])
+        # Polygon(msm.maximum_bounding(return_pygame=True)).draw(screen)
+        p2.draw(screen)
+        inter = p1.GJK(p2)
+        if inter[1] or pressed[pygame.K_z]:
+            p2.shift(inter[2])
         for n, p in enumerate(Polygon.polys):
             p.draw(screen, cols[n])
         for n in range(len(msm)):
@@ -339,6 +527,8 @@ if __name__ == '__main__':
             to_p = ms - p
             pygame.draw.line(screen, (128, 128, 128), p, p + vec.perpendicular())
             pygame.draw.line(screen, (0, 0, 255), p, p + to_p.projection(vec.perpendicular()))
+        np = msm.nearest_point(ms)[0]
+        pygame.draw.circle(screen, (255, 0, 0), [int(e) for e in np], 5)
         screen_real.blit(pygame.transform.flip(screen, False, flip), (0, 0))
 
         pygame.display.flip()
