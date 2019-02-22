@@ -5,6 +5,20 @@ from geometry import Vec2d, FRect
 
 class SpriteGroup(pygame.sprite.Group):
 
+    def update(self, time):
+        for s in self.sprites():
+            s.push_data(time)
+            s.move_force(time)
+            s.move_inertia(time)
+            for _ in range(1):
+                for cs in pygame.sprite.spritecollide(s, self, False):
+                    if cs is not s:
+                        s.collide(cs)
+                s.handle_borders()
+        for s in self.sprites():
+            s.pull_data()
+            s.apply_rect()
+
     def handle_collisions(self, group=None):
         if group is None:
             sa = sb = self.sprites()
@@ -160,18 +174,19 @@ class DynamicObject(pygame.sprite.Sprite):
 
     def __init__(self, *groups):
         super().__init__(*groups)
-        self.rect = pygame.Rect(0, 0, 20, 20)
+        size = 100
+        self.rect = pygame.Rect(0, 0, size, size)
         self.f_rect = FRect(self.rect)
 
-        self.image = pygame.Surface((20, 20)).convert_alpha()
+        self.image = pygame.Surface((size, size)).convert_alpha()
         self.image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self.image, (0, 255, 0), (10, 10), 10)
+        pygame.draw.circle(self.image, (0, 255, 0), (size // 2, size // 2), size // 2)
 
         self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
         self.prev_pos = self.f_rect.center - self.v * (self.prev_time / 1000)
 
-        self.force = Vec2d(0, 1000)
+        self.force = Vec2d(0, 000)
 
         self.mass = 1
         self.energy_coef = 1
@@ -182,24 +197,48 @@ class DynamicObject(pygame.sprite.Sprite):
             return
         to_other = oc - sc
         d = Vec2d(to_other)
-        d_len = (20 - to_other.length)
+        d_len = (100 - to_other.length)
         if d_len > 0:
             d.length = d_len
             self.move(d * (-obj.mass / (self.mass + obj.mass) * self.energy_coef))
             obj.move(d * (self.mass / (self.mass + obj.mass) * obj.energy_coef))
         self.rect = self.f_rect.pygame
 
+    def handle_borders(self):
+        d = 50
+        if self.f_rect.centery < d:
+            self.f_rect.centery = d
+        if self.f_rect.centery > level.size[1] - d:
+            self.f_rect.centery = level.size[1] - d
+        if self.f_rect.centerx < d:
+            self.f_rect.centerx = d
+        if self.f_rect.centerx > level.size[0] - d:
+            self.f_rect.centerx = level.size[0] - d
+
     def move(self, shift):
-        self.f_rect.center += shift
+        self.f_rect.topleft += shift
 
     def update(self, time):
-        center = Vec2d(self.f_rect.center)
+        pass
+
+    def move_inertia(self, time):
+        vel = (self.f_rect.center - self.prev_pos) * (time / self.prev_time)
         self.f_rect.move_ip(*(
-                (center - self.prev_pos) * (time / self.prev_time) +
-                self.force * (time**2 / 2000000 / self.mass)
+                vel
         ))
-        self.prev_pos = center
-        self.prev_time = time
+
+    def move_force(self, time):
+        self.f_rect.move_ip(*(
+                self.force * (time**2 / 2000000)
+        ))
+
+    def push_data(self, time):
+        self._temp = [Vec2d(self.f_rect.center), time]
+
+    def pull_data(self):
+        self.prev_pos, self.prev_time = self._temp
+
+    def apply_rect(self):
         self.rect = self.f_rect.pygame
 
     @property
@@ -313,7 +352,7 @@ class Level:
         self.surface = pygame.Surface(self.size)
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
-        for i in range(50):
+        for i in range(10):
             sprite = DynamicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
 
@@ -353,7 +392,7 @@ class Level:
             self.surface.set_clip(self.camera.get_rect())
             self.surface.fill((0, 0, 0))
             self.sprite_group.update(time)
-            self.sprite_group.handle_collisions()
+            # self.sprite_group.handle_collisions()
 
     def render(self):
         self.sprite_group.draw(self.surface)
@@ -373,20 +412,37 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode(size)
     level = Level(screen_size=size, size=[800, 600])
     clock = pygame.time.Clock()
+    timer = pygame.time.set_timer(29, 100)
     running = True
+    t = None
     while running:
+        ms = pygame.mouse.get_pos()
         pressed = pygame.key.get_pressed()
         level.send_keys(pressed)
         events = pygame.event.get()
+        time = clock.tick()
+        if time > 10:
+            time = 10
         for event in events:
             level.send_event(event)
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 4:
                     pass
+                elif event.button == 1:
+                    if t is None:
+                        for s in level.sprite_group.sprites():
+                            if s.rect.collidepoint(event.pos):
+                                t = s
+                    else:
+                        t = None
+            elif event.type == 29:
+                pygame.display.set_caption('FPS %d' % (1000 // time,))
+        if t is not None:
+            t.f_rect.center = ms
         screen.fill((0, 0, 0))
-        level.update(clock.tick())
+        level.update(time)
         level.render()
         screen.blit(level.get_screen(), (0, 0))
         pygame.display.flip()
