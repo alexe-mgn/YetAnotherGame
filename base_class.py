@@ -5,19 +5,28 @@ from geometry import Vec2d, FRect
 
 class SpriteGroup(pygame.sprite.Group):
 
-    def update(self, time):
+    def update_dynamic(self, time):
         for s in self.sprites():
             s.push_data(time)
-            s.move_force(time)
             s.move_inertia(time)
+            s.move_force(time)
+        # for s in self.sprites():
             for _ in range(1):
                 for cs in pygame.sprite.spritecollide(s, self, False):
                     if cs is not s:
                         s.collide(cs)
                 s.handle_borders()
+            s.finish_step()
+
+    def update(self, time):
         for s in self.sprites():
-            s.pull_data()
-            s.apply_rect()
+            for _ in range(5):
+                for cs in pygame.sprite.spritecollide(s, self, False):
+                    if cs is not s:
+                        s.collide(cs)
+                s.handle_borders()
+        for s in self.sprites():
+            s.update(time)
 
     def handle_collisions(self, group=None):
         if group is None:
@@ -61,7 +70,7 @@ class StaticObject(pygame.sprite.Sprite):
 
         self.image = pygame.Surface((20, 20)).convert_alpha()
         self.image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self.image, (0, 255, 0), (10, 10), 10)
+        pygame.draw.circle(self.image, (255, 255, 255), (10, 10), 10)
 
         self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
@@ -111,12 +120,13 @@ class KinematicObject(pygame.sprite.Sprite):
 
     def __init__(self, *groups):
         super().__init__(*groups)
-        self.rect = pygame.Rect(0, 0, 20, 20)
+        size = 100
+        self.rect = pygame.Rect(0, 0, size, size)
         self.f_rect = FRect(self.rect)
 
-        self.image = pygame.Surface((20, 20)).convert_alpha()
+        self.image = pygame.Surface((size, size)).convert_alpha()
         self.image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self.image, (0, 200, 255), (10, 10), 10)
+        pygame.draw.circle(self.image, (0, 0, 255), (size // 2, size // 2), size // 2)
 
         self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
@@ -127,36 +137,56 @@ class KinematicObject(pygame.sprite.Sprite):
         self.mass = 1
         self.energy_coef = 1
 
+    def handle_borders(self):
+        d = 50
+        if self.f_rect.centery < d:
+            # self.f_rect.centery = d
+            self.v[1] = abs(self.v[1])
+        if self.f_rect.centery > level.size[1] - d:
+            # self.f_rect.centery = level.size[1] - d
+            self.v[1] = -abs(self.v[1])
+        if self.f_rect.centerx < d:
+            # self.f_rect.centerx = d
+            self.v[0] = abs(self.v[0])
+        if self.f_rect.centerx > level.size[0] - d:
+            # self.f_rect.centerx = level.size[0] - d
+            self.v[0] = -abs(self.v[0])
+
     def collide(self, obj):
         oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
         if oc == sc:
             return
         to_other = oc - sc
         d = Vec2d(to_other)
-        d_len = (20 - to_other.length)
+        d_len = (100 - to_other.length)
         if d_len > 0:
             d.length = d_len
-            self.f_rect.center -= d * (obj.mass / (self.mass + obj.mass))
-            obj.f_rect.center += d * (self.mass / (self.mass + obj.mass))
-            p = to_other.perpendicular()
-            self.elastic_collision(p)
-            obj.elastic_collision(p)
+            v1, v2 = self.v, obj.v
+            ds = d * (1000 / self.prev_time)
+            m1, m2 = self.mass, obj.mass
+            k = m1 / m2
+            if 2 * (v1 + v2) <= ds:
+                self.v = -(v2 + v1 + ds)
+            else:
+                self.v = -(v2 + v1 + ds)
+            obj.v = v2 + v1 - self.v
         self.rect = self.f_rect.pygame
-
-    def elastic_collision(self, wall_vector):
-        vel_p = self.v.projection(wall_vector)
-        vel_on = self.v.projection(wall_vector.perpendicular())
-        pygame.draw.line(level.surface, (255, 0, 0), self.rect.center, self.rect.center + self.v, 2)
-        self.v = (vel_p - vel_on) * self.energy_coef
-        pygame.draw.line(level.surface, (0, 0, 255), self.rect.center, self.rect.center + self.v, 2)
 
     def update(self, time):
         center = self.f_rect.center
         prev_pos = Vec2d(center)
+        self.f_rect.move_ip(*(self.v * (time / 1000) + self.force * (time**2 / 2000000)))
         self.v += self.force * ((time / 1000) / self.mass)
-        self.f_rect.move_ip(*self.v * (time / 1000))
         self.prev_pos = prev_pos
+        self.prev_time = time
         self.rect = self.f_rect.pygame
+        self.force = Vec2d(0, 0)
+
+    def apply_force(self, f):
+        self.force += f
+
+    def move(self, shift):
+        self.f_rect.move_ip(*shift)
 
     @property
     def pos(self):
@@ -164,9 +194,10 @@ class KinematicObject(pygame.sprite.Sprite):
 
     @pos.setter
     def pos(self, p):
-        vel = self.f_rect.center - self.prev_pos
+        center = self.f_rect.center
+        shift = self.prev_pos - center
         self.f_rect.center = p
-        self.prev_pos = p - vel
+        self.prev_pos = p + shift
         self.rect = self.f_rect.pygame
 
 
@@ -216,7 +247,7 @@ class DynamicObject(pygame.sprite.Sprite):
             self.f_rect.centerx = level.size[0] - d
 
     def move(self, shift):
-        self.f_rect.topleft += shift
+        self.f_rect.move_ip(*shift)
 
     def update(self, time):
         pass
@@ -241,6 +272,11 @@ class DynamicObject(pygame.sprite.Sprite):
     def apply_rect(self):
         self.rect = self.f_rect.pygame
 
+    def finish_step(self):
+        self.pull_data()
+        self.apply_rect()
+        self.force = Vec2d(0, 0)
+
     @property
     def pos(self):
         return self.f_rect.center
@@ -251,16 +287,13 @@ class DynamicObject(pygame.sprite.Sprite):
         shift = self.prev_pos - center
         self.f_rect.center = p
         self.prev_pos = p + shift
-        # vel = self.f_rect.center - self.prev_pos
-        # self.f_rect.center = p
-        # self.prev_pos = p - vel
         self.rect = self.f_rect.pygame
 
 
 class Camera:
 
     def __init__(self, center, size, constraint, zoom_con=None):
-        self.constraint = pygame.Rect(constraint)
+        self._constraint = pygame.Rect(constraint)
         self.i_size = list(size)
 
         if zoom_con is None:
@@ -278,7 +311,7 @@ class Camera:
 
         self.rect = FRect(0, 0, *self.i_size)
         self.rect.center = center
-        self.rect.clamp_ip(self.constraint)
+        self.rect.clamp_ip(self._constraint)
 
         self.c_rect = FRect(self.rect)
 
@@ -305,7 +338,7 @@ class Camera:
             self.c_rect.centery = tc[1]
         else:
             self.c_rect.centery = cc[1] + dis_y * self.move_speed * time / 1000
-        self.c_rect.clamp_ip(self.constraint)
+        self.c_rect.clamp_ip(self._constraint)
 
     def get_rect(self):
         rect = pygame.Rect(0, 0, 0, 0)
@@ -316,12 +349,12 @@ class Camera:
     def move(self, shift):
         self.rect.x += shift[0]
         self.rect.y += shift[1]
-        self.rect.clamp_ip(self.constraint)
+        self.rect.clamp_ip(self._constraint)
 
     def move_smooth(self, coef):
         self.rect.x += self.c_rect.width * coef[0] / 100
         self.rect.y += self.c_rect.height * coef[1] / 100
-        self.rect.clamp_ip(self.constraint)
+        self.rect.clamp_ip(self._constraint)
 
     def get_zoom(self):
         return self._zoom
@@ -335,13 +368,23 @@ class Camera:
         if self.zoom_con[1] is not None and zoom > self.zoom_con[1]:
             zoom = self.zoom_con[1]
         premade = [e / zoom for e in self.i_size]
-        if premade[0] > self.constraint.size[0] or premade[1] > self.constraint.size[1]:
+        if premade[0] > self._constraint.size[0] or premade[1] > self._constraint.size[1]:
+            m_ind = min((0, 1), key=lambda e: self._constraint.size[e] - premade[e])
+            self.zoom = self.i_size[m_ind] / self._constraint.size[m_ind]
             return
         self.rect.size = premade
         self.rect.center = center
-        self.rect.clamp_ip(self.constraint)
+        self.rect.clamp_ip(self._constraint)
         self._zoom = zoom
     zoom = property(get_zoom, set_zoom)
+
+    def get_constraint(self):
+        return self._constraint
+
+    def set_constraint(self, rect):
+        self._constraint = rect
+        self.set_zoom(self.get_zoom())
+    constraint = property(get_constraint, set_constraint)
 
 
 class Level:
@@ -353,7 +396,7 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
         for i in range(10):
-            sprite = DynamicObject(self.sprite_group)
+            sprite = KinematicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
 
     def send_event(self, event):
@@ -428,15 +471,19 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    pass
-                elif event.button == 1:
+                if event.button == 1:
                     if t is None:
                         for s in level.sprite_group.sprites():
                             if s.rect.collidepoint(event.pos):
                                 t = s
                     else:
+                        t.v = (Vec2d(ms) - prev_ms) * (1000 / time)
                         t = None
+                elif t is not None:
+                    if event.button == 5:
+                        t.mass -= 1
+                    elif event.button == 4:
+                        t.mass += 1
             elif event.type == 29:
                 pygame.display.set_caption('FPS %d' % (1000 // time,))
         if t is not None:
@@ -446,3 +493,4 @@ if __name__ == '__main__':
         level.render()
         screen.blit(level.get_screen(), (0, 0))
         pygame.display.flip()
+        prev_ms = ms
