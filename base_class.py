@@ -169,7 +169,9 @@ class Level:
                                 random.randint(0, 255),
                                 random.randint(0, 255)),
                                (10, 10), 10)
-        Effect(self.sprite_group, (300, 300), 'shield4', 10)
+        a = Effect(self.sprite_group, (300, 300), 'radar', 10)
+        Effect(self.sprite_group,(500, 500), 'smoke', 10).start(1000)
+        a.start(1000)
 
     @staticmethod
     def load_effects():
@@ -222,10 +224,12 @@ class Level:
         return self.surface.subsurface(rect)
 
 
+
+
+
 class Effect(pygame.sprite.Sprite):
     def __init__(self, group, pos, name, time):
-        super().__init__(group)
-        self.clock = 0
+        self.group = group
         self.dt = time
         self.frames = effects[name]
         self.len = len(self.frames)
@@ -234,14 +238,28 @@ class Effect(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
+    def start(self, time):
+        super().__init__(self.group)
+        self.clock = 0
+        self.main_clock = 0
+        self.time = time
+
+    def stop(self):
+        self.kill()
+
     def update(self, time):
-        if self.clock < self.dt:
-            self.clock += time
+        if self.main_clock< self.time:
+            self.main_clock +=time
+            if self.clock < self.dt:
+                self.clock += time
+
+            else:
+                self.clock = 0
+                self.n += 1
+                self.n %= self.len
+                self.image = self.frames[self.n]
         else:
-            self.clock = 0
-            self.n += 1
-            self.n %= self.len
-            self.image = self.frames[self.n]
+            self.stop()
 
 
 if __name__ == '__main__':
