@@ -408,7 +408,9 @@ class Level:
         for i in range(10):
             sprite = DynamicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
-        Ship( (100, 100), self.sprite_group)
+        Ship((100, 100), self.sprite_group)
+        Hitball((200, 200), self.sprite_group)
+
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -464,10 +466,27 @@ class Ship(DynamicObject):
 
     def __init__(self,pos, *groups):
         super().__init__(*groups)
-        self.image = pygame.Surface((50, 50))
+        self.groups = groups
+        self.image = pygame.Surface((50, 50)).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.image.fill((255, 0, 0))
+
+    def shoot(self):
+        Hitball(self.rect.center, self.groups )
+
+
+class Hitball(DynamicObject):
+
+    def __init__(self, pos, *groups):
+        super().__init__(*groups)
+        self.image = pygame.Surface((20, 20)).convert_alpha()
+        self.image.fill((0, 0, 0, 0))
+        pygame.draw.circle(self.image, (255, 255, 255),(10,10), 10)
+        self.v = 10
+
+    def update(self, time):
+        self.rect = self.rect.move((0, self.v * time/1000))
 
 
 
