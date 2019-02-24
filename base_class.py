@@ -161,15 +161,13 @@ class KinematicObject(pygame.sprite.Sprite):
         d_len = (100 - to_other.length)
         if d_len > 0:
             d.length = d_len
-            v1, v2 = self.v, obj.v
+            p = to_other.perpendicular()
+            s1, s2 = self.v.projection(p), obj.v.projection(p)
+            v1, v2 = self.v.projection(to_other), obj.v.projection(to_other)
             ds = d * (1000 / self.prev_time)
             m1, m2 = self.mass, obj.mass
-            k = m1 / m2
-            if 2 * (v1 + v2) <= ds:
-                self.v = -(v2 + v1 + ds)
-            else:
-                self.v = -(v2 + v1 + ds)
-            obj.v = v2 + v1 - self.v
+            self.v = s1 + v1
+            obj.v = s2 + v2
         self.rect = self.f_rect.pygame
 
     def update(self, time):
@@ -396,7 +394,7 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
         for i in range(10):
-            sprite = KinematicObject(self.sprite_group)
+            sprite = DynamicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
 
     def send_event(self, event):
@@ -434,7 +432,7 @@ class Level:
             self.camera.update(time)
             self.surface.set_clip(self.camera.get_rect())
             self.surface.fill((0, 0, 0))
-            self.sprite_group.update(time)
+            self.sprite_group.update_dynamic(time)
             # self.sprite_group.handle_collisions()
 
     def render(self):
