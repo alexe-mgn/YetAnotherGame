@@ -72,9 +72,9 @@ class StaticObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (255, 255, 255), (10, 10), 10)
 
-        self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
+        self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
-        self.prev_pos = self.f_rect.center - self.v * (self.prev_time / 1000)
+        self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
 
         self.force = Vec2d(0, 1000)
 
@@ -128,29 +128,29 @@ class KinematicObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (0, 0, 255), (size // 2, size // 2), size // 2)
 
-        self.v = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
+        self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
-        self.prev_pos = self.f_rect.center - self.v * (self.prev_time / 1000)
+        self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
 
         self.force = Vec2d(0, 000)
 
         self.mass = 1
-        self.energy_coef = 1
+        self.energy_coef = 20
 
     def handle_borders(self):
         d = 50
         if self.f_rect.centery < d:
             # self.f_rect.centery = d
-            self.v[1] = abs(self.v[1])
+            self._vel[1] = abs(self._vel[1])
         if self.f_rect.centery > level.size[1] - d:
             # self.f_rect.centery = level.size[1] - d
-            self.v[1] = -abs(self.v[1])
+            self._vel[1] = -abs(self._vel[1])
         if self.f_rect.centerx < d:
             # self.f_rect.centerx = d
-            self.v[0] = abs(self.v[0])
+            self._vel[0] = abs(self._vel[0])
         if self.f_rect.centerx > level.size[0] - d:
             # self.f_rect.centerx = level.size[0] - d
-            self.v[0] = -abs(self.v[0])
+            self._vel[0] = -abs(self._vel[0])
 
     def collide(self, obj):
         oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
@@ -162,23 +162,27 @@ class KinematicObject(pygame.sprite.Sprite):
         if d_len > 0:
             d.length = d_len
             p = to_other.perpendicular()
-            s1, s2 = self.v.projection(p), obj.v.projection(p)
-            v1, v2 = self.v.projection(to_other), obj.v.projection(to_other)
+            s1, s2 = self._vel.projection(p), obj._vel.projection(p)
+            v1, v2 = self._vel.projection(to_other), obj._vel.projection(to_other)
             ds = d * (1000 / self.prev_time)
             m1, m2 = self.mass, obj.mass
-            self.v = s1 + v1
-            obj.v = s2 + v2
+            # self._vel = s1 + v1
+            # obj.v = s2 + v2
+            f = d * (self.energy_coef + obj.energy_coef)
+            self.apply_force(-f)
+            obj.apply_force(f)
         self.rect = self.f_rect.pygame
 
     def update(self, time):
         center = self.f_rect.center
         prev_pos = Vec2d(center)
-        self.f_rect.move_ip(*(self.v * (time / 1000) + self.force * (time**2 / 2000000)))
-        self.v += self.force * ((time / 1000) / self.mass)
+        self.f_rect.move_ip(*(self._vel * (time / 1000) + self.force * (time**2 / 2000000)))
+        self._vel += self.force * ((time / 1000) / self.mass)
+        self._vel *= .995
         self.prev_pos = prev_pos
         self.prev_time = time
         self.rect = self.f_rect.pygame
-        self.force = Vec2d(0, 0)
+        self.force = Vec2d(0, 000)
 
     def apply_force(self, f):
         self.force += f
@@ -197,6 +201,14 @@ class KinematicObject(pygame.sprite.Sprite):
         self.f_rect.center = p
         self.prev_pos = p + shift
         self.rect = self.f_rect.pygame
+    
+    @property
+    def velocity(self):
+        return self._vel
+
+    @velocity.setter
+    def velocity(self, vel):
+        self._vel = Vec2d(vel)
 
 
 class DynamicObject(pygame.sprite.Sprite):
@@ -297,6 +309,7 @@ class DynamicObject(pygame.sprite.Sprite):
     @velocity.setter
     def velocity(self, vel):
         self._vel = Vec2d(vel)
+        self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
 
 
 class Camera:
@@ -405,7 +418,7 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
         for i in range(10):
-            sprite = DynamicObject(self.sprite_group)
+            sprite = KinematicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
 
     def send_event(self, event):
@@ -443,7 +456,7 @@ class Level:
             self.camera.update(time)
             self.surface.set_clip(self.camera.get_rect())
             self.surface.fill((0, 0, 0))
-            self.sprite_group.update_dynamic(time)
+            self.sprite_group.update(time)
             # self.sprite_group.handle_collisions()
 
     def render(self):
@@ -475,6 +488,8 @@ if __name__ == '__main__':
         time = clock.tick()
         if time > 10:
             time = 10
+        elif time <= 0:
+            time = 1
         for event in events:
             level.send_event(event)
             if event.type == pygame.QUIT:
@@ -485,6 +500,8 @@ if __name__ == '__main__':
                         for s in level.sprite_group.sprites():
                             if s.rect.collidepoint(event.pos):
                                 t = s
+                                t.velocity = [0, 0]
+                                break
                     else:
                         t.velocity = (Vec2d(ms) - prev_ms) * (1000 / time)
                         t = None
@@ -496,6 +513,7 @@ if __name__ == '__main__':
             elif event.type == 29:
                 pygame.display.set_caption('FPS %d' % (1000 // time,))
         if t is not None:
+            t.velocity = [0, 0]
             t.f_rect.center = ms
         screen.fill((0, 0, 0))
         level.update(time)
