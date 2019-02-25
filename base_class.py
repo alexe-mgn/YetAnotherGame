@@ -3,6 +3,12 @@ import random
 from geometry import Vec2d, FRect
 
 
+P_TYPES = lambda: None
+P_TYPES.STATIC = 0
+P_TYPES.KINEMATIC = 1
+P_TYPES.DYNAMIC = 2
+
+
 class SpriteGroup(pygame.sprite.Group):
 
     def update_dynamic(self, time):
@@ -20,7 +26,7 @@ class SpriteGroup(pygame.sprite.Group):
 
     def update(self, time):
         for s in self.sprites():
-            for _ in range(5):
+            for _ in range(1):
                 for cs in pygame.sprite.spritecollide(s, self, False):
                     if cs is not s:
                         s.collide(cs)
@@ -72,27 +78,29 @@ class StaticObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (255, 255, 255), (10, 10), 10)
 
-        self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
-        self.prev_time = 1000
-        self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
-
-        self.force = Vec2d(0, 1000)
+        self._vel = Vec2d(0, 0)
+        self.force = Vec2d(0, 0)
 
         self.mass = 1
         self.energy_coef = 1
+        self.bounce_coef = 100
+
+    def type(self):
+        return P_TYPES.STATIC
 
     def collide(self, obj):
-        oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
-        if oc == sc:
-            return
-        to_other = oc - sc
-        d = Vec2d(to_other)
-        d_len = (20 - to_other.length)
-        if d_len > 0:
-            d.length = d_len
-            self.move(d * (-obj.mass / (self.mass + obj.mass) * self.energy_coef))
-            obj.move(d * (self.mass / (self.mass + obj.mass) * obj.energy_coef))
-        self.rect = self.f_rect.pygame
+        # oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
+        # if oc == sc:
+        #     return
+        # if obj.type() == P_TYPES.STATIC:
+        #     return
+        # to_other = oc - sc
+        # d = Vec2d(to_other)
+        # d_len = (100 - to_other.length)
+        # if d_len > 0:
+        #     d.length = d_len
+        #     obj.move(d)
+        pass
 
     def move(self, shift):
         return
@@ -100,20 +108,25 @@ class StaticObject(pygame.sprite.Sprite):
     def update(self, time):
         return
 
+    def apply_force(self, f):
+        pass
+
     @property
     def pos(self):
         return self.f_rect.center
 
     @pos.setter
     def pos(self, p):
-        center = self.f_rect.center
-        shift = self.prev_pos - center
         self.f_rect.center = p
-        self.prev_pos = p + shift
-        # vel = self.f_rect.center - self.prev_pos
-        # self.f_rect.center = p
-        # self.prev_pos = p - vel
         self.rect = self.f_rect.pygame
+
+    @property
+    def velocity(self):
+        return [0, 0]
+
+    @velocity.setter
+    def velocity(self, vel):
+        pass
 
 
 class KinematicObject(pygame.sprite.Sprite):
@@ -129,13 +142,13 @@ class KinematicObject(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, (0, 0, 255), (size // 2, size // 2), size // 2)
 
         self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
-        self.prev_time = 1000
-        self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
-
         self.force = Vec2d(0, 000)
 
         self.mass = 1
-        self.energy_coef = 20
+        self.bounce_coef = 100
+
+    def type(self):
+        return P_TYPES.KINEMATIC
 
     def handle_borders(self):
         d = 50
@@ -161,26 +174,21 @@ class KinematicObject(pygame.sprite.Sprite):
         d_len = (100 - to_other.length)
         if d_len > 0:
             d.length = d_len
-            p = to_other.perpendicular()
-            s1, s2 = self._vel.projection(p), obj._vel.projection(p)
-            v1, v2 = self._vel.projection(to_other), obj._vel.projection(to_other)
-            ds = d * (1000 / self.prev_time)
-            m1, m2 = self.mass, obj.mass
-            # self._vel = s1 + v1
-            # obj.v = s2 + v2
-            f = d * (self.energy_coef + obj.energy_coef)
+            # p = to_other.perpendicular()
+            # s1, s2 = self._vel.projection(p), obj._vel.projection(p)
+            # v1, v2 = self._vel.projection(to_other), obj._vel.projection(to_other)
+            # ds = d * (1000 / self.prev_time)
+            # m1, m2 = self.mass, obj.mass
+            f = d * (self.bounce_coef + obj.bounce_coef)
             self.apply_force(-f)
             obj.apply_force(f)
-        self.rect = self.f_rect.pygame
+            # self.move(d * (-obj.mass / (self.mass + obj.mass) * self.bounce_coef))
+            # obj.move(d * (self.mass / (self.mass + obj.mass) * obj.bounce_coef))
 
     def update(self, time):
-        center = self.f_rect.center
-        prev_pos = Vec2d(center)
         self.f_rect.move_ip(*(self._vel * (time / 1000) + self.force * (time**2 / 2000000)))
         self._vel += self.force * ((time / 1000) / self.mass)
-        self._vel *= .995
-        self.prev_pos = prev_pos
-        self.prev_time = time
+        self._vel *= .998
         self.rect = self.f_rect.pygame
         self.force = Vec2d(0, 000)
 
@@ -196,10 +204,7 @@ class KinematicObject(pygame.sprite.Sprite):
 
     @pos.setter
     def pos(self, p):
-        center = self.f_rect.center
-        shift = self.prev_pos - center
         self.f_rect.center = p
-        self.prev_pos = p + shift
         self.rect = self.f_rect.pygame
     
     @property
@@ -232,6 +237,9 @@ class DynamicObject(pygame.sprite.Sprite):
         self.mass = 1
         self.energy_coef = 1
 
+    def type(self):
+        return P_TYPES.DYNAMIC
+
     def collide(self, obj):
         oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
         if oc == sc:
@@ -241,8 +249,12 @@ class DynamicObject(pygame.sprite.Sprite):
         d_len = (100 - to_other.length)
         if d_len > 0:
             d.length = d_len
-            self.move(d * (-obj.mass / (self.mass + obj.mass) * self.energy_coef))
-            obj.move(d * (self.mass / (self.mass + obj.mass) * obj.energy_coef))
+            if obj.type() == P_TYPES.STATIC:
+                mc = 1
+            else:
+                mc = obj.mass / (self.mass + obj.mass)
+            self.move(d * (-mc * self.energy_coef))
+            obj.move(d * ((1 - mc) * obj.energy_coef))
         self.rect = self.f_rect.pygame
 
     def handle_borders(self):
@@ -417,6 +429,7 @@ class Level:
         self.surface = pygame.Surface(self.size)
         self.camera = Camera([300, 300], self.screen_size, self.surface.get_rect(), [None, 4])
         self.sprite_group = SpriteGroup()
+        self.upd = True
         for i in range(10):
             sprite = KinematicObject(self.sprite_group)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
@@ -429,7 +442,7 @@ class Level:
                 self.camera.zoom /= 1 / .75
         elif event.type == pygame.VIDEORESIZE:
             self.screen_size = event.size
-            # Camera update needed
+            self.camera.i_size = event.size
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_n:
                 self.upd = True
@@ -461,6 +474,9 @@ class Level:
 
     def render(self):
         self.sprite_group.draw(self.surface)
+
+    def get_mouse(self):
+        ms = pygame.mouse.get_pos()
 
     def get_screen(self):
         return pygame.transform.scale(self.get_image(), self.screen_size)

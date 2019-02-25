@@ -237,10 +237,11 @@ class FRect:
 
 # Extended version of
 # http://www.pygame.org/wiki/2DVectorClass
-class Vec2d(object):
-    """2d vector class, supports vector and scalar operators,
-       and also provides a bunch of high level functions
-       """
+class Vec2d:
+    """
+    2d vector class, supports vector and scalar operators,
+    and also provides a bunch of high level functions
+    """
     __slots__ = ['x', 'y']
 
     def __init__(self, x_or_pair, y=None):
