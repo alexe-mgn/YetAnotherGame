@@ -35,7 +35,7 @@ class Polygon:
         if isinstance(first, Polygon):
             self._angle = first._angle
             points = first.points
-        elif isinstance(first, pygame.Rect):
+        elif hasattr(first, 'topleft'):
             points = [first.bottomright, first.bottomleft, first.topleft, first.topright]
         self.points = [Vec2d(point) for point in points]
         if user:
@@ -441,7 +441,31 @@ class Polygon:
         Uses self.GJK(other)
         Check Polygon.GJK
         """
-        return self.GJK(other)
+        if isinstance(other, Circle):
+            data = self.nearest_point(other.center)
+            if not data[3]:
+                vec = self.edge(data[2]).perpendicular()
+            else:
+                vec = other.center - self[data[2]]
+            # if data[0] == other.center:
+            #     dis = other.r
+            #     vec.length = dis
+            #     print(1)
+            #     return dis, True, vec
+            if self.contains(other.center):
+                inter = True
+                dis = data[1] + other.r
+            elif data[1] < other.r:
+                inter = True
+                dis = other.r - data[1]
+            else:
+                inter = False
+                dis = data[1] - other.r
+            print(inter, dis)
+            vec.length = dis
+            return dis, inter, vec
+        else:
+            return self.GJK(other)
 
     def GJK(self, other):
         """
@@ -456,9 +480,9 @@ class Polygon:
         other = Polygon(other)
         cso = self.minkowski(-other)
         cso.convex()
-        ndata = cso.nearest_point([0, 0])
-        pygame.draw.line(screen, (255, 0, 0), [0, 0], ndata[0], 1)
-        return ndata[1], [0, 0] in cso, ndata[0]
+        data = cso.nearest_point([0, 0])
+        pygame.draw.line(screen, (255, 0, 0), [0, 0], data[0], 1)
+        return data[1], [0, 0] in cso, data[0]
 
     def __getitem__(self, ind):
         return Vec2d(self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))])
@@ -486,6 +510,61 @@ class Polygon:
         Draw polygon onto pygame.Surface
         """
         pygame.draw.polygon(surface, color, [list(point) for point in self.points], width)
+
+
+class Circle:
+
+    def __init__(self, pos, r=None):
+        if r is None:
+            if hasattr(pos, 'topleft'):
+                r = min(pos.size) / 2
+                pos = pos.center
+            else:
+                p = Polygon(pos)
+                pos = p.center
+                r = (max(p, key=lambda p: (p - pos).get_length_sqrd()) - pos).length
+        self._p = Vec2d(*pos)
+        self.r = r
+
+    def copy(self):
+        return Circle(self._p, self.r)
+
+    def move(self, shift):
+        self._p += shift
+
+    def moved(self, shift):
+        new = self.copy()
+        new.move(shift)
+        return new
+
+    def get_pos(self):
+        return self._p
+
+    def set_pos(self, pos):
+        self._p = Vec2d(pos)
+    pos = property(get_pos, set_pos)
+    center = property(get_pos, set_pos)
+
+    def bounding(self, return_pygame=False):
+        if return_pygame:
+            return pygame.Rect(self.center[0] - self.r, self.center[1] - self.r, self.r * 2, self.r * 2)
+        else:
+            return [Vec2d(self.center[0] - self.r, self.center[1] + self.r),
+                    Vec2d(self.center[0] + self.r, self.center[1] - self.r)]
+
+    def collision_data(self, other):
+        if isinstance(other, Circle):
+            t = self.r + other.r
+            to_other = other.pos - self.pos
+            dif = to_other.length - t
+            to_other.length = dif
+            return abs(dif), dif < 0, to_other
+        else:
+            data = Polygon(other).collision_data(self)
+            return data[0], data[1], -data[2]
+
+    def draw(self, surface, color=(255, 0, 0), width=1):
+        pygame.draw.circle(surface, color, [int(self.center[0]), int(self.center[1])], int(self.r), width)
 
 
 if __name__ == '__main__':
@@ -565,9 +644,12 @@ if __name__ == '__main__':
         # pygame.draw.rect(screen, (255, 0, 0), [ms[0], ms[1] - 1, 1, 3])
         # Polygon(msm.maximum_bounding(return_pygame=True)).draw(screen)
         p2.draw(screen)
-        inter = p1.GJK(p2)
+        c = Circle(p2)
+        inter = p1.collision_data(c)
         if inter[1] or pressed[pygame.K_z]:
             p2.shift(inter[2])
+            c.move(inter[2])
+        c.draw(screen)
         for n, p in enumerate(Polygon.polys):
             p.draw(screen, cols[n])
         for n in range(len(msm)):
