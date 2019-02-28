@@ -1,6 +1,6 @@
 import pygame
 import random
-from geometry import Vec2d, FRect
+from geometry import Vec2d, FRect, Polygon, Circle
 
 
 P_TYPES = lambda: None
@@ -100,7 +100,7 @@ class StaticObject(pygame.sprite.Sprite):
         # if d_len > 0:
         #     d.length = d_len
         #     obj.move(d)
-        pass
+        obj.collide(self)
 
     def move(self, shift):
         return
@@ -141,6 +141,8 @@ class KinematicObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (0, 0, 255), (size // 2, size // 2), size // 2)
 
+        self.shape = Circle(self.f_rect.center, size // 2)
+
         self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.force = Vec2d(0, 000)
 
@@ -149,6 +151,10 @@ class KinematicObject(pygame.sprite.Sprite):
 
     def type(self):
         return P_TYPES.KINEMATIC
+
+    def get_shape(self):
+        self.shape.center = self.f_rect.center
+        return self.shape
 
     def handle_borders(self):
         d = 50
@@ -166,14 +172,9 @@ class KinematicObject(pygame.sprite.Sprite):
             self._vel[0] = -abs(self._vel[0])
 
     def collide(self, obj):
-        oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
-        if oc == sc:
-            return
-        to_other = oc - sc
-        d = Vec2d(to_other)
-        d_len = (100 - to_other.length)
-        if d_len > 0:
-            d.length = d_len
+        cd = self.get_shape().collision_data(obj.get_shape())
+        if cd[1]:
+            d = cd[2]
             # p = to_other.perpendicular()
             # s1, s2 = self._vel.projection(p), obj._vel.projection(p)
             # v1, v2 = self._vel.projection(to_other), obj._vel.projection(to_other)
@@ -228,6 +229,8 @@ class DynamicObject(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         pygame.draw.circle(self.image, (0, 255, 0), (size // 2, size // 2), size // 2)
 
+        self.shape = Circle(self.f_rect.center, size // 2)
+
         self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
         self.prev_time = 1000
         self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
@@ -240,15 +243,14 @@ class DynamicObject(pygame.sprite.Sprite):
     def type(self):
         return P_TYPES.DYNAMIC
 
+    def get_shape(self):
+        self.shape.center = self.f_rect.center
+        return self.shape
+
     def collide(self, obj):
-        oc, sc = Vec2d(obj.f_rect.center), Vec2d(self.f_rect.center)
-        if oc == sc:
-            return
-        to_other = oc - sc
-        d = Vec2d(to_other)
-        d_len = (100 - to_other.length)
-        if d_len > 0:
-            d.length = d_len
+        cd = self.get_shape().collision_data(obj.get_shape())
+        if cd[1]:
+            d = cd[2]
             if obj.type() == P_TYPES.STATIC:
                 mc = 1
             else:

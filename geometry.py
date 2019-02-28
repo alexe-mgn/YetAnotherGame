@@ -1065,7 +1065,7 @@ class Polygon:
         Return
            - distance/depth
            - bool(objects intersect)
-           - vector
+           - penetration vector
         """
         if isinstance(other, Circle):
             data = self.nearest_point(other.center)
@@ -1095,7 +1095,7 @@ class Polygon:
         Return
            - distance/depth
            - bool(polygons intersect)
-           - vector
+           - penetration vector
         """
         other = Polygon(other)
         cso = self.minkowski(-other)
@@ -1172,12 +1172,18 @@ class Circle:
                     Vec2d(self.center[0] + self.r, self.center[1] - self.r)]
 
     def collision_data(self, other):
+        """
+        Return
+           - distance/depth
+           - bool(objects intersect)
+           - penetration vector
+        """
         if isinstance(other, Circle):
             t = self.r + other.r
             to_other = other.pos - self.pos
-            dif = to_other.length - t
+            dif = t - to_other.length
             to_other.length = dif
-            return abs(dif), dif < 0, to_other
+            return abs(dif), dif > 0, to_other
         else:
             data = Polygon(other).collision_data(self)
             return data[0], data[1], -data[2]
