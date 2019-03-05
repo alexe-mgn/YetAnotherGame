@@ -164,6 +164,14 @@ class FRect:
     def topleft(self, pos):
         self._x, self._y = pos[0], pos[1]
 
+    @property
+    def bottomleft(self):
+        return [self._x, self._y + self._h]
+
+    @bottomleft.setter
+    def bottomleft(self, pos):
+        self._x, self._y = pos[0], pos[1] - self._h
+
     def get_x(self):
         return self._x
 
@@ -660,7 +668,7 @@ class Polygon:
             self._angle = first._angle
             points = first.points
         elif hasattr(first, 'topleft'):
-            points = [first.bottomright, first.bottomleft, first.topleft, first.topright]
+            points = [first.topright, first.topleft, first.bottomleft, first.bottomright]
         self.points = [Vec2d(point) for point in points]
         if user:
             self.polys.append(self)
