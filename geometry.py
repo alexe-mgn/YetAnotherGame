@@ -621,13 +621,14 @@ class Vec2d:
         other = Vec2d(other)
         to_other = Vec2d(to_other)
         proj = self.scalar_axis_projection(other.perpendicular(), -to_other)
-        return self * (proj[0] / abs(proj[1] - proj[0]))
+        if proj[0] != proj[1]:
+            to_inter = self * (proj[0] / abs(proj[1] - proj[0]))
+            return to_inter, between(to_inter.x, 0, self.x, [True, True]) and between(to_inter.y, 0, self.y, [True, True])
+        else:
+            return None, False
 
     def scalar_intersection(self, other, to_other):
-        other = Vec2d(other)
-        to_other = Vec2d(to_other)
-        proj = self.scalar_axis_projection(other.perpendicular(), -to_other)
-        return self * (proj[0] / abs(proj[1] - proj[0]))
+        return
 
     def interpolate_to(self, other, range):
         return Vec2d(self.x + (other[0] - self.x) * range, self.y + (other[1] - self.y) * range)
@@ -742,36 +743,36 @@ class Polygon:
         new.convex()
         return new
 
-    def shift(self, shift):
+    def move(self, shift):
         """
         Move polygon by shift vector.
         """
         for point in self.points:
             point += shift
 
-    def shifted(self, shift):
+    def moved(self, shift):
         """
         Shifted version of self.
         """
         new = self.copy()
-        new.shift(shift)
+        new.move(shift)
         return new
 
-    def move(self, pos, point=None):
+    def move_to(self, pos, point=None):
         """
         Move polygon such way, that point (default=center) would be in given pos.
         """
         if point is None:
             point = self.center
-        self.shift(Vec2d(pos) - point)
+        self.move(Vec2d(pos) - point)
 
-    def moved(self, pos, point=None):
+    def moved_to(self, pos, point=None):
         """
         Moved version of self
         """
         if point is None:
             point = self.center
-        return self.shifted(Vec2d(pos) - point)
+        return self.moved(Vec2d(pos) - point)
 
     def rotate(self, ang, pos=None):
         """
@@ -804,11 +805,19 @@ class Polygon:
             points = points.get_points()
         self.points = [Vec2d(point) for point in points]
 
+    def point(self, ind):
+        """
+        Return linked Vec2d point of polygon.
+        Changing it would change the polygon, it's better to use for read-only.
+        For unbound vector use polygon[i]
+        """
+        return self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))]
+
     def edge(self, ind):
         """
         Return vector of edge from point[ind] to point[ind + 1]
         """
-        return self[ind + 1] - self[ind]
+        return self.point(ind + 1) - self.point(ind)
 
     def flip(self, by_vertical=True, by_horizontal=False):
         """
@@ -848,6 +857,12 @@ class Polygon:
     def angle(self, ang):
         rot = ang - self.normalized_angle(self._angle)
         self.rotate(rot)
+
+    def get_area(self):
+        a = 0
+        for n in range(len(self) - 1):
+            a += self.points[n][0] * self.points[n + 1][1] - self.points[n][1] * self.points[n + 1][0]
+        return a
 
     def bounding(self, return_pygame=False):
         """
@@ -972,7 +987,7 @@ class Polygon:
         if mx[2]:
             return self[mx[0]], mx[1], mx[0], mx[2]
         elif mx[2] is not None:
-            p = self[mx[0]]
+            p = self.points[mx[0]]
             to_point = point - p
             return p + to_point.projection(self.edge(mx[0])), mx[1], mx[0], mx[2]
 
@@ -1018,7 +1033,7 @@ class Polygon:
         Check if horizontal ray from point intersects edge.
         """
         vec = self.edge(edge_ind)
-        p = self[edge_ind]
+        p = self.point(edge_ind)
         if vec[1] == 0:
             return False
         if not include_start and p[1] == point[1]:

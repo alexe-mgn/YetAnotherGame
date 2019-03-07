@@ -160,7 +160,7 @@ class KinematicObject(pygame.sprite.Sprite):
         self.shape = Circle(self.f_rect.center, size // 2)
 
         self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
-        self.force = Vec2d(0, 000)
+        self.force = Vec2d(0, 0)
 
         self.mass = 1
         self.bounce_coef = 100
@@ -239,12 +239,6 @@ class KinematicObject(pygame.sprite.Sprite):
         self._vel[0], self._vel[1] = vel[0], vel[1]
 
 
-class Unique(KinematicObject):
-
-    def get_shape(self):
-        return self.shape
-
-
 class DynamicObject(pygame.sprite.Sprite):
 
     def __init__(self, *groups):
@@ -263,7 +257,7 @@ class DynamicObject(pygame.sprite.Sprite):
         self.prev_time = 1000
         self.prev_pos = self.f_rect.center - self._vel * (self.prev_time / 1000)
 
-        self.force = Vec2d(0, 000)
+        self.force = Vec2d(0, 0)
 
         self.mass = 1
         self.bounce_coef = 100
@@ -452,7 +446,7 @@ class Level:
         for i in range(10):
             sprite = KinematicObject(self.sprites)
             sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
-        sprite = Unique(self.sprites)
+        sprite = KinematicObject(self.sprites)
         sprite.f_rect = FRect(0, 0, 200, 10)
         sprite.image = pygame.Surface(sprite.f_rect.size)
         sprite.image.fill((255, 255, 255))
@@ -491,8 +485,6 @@ class Level:
         if pressed[pygame.K_j]:
             for s in self.sprites.sprites():
                 s.velocity = [0, 0]
-        if pressed[pygame.K_k]:
-            self.unique.shape.center = pygame.mouse.get_pos()
 
     def update(self, time):
         if self.upd:
@@ -504,7 +496,6 @@ class Level:
 
     def render(self):
         self.sprites.draw(self.surface)
-        self.unique.get_shape().draw(self.surface)
 
     def get_mouse(self):
         ms = pygame.mouse.get_pos()
