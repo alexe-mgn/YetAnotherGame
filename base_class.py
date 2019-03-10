@@ -23,7 +23,7 @@ class CameraGroup(pygame.sprite.Group):
 
 class PhysicsGroup(CameraGroup):
     
-    def update(self, time):
+    def update(self, upd_time):
         for s in self.sprites():
             s.start_step()
             for cs in pygame.sprite.spritecollide(s, self, False):
@@ -31,8 +31,8 @@ class PhysicsGroup(CameraGroup):
                     s.collide(cs)
             s.handle_borders()
         for s in self.sprites():
-            s.pre_update(time)
-            s.update(time)
+            s.pre_update(upd_time)
+            s.update(upd_time)
             s.end_step()
 
 
@@ -109,18 +109,18 @@ class StaticObject(pygame.sprite.Sprite):
     def effect(self, obj, c_data):
         pass
 
-    def pre_update(self, time):
+    def pre_update(self, upd_time):
         pass
 
-    def update(self, time):
+    def update(self, upd_time):
         # Move self, change velocity depending on force and lose_coef
-        self.f_rect.move_ip(*(self._vel * (time / 1000) + self.force * ((time ** 2 / 2000000) / self.mass)))
-        self._vel += self.force * ((time / 1000) / self.mass)
+        self.f_rect.move_ip(*(self._vel * (upd_time / 1000) + self.force * ((upd_time ** 2 / 2000000) / self.mass)))
+        self._vel += self.force * ((upd_time / 1000) / self.mass)
         self._vel *= self.lose_coef
         # Same with angular values
-        da = self._a_vel * (time / 1000)
+        da = self._a_vel * (upd_time / 1000)
         self.angle += da
-        self._a_vel += self.torque * ((time / 1000) * (.1 / self.inertia) * (.180 / math.pi))
+        self._a_vel += self.torque * ((upd_time / 1000) * (.1 / self.inertia) * (.180 / math.pi))
         self._a_vel *= self.lose_coef
 
     def apply_force(self, f, point=None):
@@ -247,18 +247,18 @@ class PhysObject(pygame.sprite.Sprite):
     def effect(self, obj, c_data):
         pass
 
-    def pre_update(self, time):
+    def pre_update(self, upd_time):
         pass
 
-    def update(self, time):
+    def update(self, upd_time):
         # Move self, change velocity depending on force and lose_coef
-        self.f_rect.move_ip(*(self._vel * (time / 1000) + self.force * ((time ** 2 / 2000000) / self.mass)))
-        self._vel += self.force * ((time / 1000) / self.mass)
+        self.f_rect.move_ip(*(self._vel * (upd_time / 1000) + self.force * ((upd_time ** 2 / 2000000) / self.mass)))
+        self._vel += self.force * ((upd_time / 1000) / self.mass)
         self._vel *= self.lose_coef
         # Same with angular values
-        da = self._a_vel * (time / 1000)
+        da = self._a_vel * (upd_time / 1000)
         self.angle += da
-        self._a_vel += self.torque * ((time / 1000) * (.1 / self.inertia) * (.180 / math.pi))
+        self._a_vel += self.torque * ((upd_time / 1000) * (.1 / self.inertia) * (.180 / math.pi))
         self._a_vel *= self.lose_coef
 
     def apply_force(self, f, point=None):
@@ -331,7 +331,7 @@ class Camera:
 
         self.c_rect = FRect(self.rect)
 
-    def update(self, time):
+    def update(self, upd_time):
         tc, cc = self.rect.center, self.c_rect.center
         ts, cs = self.rect.size, self.c_rect.size
         dis_x, dis_y = tc[0] - cc[0], tc[1] - cc[1]
@@ -340,20 +340,20 @@ class Camera:
         if abs(ds_x) < .5:
             self.c_rect.w = ts[0]
         else:
-            self.c_rect.w += ds_x * self.zoom_speed * time / 1000
+            self.c_rect.w += ds_x * self.zoom_speed * upd_time / 1000
         if abs(ds_y) < .5:
             self.c_rect.h = ts[1]
         else:
-            self.c_rect.h += ds_y * self.zoom_speed * time / 1000
+            self.c_rect.h += ds_y * self.zoom_speed * upd_time / 1000
 
         if abs(dis_x) < .5:
             self.c_rect.centerx = tc[0]
         else:
-            self.c_rect.centerx = cc[0] + dis_x * self.move_speed * time / 1000
+            self.c_rect.centerx = cc[0] + dis_x * self.move_speed * upd_time / 1000
         if abs(dis_y) < .5:
             self.c_rect.centery = tc[1]
         else:
-            self.c_rect.centery = cc[1] + dis_y * self.move_speed * time / 1000
+            self.c_rect.centery = cc[1] + dis_y * self.move_speed * upd_time / 1000
         self.c_rect.clamp_ip(self._constraint)
 
     def get_rect(self):
@@ -433,6 +433,10 @@ class Level:
         self.visible = self.camera.get_rect()
 
         self.sprites = PhysicsGroup()
+        self.pregenerate()
+
+    def pregenerate(self):
+        pass
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -457,10 +461,10 @@ class Level:
     def start_step(self):
         pass
 
-    def update(self, time):
-        self.camera.update(time)
+    def update(self, upd_time):
+        self.camera.update(upd_time)
         self.visible = self.camera.get_rect()
-        self.sprites.update(time)
+        self.sprites.update(upd_time)
 
     def draw(self, surface):
         self.sprites.draw(surface, self.camera)
@@ -553,9 +557,9 @@ if __name__ == '__main__':
         pressed = pygame.key.get_pressed()
         level.send_keys(pressed)
         events = pygame.event.get()
-        time = clock.tick()
-        if not 0 < time < 10:
-            time = 1
+        upd_time = clock.tick()
+        if not 0 < upd_time < 10:
+            upd_time = 1
         for event in events:
             level.send_event(event)
             if event.type == pygame.QUIT:
@@ -572,7 +576,7 @@ if __name__ == '__main__':
                                 t.velocity = [0, 0]
                                 break
                     else:
-                        t.velocity = (Vec2d(ms) - prev_ms) * (1000 / time)
+                        t.velocity = (Vec2d(ms) - prev_ms) * (1000 / upd_time)
                         t = None
                 elif t is not None:
                     if event.button == 5:
@@ -580,13 +584,13 @@ if __name__ == '__main__':
                     elif event.button == 4:
                         t.mass += 1
             elif event.type == 29:
-                pygame.display.set_caption('FPS %d' % (1000 // time,))
+                pygame.display.set_caption('FPS %d' % (1000 // upd_time,))
         if t is not None:
             t.velocity = [0, 0]
             t.pos = ms
 
         screen.fill((0, 0, 0))
-        level.update(time)
+        level.update(upd_time)
         level.draw(screen)
         pygame.display.flip()
         prev_ms = ms
