@@ -272,6 +272,11 @@ class FRect:
     def centery(self, y):
         self._y = y - self._h / 2
 
+    def centered(self, pos):
+        new = FRect(self)
+        new.center = pos
+        return new
+
 
 # Extended version of
 # http://www.pygame.org/wiki/2DVectorClass
@@ -639,14 +644,17 @@ class Vec2d:
 
     def intersection(self, other, to_other):
         """
-        Builds a vector from self to intersection point of infinite lines build on self and other
+        Builds a vector from self to intersection point of infinite lines build on self and other.
         """
         other = Vec2d(other)
         to_other = Vec2d(to_other)
         proj = self.scalar_axis_projection(other.perpendicular(), -to_other)
         if proj[0] != proj[1]:
-            to_inter = self * (proj[0] / abs(proj[1] - proj[0]))
-            return to_inter, between(to_inter.x, 0, self.x, [True, True]) and between(to_inter.y, 0, self.y, [True, True])
+            proj2 = other.scalar_axis_projection(self.perpendicular(), to_other)
+            to_inter = self * (proj[0] / (proj[0] - proj[1]))
+            # to_inter2 = other * (proj2[0] / (proj2[0] - proj2[1]))
+            return to_inter, between(0, proj[0], proj[1], [True, True]) and between(0, proj2[0], proj2[1], [True, True])
+            # between(to_inter.x, 0, self.x, [True, True]) and between(to_inter.y, 0, self.y, [True, True])
         else:
             return None, False
 
@@ -685,17 +693,18 @@ class Polygon:
     """
     polys = []
 
-    def __init__(self, *points, user=False):
+    def __init__(self, points, user=False):
         """
         It's recommended to have polygon points sorted clockwise.
         """
-        first = points[0]
         self._angle = 0
-        if isinstance(first, Polygon):
-            self._angle = first._angle
-            points = first.points
-        elif hasattr(first, 'topleft'):
-            points = [first.topright, first.topleft, first.bottomleft, first.bottomright]
+        if points is None:
+            points = []
+        if isinstance(points, Polygon):
+            self._angle = points._angle
+            points = points.points
+        elif hasattr(points, 'topleft'):
+            points = [points.topright, points.topleft, points.bottomleft, points.bottomright]
         self.points = [Vec2d(point) for point in points]
         if user:
             self.polys.append(self)
@@ -715,7 +724,7 @@ class Polygon:
         """
         Return same polygon as self is, without any reference links.
         """
-        new = Polygon(*[Vec2d(point) for point in self])
+        new = Polygon([Vec2d(point) for point in self])
         new._angle = self._angle
         return new
 
@@ -808,7 +817,8 @@ class Polygon:
             pos = self.center
         for n, p in enumerate(self):
             vec_to = p - pos
-            self[n] = pos + vec_to.rotated(ang)
+            vec_to.rotate(ang)
+            self[n] = pos + vec_to
         self._angle += ang
 
     def rotated(self, ang, pos=None):
@@ -862,26 +872,40 @@ class Polygon:
         return new
 
     def clip(self, other):
+        return
         points = []
         for n, p in enumerate(self):
             for n2, p2 in enumerate(other):
-                i_vec, inter = self.edge(n).intersection(other.edge(n2), p - p2)
+                i_vec, inter = self.edge(n).intersection(other.edge(n2), p2 - p)
+                pygame.draw.line(screen, (255, 0, 0), p, p + i_vec, 2)
                 if inter:
-                    print(n, n2)
-                    points.append(p + i_vec)
+                    i_p = p + i_vec
+                    if i_p not in points:
+                        points.append(p + i_vec)
                     p2n = other[n2 + 1]
-                    if p2n in self:
+                    if p2n in self and p2n not in points:
                         points.append(p2n)
-        if len(points) > 0:
+        if len(points) > 2:
             self.points = points
             return True
         else:
-            return False
+            return None
 
     def clipped(self, other):
-        new = Polygon(self)
-        s = new.clip(other)
-        if s:
+        return
+        new = Polygon(other)
+        for n, p in enumerate(self):
+            cut = 0
+            for n2, p2 in enumerate(new):
+                i_vec, inter = self.edge(n).intersection(other.edge(n2), p2 - p)
+                pygame.draw.line(screen, (255, 0, 0), p, p + i_vec, 2)
+                if inter:
+                    if cut % 2 == 0:
+                        new[n2 + cut // 2] = p + i_vec
+                    else:
+                        new.points.insert(n2 + cut // 2 + 1, p + i_vec)
+                    cut += 1
+        if len(new) > 2:
             return new
         else:
             return None
@@ -899,6 +923,11 @@ class Polygon:
     def center(self, pos):
         shift = pos - self.center
         self.move(shift)
+
+    def centered(self, pos):
+        new = Polygon(self)
+        new.center = pos
+        return new
 
     @property
     def angle(self):
@@ -946,7 +975,7 @@ class Polygon:
         """
         if pos is None:
             pos = self.center
-        dis = (max(self, key=lambda p: (p - pos).get_length_sqrd()) - pos).length
+        dis = (max(self, key=lambda p: (p - pos).get_length_sqrd()) - pos).length + 1
         if return_pygame:
             return pygame.Rect(pos[0] - dis, pos[1] - dis, 2 * dis, 2 * dis)
         else:
@@ -1050,8 +1079,8 @@ class Polygon:
         points = []
         for p1 in self:
             for p2 in other:
-                points.append(Vec2d(p1 + p2))
-        return Polygon(*points)
+                points.append(p1 + p2)
+        return Polygon(points)
 
     def __add__(self, other):
         """
@@ -1175,9 +1204,9 @@ class Polygon:
                 dis = other.r - data[1]
             else:
                 inter = False
-                dis = data[1] - other.r
+                dis = other.r - data[1]
             vec.length = dis
-            return dis, inter, vec
+            return abs(dis), inter, vec, other.pos - vec * ((other.r / dis) - 1)
         else:
             return self.GJK(other)
 
@@ -1187,20 +1216,44 @@ class Polygon:
         check if two polygons intersect and compute vector, by which other should be moved to stop/start intersecting
 
         Return
-           - distance/depth
+           - distance/depth (length of penetration vector)
            - bool(polygons intersect)
            - penetration vector
+           - collision point on polygon's perimeter
         """
+        # other = Polygon(other)
+        # cso = self.minkowski(-other)
+        # cso.convex()
+        # data = cso.nearest_point([0, 0])
+        # ip = self.nearest_point(data[0] + other.center)[0]
+        # pygame.draw.circle(screen, (255, 0, 0), ip.int(), 4)
+        # return data[1], [0, 0] in cso, data[0]
         other = Polygon(other)
-        cso = self.minkowski(-other)
+        points = []
+        origin = {}
+        for n1, p1 in enumerate(self):
+            for n2, p2 in enumerate(-other):
+                p = p1 + p2
+                points.append(p)
+                origin[id(p)] = n1
+        cso = Polygon(None)
+        cso.points = points
         cso.convex()
         data = cso.nearest_point([0, 0])
-        return data[1], [0, 0] in cso, data[0]
+        o1, o2 = origin[id(cso.point(data[2]))], origin[id(cso.point(data[2] + 1))]
+        if data[3] or o1 == o2:
+            ip = self.points[o1]
+        else:
+            ip = self.points[o1] + (data[0] - cso.points[data[2]])
+        # ip = self.nearest_point(data[0] + other.center)[0]
+        # pygame.draw.circle(screen, (255, 0, 0), ip.int(), 4)
+        return data[1], [0, 0] in cso, data[0], ip
 
     def SAT(self, other):
         """
         Compute intersection using Separating axis theorem.
         """
+        return
         other = Polygon(other)
         p_data = [None, None, None]
         for n, p in enumerate(self):
@@ -1224,7 +1277,7 @@ class Polygon:
         return Vec2d(self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))])
 
     def __setitem__(self, ind, value):
-        self.points[ind] = Vec2d(value)
+        self.points[(1 if ind >= 0 else -1) * abs(ind) % (len(self))] = Vec2d(value)
 
     def __delitem__(self, ind):
         del self.points[ind]
@@ -1233,7 +1286,7 @@ class Polygon:
         return iter(self.points)
 
     def __neg__(self):
-        return Polygon(*[-point for point in self])
+        return Polygon([-point for point in self])
 
     def __len__(self):
         return len(self.points)
@@ -1281,6 +1334,15 @@ class Circle:
     pos = property(get_pos, set_pos)
     center = property(get_pos, set_pos)
 
+    def centered(self, pos):
+        return Circle(pos, self.r)
+
+    def rotate(self, ang):
+        pass
+
+    def rotated(self, ang):
+        return self
+
     def bounding(self, return_pygame=False):
         if return_pygame:
             return pygame.Rect(self.center[0] - self.r, self.center[1] - self.r, self.r * 2, self.r * 2)
@@ -1300,16 +1362,19 @@ class Circle:
             to_other = other.pos - self.pos
             dif = t - to_other.length
             to_other.length = dif
-            return abs(dif), dif > 0, to_other
+            return abs(dif), dif > 0, to_other, to_other * (self.r / abs(dif))
         else:
             data = Polygon(other).collision_data(self)
-            return data[0], data[1], -data[2]
+            return data[0], data[1], -data[2], data[3]
 
     def draw(self, surface, color=(255, 0, 0), width=1):
         pygame.draw.circle(surface, color, [int(self.center[0]), int(self.center[1])], int(self.r), width)
 
 
-if __name__ == '__main__':
+test = 1
+if __name__ != '__main__':
+    test = None
+if test == 1:
     from random import randint
     pygame.init()
 
@@ -1318,10 +1383,11 @@ if __name__ == '__main__':
 
     screen_real = pygame.display.set_mode(size)
     screen = pygame.Surface(size)
-    p1, p2 = Polygon([0, 0], [0, 100], [90, 60], user=True), Polygon([0, 0], [0, 60], [-30, 30])
+    p1, p2 = Polygon([[0, 0], [0, 100], [90, 60]], user=True), Polygon([[0, 0], [0, 60], [-30, 30]])
     p1.move([100, 50])
     p2.move([100, 400])
     p2 = p1.rotated(90, p1.bounding(return_pygame=True).topleft)
+    p2.move([-20, 0])
     msm = p1.minkowski(-p2)
     msm.convex()
     Polygon.polys.append(p2)
@@ -1364,6 +1430,8 @@ if __name__ == '__main__':
         if poly is not None:
             poly.move_to(ms)
             msm.set_points(p1.minkowski(-p2).convexed())
+        if pressed[pygame.K_k]:
+            msm.center = p1.center
 
         screen.fill((255, 255, 255))
         if ruler is not None:
@@ -1378,15 +1446,18 @@ if __name__ == '__main__':
                     flip),
                 [0, 0])
 
-        # p2.draw(screen)
-        # c = Circle(p2)
-        # inter = p1.SAT(p2)
-        # if inter[1] or pressed[pygame.K_z]:
-        #     p2.move(inter[2])
-        #     c.move(inter[2])
-        # c.draw(screen)
+        p2.draw(screen)
+        c = Circle(p2)
+        inter = p1.collision_data(c)
+        if inter[1] or pressed[pygame.K_z]:
+            p2.move(inter[2])
+            c.move(inter[2])
+        c.draw(screen)
+        pygame.draw.circle(screen, (255, 0, 0), p2.center.int(), 6)
+        pygame.draw.line(screen, (255, 0, 0), p2.center.int(), (p2.center + inter[2]).int(), 1)
         for n, p in enumerate(Polygon.polys):
             p.draw(screen, cols[n])
+        pygame.draw.circle(screen, (255, 0, 0), inter[3].int(), 4)
         # for n in range(len(msm)):
         #     axis = msm.edge(n).perpendicular()
         #     pygame.draw.line(screen, (64, 64, 64), msm[n], msm[n] + axis)
@@ -1397,12 +1468,57 @@ if __name__ == '__main__':
         #     pygame.draw.line(screen, (0, 0, 255), msm[n] + axis, msm[n] + v2)
         #     pygame.draw.circle(screen, (0, 0, 255), (msm[n] + axis).int(), 2)
         np = msm.nearest_point(ms)[0]
-        pygame.draw.circle(screen, (255, 0, 0), [int(e) for e in np], 5)
+        # pygame.draw.circle(screen, (255, 0, 0), [int(e) for e in np], 5)
         screen_real.blit(pygame.transform.flip(screen, False, flip), (0, 0))
-        clip = p1.clipped(p2)
-        if clip:
-            print(clip)
-            clip.draw(screen, color=(255, 0, 0))
+
+        pygame.display.flip()
+
+    pygame.quit()
+elif test == 2:
+    pygame.init()
+
+    size = [800, 800]
+
+    screen_real = pygame.display.set_mode(size)
+    screen = pygame.Surface(size)
+    c1, c2 = Vec2d(300, 300), Vec2d(300, 300)
+    v1, v2 = Vec2d(200, -50), Vec2d(25, -100)
+
+    running = True
+    c = None
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if c is not None:
+                        c = None
+                    else:
+                        if (c1 - event.pos).get_length_sqrd() <= (c2 - event.pos).get_length_sqrd():
+                            c = [c1, v1]
+                        else:
+                            c = [c2, v2]
+                elif event.button == 5:
+                    if c is not None:
+                        c[1].rotate(2)
+                elif event.button == 4:
+                    if c is not None:
+                        c[1].rotate(-2)
+        ms = pygame.mouse.get_pos()
+        if c is not None:
+            c[0][0], c[0][1] = ms[0], ms[1]
+        to_2 = c2 - c1
+        cd = c2
+        d = v2.intersection(v1, -to_2)
+        print(d[1])
+
+        screen.fill((255, 255, 255))
+        pygame.draw.line(screen, (255, 0, 0), c1, c1 + v1, 2)
+        pygame.draw.line(screen, (0, 0, 255), c2, c2 + v2, 2)
+        pygame.draw.line(screen, (0, 0, 0), c1, c1 + to_2, 2)
+        pygame.draw.line(screen, (0, 255, 0), cd, cd + d[0], 2)
+        screen_real.blit(pygame.transform.flip(screen, False, False), (0, 0))
 
         pygame.display.flip()
 
