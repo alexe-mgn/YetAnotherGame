@@ -21,7 +21,7 @@ def except_hook(cls, exception, c_traceback):
 
 # For one file .exe to work
 def get_file_path(path):
-    if getattr(sys, 'frozen', False) and LOAD_MEIPASS:
+    if LOAD_MEIPASS and getattr(sys, 'frozen', False):
         return '\\'.join([sys._MEIPASS, path])
     else:
         return path

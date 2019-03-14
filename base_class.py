@@ -4,14 +4,18 @@ from geometry import Vec2d, FRect, Polygon, Circle
 import math
 
 
-class CameraGroup(pygame.sprite.Group):
+class CameraGroup(pygame.sprite.AbstractGroup):
+    
+    def __init__(self):
+        super().__init__()
+        self.default_layer = 10
 
     def draw(self, surface, camera):
         cam_rect = camera.c_rect
         cam_tl = cam_rect.topleft
         zoom = camera.get_current_zoom()
         blit = surface.blit
-        for sprite in self.sprites():
+        for sprite in sorted(self.sprites(), key=lambda e: getattr(e, 'layer', self.default_layer)):
             s_rect = sprite.rect
             s_tl = s_rect.topleft
             c_rect = s_rect.copy()
@@ -237,8 +241,9 @@ class PhysObject(pygame.sprite.Sprite):
             self.effect(obj, cd)
             obj.effect(self, cd2)
             # Resolve collision
-            f = cd[2] * (-self.bounce_coef - obj.bounce_coef)
-            self.apply_force(f, cd[3])
+            # f = cd[2] * (-self.bounce_coef - obj.bounce_coef)
+            # self.apply_force(f, cd[3])
+            self.collide_respond(obj, cd)
             obj.collide_respond(self, cd2)
 
     def collide_respond(self, obj, c_data):
@@ -509,6 +514,7 @@ if __name__ == '__main__':
             sprite.image.fill((255, 255, 255, 0))
             fs = sprite.image.get_size()
             sprite.shape.centered((fs[0] / 2, fs[1] / 2)).draw(sprite.image, color=(255, 0, 0), width=0)
+            sprite.layer = 0
             self.unique = sprite
 
         def send_event(self, event):

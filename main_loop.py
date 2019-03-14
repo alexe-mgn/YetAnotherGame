@@ -1,5 +1,6 @@
 import pygame
-from main_settings import *
+import sys
+from main_settings import except_hook
 from base_class import Level
 
 sys.excepthook = except_hook

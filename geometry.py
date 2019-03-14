@@ -829,6 +829,17 @@ class Polygon:
         new.rotate(ang, pos)
         return new
 
+    def zoom(self, coef, pos=None):
+        if pos is None:
+            pos = self.center
+        for n, p in enumerate(self):
+            self[n] = pos + (p - pos) / coef
+
+    def zoomed(self, coef, pos=None):
+        new = self.copy()
+        new.zoom(coef, pos)
+        return new
+
     def get_points(self):
         """
         Return points of polygon (Without reference links)
@@ -1199,14 +1210,11 @@ class Polygon:
             if self.contains(other.center):
                 inter = True
                 dis = data[1] + other.r
-            elif data[1] < other.r:
-                inter = True
-                dis = other.r - data[1]
             else:
-                inter = False
+                inter = data[1] < other.r
                 dis = other.r - data[1]
             vec.length = dis
-            return abs(dis), inter, vec, other.pos - vec * ((other.r / dis) - 1)
+            return abs(dis), inter, vec, data[0]  # other.pos - vec * ((other.r / dis) - 1)
         else:
             return self.GJK(other)
 
@@ -1365,7 +1373,7 @@ class Circle:
             return abs(dif), dif > 0, to_other, to_other * (self.r / abs(dif))
         else:
             data = Polygon(other).collision_data(self)
-            return data[0], data[1], -data[2], data[3]
+            return data[0], data[1], -data[2], data[3] - data[2]
 
     def draw(self, surface, color=(255, 0, 0), width=1):
         pygame.draw.circle(surface, color, [int(self.center[0]), int(self.center[1])], int(self.r), width)
@@ -1401,6 +1409,7 @@ if test == 1:
     while running:
         ms = [pygame.mouse.get_pos()[0], size[1] - pygame.mouse.get_pos()[1]] if flip else pygame.mouse.get_pos()
         pressed = pygame.key.get_pressed()
+        mods = pygame.key.get_mods()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -1418,10 +1427,16 @@ if test == 1:
                     print(p1.collide(p2))
                 elif event.button == 4:
                     if poly is not None:
-                        poly.rotate(10)
+                        if mods & pygame.KMOD_SHIFT:
+                            poly.zoom(.5)
+                        else:
+                            poly.rotate(10)
                 elif event.button == 5:
                     if poly is not None:
-                        poly.rotate(-10)
+                        if mods & pygame.KMOD_SHIFT:
+                            poly.zoom(2)
+                        else:
+                            poly.rotate(-10)
                 elif event.button == 2:
                     ruler = ms
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -1448,13 +1463,13 @@ if test == 1:
 
         p2.draw(screen)
         c = Circle(p2)
-        inter = p1.collision_data(c)
+        inter = c.collision_data(p1)
         if inter[1] or pressed[pygame.K_z]:
-            p2.move(inter[2])
-            c.move(inter[2])
+            p2.move(-inter[2])
+            c.move(-inter[2])
         c.draw(screen)
         pygame.draw.circle(screen, (255, 0, 0), p2.center.int(), 6)
-        pygame.draw.line(screen, (255, 0, 0), p2.center.int(), (p2.center + inter[2]).int(), 1)
+        pygame.draw.line(screen, (255, 0, 0), p2.center.int(), (p2.center - inter[2]).int(), 1)
         for n, p in enumerate(Polygon.polys):
             p.draw(screen, cols[n])
         pygame.draw.circle(screen, (255, 0, 0), inter[3].int(), 4)
