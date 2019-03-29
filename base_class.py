@@ -1,7 +1,134 @@
 import pygame
 import random
-from geometry import Vec2d, FRect, Polygon, Circle
+from geometry import Vec2d, FRect, Circle
+from geometry import Polygon, between
 import math
+
+
+# class Poly(Polygon):
+#
+#     def rotate(self, *args):
+#         pass
+#
+#     @profile
+#     def collision_data(self, other):
+#         """
+#         Return
+#            - distance/depth
+#            - bool(objects intersect)
+#            - penetration vector
+#         """
+#         if isinstance(other, Circle):
+#             data = self.nearest_point(other.center)
+#             if not data[3]:
+#                 vec = self.edge(data[2]).perpendicular()
+#             else:
+#                 vec = other.center - self[data[2]]
+#             if self.contains(other.center):
+#                 inter = True
+#                 dis = data[1] + other.r
+#             else:
+#                 inter = data[1] < other.r
+#                 dis = other.r - data[1]
+#             vec.length = dis
+#             return 0, False, Vec2d(0, 0), Vec2d(0, 0)  # other.pos - vec * ((other.r / dis) - 1)
+#         else:
+#             return self.GJK(other)
+#
+#     @profile
+#     def nearest_point(self, point):
+#         """
+#         Return point on perimeter of polygon, that is the nearest to the given one.
+#
+#         Return
+#             - point
+#             - distance
+#             - vertex/edge index
+#             - bool(is vertex)
+#         """
+#         mx = [None, None, None]
+#         get_edge = self.edge
+#         for n, p in enumerate(self):
+#             edge = get_edge(n)
+#             to_point = point - p
+#             proj = to_point.scalar_projection(edge)
+#             if 0 < proj < edge.length:
+#                 proj_y = abs(to_point.scalar_projection(edge.perpendicular()))
+#                 if mx[1] is None or proj_y < mx[1]:
+#                     mx[0] = n
+#                     mx[1] = proj_y
+#                     mx[2] = False
+#             ln = (point - p).length
+#             if mx[1] is None or ln < mx[1]:
+#                 mx[0] = n
+#                 mx[1] = ln
+#                 mx[2] = True
+#         if mx[2]:
+#             return self[mx[0]], mx[1], mx[0], mx[2]
+#         elif mx[2] is not None:
+#             p = self.points[mx[0]]
+#             to_point = point - p
+#             return p + to_point.projection(get_edge(mx[0])), mx[1], mx[0], mx[2]
+#
+#     @profile
+#     def contains(self, point, crossing=True):
+#         """
+#         Check if point is inside polygon.
+#         """
+#         if Vec2d(point) in self.points:
+#             return True
+#         else:
+#             if crossing:
+#                 return self.horizontal_intersection_num(point) % 2 == 1
+#             else:
+#                 return abs(self.winding(point)) == 1
+#
+#     @profile
+#     def horizontal_intersection_num(self, point):
+#         """
+#         How much edges horizontal ray build from point would intersect.
+#         In other words, count crossing number of point and polygon.
+#         """
+#         c = 0
+#         for n in range(len(self)):
+#             p = n - 1
+#             v_in, v_out = self.edge(p), self.edge(n)
+#             if v_out[1] == 0:
+#                 continue
+#             while v_in[1] == 0:
+#                 p -= 1
+#                 v_in = self.edge(p)
+#             vert_angle = (v_in[1] >= 0) == (v_out[1] <= 0)
+#             if self.hor_raycast_edge(n, point, include_start=not vert_angle, include_end=False):
+#                 c += 1
+#         return c
+#
+#     @profile
+#     def hor_raycast_edge(self, edge_ind, point, track_border=True, include_start=True, include_end=True):
+#         """
+#         Check if horizontal ray from point intersects edge.
+#         """
+#         vec = self.edge(edge_ind)
+#         p = self.point(edge_ind)
+#         if vec[1] == 0:
+#             return False
+#         if not include_start and p[1] == point[1]:
+#             return False
+#         if not include_end and (p + vec)[1] == point[1]:
+#             return False
+#         to_point = point - p
+#
+#         proj_to_y_inter = between(to_point[1], 0, vec[1], [track_border] * 2)
+#
+#         # Warning: Projection of vector is created counter-clockwise!
+#         normal = vec.perpendicular()
+#         proj = (-1 if to_point.dot(normal) >= 0 else 1)
+#         # proj_vec = to_point.projection(normal)
+#         # proj = (-1 if proj_vec.get_quarter() == normal.get_quarter() else 1)
+#         neg = proj <= 0 if track_border else proj < 0
+#         pos = proj >= 0 if track_border else proj > 0
+#         proj_to_vec_inter = (neg and 0 < vec[1]) or (vec[1] < 0 and pos)
+#         return proj_to_y_inter and proj_to_vec_inter
 
 
 class CameraGroup(pygame.sprite.AbstractGroup):
@@ -26,37 +153,40 @@ class CameraGroup(pygame.sprite.AbstractGroup):
 
 
 class PhysicsGroup(CameraGroup):
-    
+
     def update(self, upd_time):
-        for s in self.sprites():
+        sprites = self.sprites()
+        for s in sprites:
             s.start_step()
-            for cs in pygame.sprite.spritecollide(s, self, False):
-                if cs is not s:
-                    s.collide(cs)
+            collide = s.collide
+            # for cs in pygame.sprite.spritecollide(s, self, False):
+            #     if cs is not s:
+            #         collide(cs)
+            for cs in sprites:
+                if cs is not s and s.rect.colliderect(cs.rect):
+                    collide(cs)
             s.handle_borders()
-        for s in self.sprites():
+        for s in sprites:
             s.pre_update(upd_time)
             s.update(upd_time)
             s.end_step()
 
 
-class StaticObject(pygame.sprite.Sprite):
+class PhysObject(pygame.sprite.Sprite):
 
     def __init__(self, *groups):
+        """
+        Necessary assignment
+           - rect
+           - image
+           - shape
+        """
         super().__init__(*groups)
-        size = 100
-        self.rect = pygame.Rect(0, 0, size, size)
-        self.f_rect = FRect(self.rect)
-        self.center = self.f_rect.center
+        self.rect = FRect(0, 0, 0, 0)
         self.angle = 0
 
-        self._i_image = pygame.Surface((size, size)).convert_alpha()
-        self._i_image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self._i_image, (255, 255, 255), (size // 2, size // 2), size // 2)
-
-        # Initial and real-time shape
-        self._i_shape = Circle(self.center, size // 2)
-        self._shape = self._i_shape
+        self.image = None
+        self.shape = Circle((0, 0), 0)
 
         self._vel = Vec2d(0, 0)
         self._a_vel = 0
@@ -64,23 +194,41 @@ class StaticObject(pygame.sprite.Sprite):
         self.torque = 0
 
         self.mass = 1
-        self.inertia = self.mass
+        self.inertia = 1
         self.bounce_coef = 100
         self.lose_coef = .998
-
-    def get_shape(self):
-        # self.shape.center = self.f_rect.center
+    
+    @property
+    def shape(self):
         return self._shape
-
-    def set_shape(self, shape):
+    
+    @shape.setter
+    def shape(self, shape):
         self._i_shape = shape
-        self._shape = self._i_shape.rotated(self.angle)
-        self._shape.center = self.center
-    shape = property(get_shape, set_shape)
+        self.apply_shape()
 
-    def get_image(self):
+    def apply_shape(self):
+        self._shape = self._i_shape.rotated(self.angle)
+        self._shape.center = self._center
+    
+    @property
+    def rect(self):
+        return self._rect
+    
+    @rect.setter
+    def rect(self, rect):
+        self.f_rect = FRect(rect)
+        self.apply_rect()
+
+    def apply_rect(self):
+        self._rect = self.f_rect.pygame
+        self._center = self.f_rect.center
+    
+    @property
+    def image(self):
         return self._i_image
 
+    # THIS MUST be used for drawing, not .image
     def read_image(self):
         img = pygame.transform.rotate(self._i_image, -self.angle)
         size = img.get_size()
@@ -88,163 +236,31 @@ class StaticObject(pygame.sprite.Sprite):
         rect.center = (size[0] // 2, size[1] // 2)
         rect.inflate_ip(*self.f_rect.size)
         return img.subsurface(rect)
-
-    def set_image(self, surf):
+    
+    @image.setter
+    def image(self, surf):
         self._i_image = surf
-    image = property(get_image, set_image)
 
     def handle_borders(self):
         pass
 
-    def collide(self, obj):
-        cd = self.get_shape().collision_data(obj.get_shape())
-        if cd[1]:
-            # Collision detected
-            cd2 = (cd[0], cd[1], -cd[2], cd[3] - cd[2])
-            # Tell each other about collision
-            self.effect(obj, cd)
-            obj.effect(self, cd2)
-            # Don't do anything with static, but obj should respond to collision.
-            obj.collide_respond(self, cd2)
-
-    def collide_respond(self, obj, c_data):
-        pass
-
-    def effect(self, obj, c_data):
-        pass
-
-    def pre_update(self, upd_time):
-        pass
-
-    def update(self, upd_time):
-        # Move self, change velocity depending on force and lose_coef
-        self.f_rect.move_ip(*(self._vel * (upd_time / 1000) + self.force * ((upd_time ** 2 / 2000000) / self.mass)))
-        self._vel += self.force * ((upd_time / 1000) / self.mass)
-        self._vel *= self.lose_coef
-        # Same with angular values
-        da = self._a_vel * (upd_time / 1000)
-        self.angle += da
-        self._a_vel += self.torque * ((upd_time / 1000) * (.1 / self.inertia) * (.180 / math.pi))
-        self._a_vel *= self.lose_coef
-
-    def apply_force(self, f, point=None):
-        pass
-
-    def move(self, shift):
-        self.f_rect.move_ip(*shift)
-
-    def start_step(self):
-        pass
-
-    def end_step(self):
-        # Apply floating point precision rectangle to one, that pygame reads for drawing.
-        self.rect = self.f_rect.pygame
-        self.center = self.f_rect.center
-        # Update shape
-        self._shape = self._i_shape.rotated(self.angle)
-        self._shape.center = self.center
-        # Zero forces
-        self.force[0], self.force[1] = 0, 0
-        self.torque = 0
-
-    @property
-    def pos(self):
-        return self.center
-
-    @pos.setter
-    def pos(self, p):
-        self.f_rect.center = p
-        self.rect = self.f_rect.pygame
-        self._shape.center = p
-
-    @property
-    def velocity(self):
-        return self._vel
-
-    @velocity.setter
-    def velocity(self, vel):
-        self._vel[0], self._vel[1] = vel[0], vel[1]
-
-
-class PhysObject(pygame.sprite.Sprite):
-
-    def __init__(self, *groups):
-        super().__init__(*groups)
-        size = 100
-        self.rect = pygame.Rect(0, 0, size, size)
-        self.f_rect = FRect(self.rect)
-        self.center = self.f_rect.center
-        self.angle = 0
-
-        self._i_image = pygame.Surface((size, size)).convert_alpha()
-        self._i_image.fill((0, 0, 0, 0))
-        pygame.draw.circle(self._i_image, (0, 0, 255), (size // 2, size // 2), size // 2)
-
-        self._i_shape = Circle(self.center, size // 2)
-        self._shape = self._i_shape
-
-        self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
-        self._a_vel = 45
-        self.force = Vec2d(0, 0)
-        self.torque = 0
-
-        self.mass = 1
-        self.inertia = self.mass
-        self.bounce_coef = 100
-        self.lose_coef = .998
-
-    def get_shape(self):
-        return self._shape
-
-    def set_shape(self, shape):
-        self._i_shape = shape
-        self._shape = self._i_shape.rotated(self.angle)
-        self._shape.center = self.center
-    shape = property(get_shape, set_shape)
-
-    def get_image(self):
-        return self._i_image
-
-    def read_image(self):
-        img = pygame.transform.rotate(self._i_image, -self.angle)
-        size = img.get_size()
-        rect = pygame.Rect(0, 0, 0, 0)
-        rect.center = (size[0] // 2, size[1] // 2)
-        rect.inflate_ip(*self.f_rect.size)
-        return img.subsurface(rect)
-
-    def set_image(self, surf):
-        self._i_image = surf
-    image = property(get_image, set_image)
-
-    def handle_borders(self):
-        d = 10
-        if self.center[1] < d:
-            # self.f_rect.centery = d
-            self._vel[1] = abs(self._vel[1])
-        if self.center[1] > level.size[1] - d:
-            # self.f_rect.centery = level.size[1] - d
-            self._vel[1] = -abs(self._vel[1])
-        if self.center[0] < d:
-            # self.f_rect.centerx = d
-            self._vel[0] = abs(self._vel[0])
-        if self.center[0] > level.size[0] - d:
-            # self.f_rect.centerx = level.size[0] - d
-            self._vel[0] = -abs(self._vel[0])
+    def check_collideable(self, obj):
+        return True
 
     def collide(self, obj):
-        cd = self.get_shape().collision_data(obj.get_shape())
-        if cd[1]:
-            # Collision detected
-            cd2 = (cd[0], cd[1], -cd[2], cd[3] - cd[2])
-            # Tell each other about collision
-            self.effect(obj, cd)
-            obj.effect(self, cd2)
-            # Resolve collision
-            # f = cd[2] * (-self.bounce_coef - obj.bounce_coef)
-            # self.apply_force(f, cd[3])
-            self.collide_respond(obj, cd)
-            obj.collide_respond(self, cd2)
+        if self.check_collideable(obj) and obj.check_collideable(self):
+            cd = self.shape.collision_data(obj.shape)
+            if cd[1]:
+                # Collision detected
+                cd2 = (cd[0], cd[1], -cd[2], cd[3] - cd[2])
+                # Tell each other about collision
+                self.effect(obj, cd)
+                obj.effect(self, cd2)
+                # Resolve collision
+                # f = cd[2] * (-self.bounce_coef - obj.bounce_coef)
+                # self.apply_force(f, cd[3])
+                self.collide_respond(obj, cd)
+                obj.collide_respond(self, cd2)
 
     def collide_respond(self, obj, c_data):
         self.apply_force(c_data[2] * (-self.bounce_coef - obj.bounce_coef), c_data[3])
@@ -272,7 +288,7 @@ class PhysObject(pygame.sprite.Sprite):
         self.force += f
         if point is not None:
             # And calculate torque if point is not mass center
-            to_p = point - self.center
+            to_p = point - self._center
             self.torque += to_p.cross(f)
 
     def move(self, shift):
@@ -283,24 +299,21 @@ class PhysObject(pygame.sprite.Sprite):
 
     def end_step(self):
         # Apply floating point precision rectangle to one, that pygame reads for drawing.
-        self.rect = self.f_rect.pygame
-        self.center = self.f_rect.center
+        self.apply_rect()
         # Update shape
-        self._shape = self._i_shape.rotated(self.angle)
-        self._shape.center = self.center
+        self.apply_shape()
         # Zero forces
         self.force[0], self.force[1] = 0, 0
         self.torque = 0
 
-    @property
-    def pos(self):
-        return self.center
+    def _get_pos(self):
+        return self._center
 
-    @pos.setter
-    def pos(self, p):
+    def _set_pos(self, p):
         self.f_rect.center = p
-        self.rect = self.f_rect.pygame
+        self._rect = self.f_rect.pygame
         self._shape.center = p
+    pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
     
     @property
     def velocity(self):
@@ -489,6 +502,61 @@ class Level:
 
 if __name__ == '__main__':
 
+    class TestObject(PhysObject):
+
+        def __init__(self, *groups):
+            super().__init__(*groups)
+            size = 50
+            self.rect = pygame.Rect(0, 0, size, size)
+            self.f_rect = FRect(self.rect)
+            self.center = self.f_rect.center
+            self.angle = 0
+
+            self._i_image = pygame.Surface((size, size)).convert_alpha()
+            self._i_image.fill((0, 0, 0, 0))
+            pygame.draw.circle(self._i_image, (0, 0, 255), (size // 2, size // 2), size // 2)
+
+            self._i_shape = Circle(self.center, size // 2)
+            self._shape = self._i_shape
+
+            self._vel = Vec2d(random.randrange(-50, 50), random.randrange(-50, 50))
+            self._a_vel = 45
+            self.force = Vec2d(0, 0)
+            self.torque = 0
+
+            self.mass = 1
+            self.inertia = self.mass
+            self.bounce_coef = 200
+            self.lose_coef = .998
+
+        def handle_borders(self):
+            d = 10
+            if self.center[1] < d:
+                # self.f_rect.centery = d
+                self._vel[1] = abs(self._vel[1])
+            if self.center[1] > level.size[1] - d:
+                # self.f_rect.centery = level.size[1] - d
+                self._vel[1] = -abs(self._vel[1])
+            if self.center[0] < d:
+                # self.f_rect.centerx = d
+                self._vel[0] = abs(self._vel[0])
+            if self.center[0] > level.size[0] - d:
+                # self.f_rect.centerx = level.size[0] - d
+                self._vel[0] = -abs(self._vel[0])
+
+        def apply_force(self, f, point=None):
+            super().apply_force(f, point)
+            pygame.draw.line(screen, (0, 255, 0), point, f * .01 + point)
+            print(self.torque)
+
+        def end_step(self):
+            super().end_step()
+
+        def update(self, upd_time):
+            super().update(upd_time)
+            if self is level.unique:
+                print(self.torque * ((upd_time / 1000) * (.1 / self.inertia) * (.180 / math.pi)))
+
     class Test(Level):
 
         def __init__(self, size=None, screen_size=None):
@@ -504,11 +572,12 @@ if __name__ == '__main__':
             self.sprites = PhysicsGroup()
             self.upd = True
 
-            for i in range(10):
-                sprite = PhysObject(self.sprites)
+            for i in range(100):
+                sprite = TestObject(self.sprites)
                 sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
-            sprite = PhysObject(self.sprites)
-            sprite.shape = Polygon(FRect(0, 0, 200, 10))
+            sprite = TestObject(self.sprites)
+            shape = Polygon(FRect(0, 0, 200, 10))
+            sprite.shape = shape
             sprite.f_rect = FRect(sprite.shape.maximum_bounding(return_pygame=True))
             sprite.image = pygame.Surface(sprite.f_rect.size).convert_alpha()
             sprite.image.fill((255, 255, 255, 0))
@@ -596,7 +665,8 @@ if __name__ == '__main__':
             t.pos = ms
 
         screen.fill((0, 0, 0))
-        level.update(upd_time)
         level.draw(screen)
+        level.update(upd_time)
+        #level.draw(screen)
         pygame.display.flip()
         prev_ms = ms

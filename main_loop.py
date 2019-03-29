@@ -3,6 +3,7 @@ import sys
 from main_settings import except_hook
 from base_class import Level
 
+
 sys.excepthook = except_hook
 
 
@@ -13,6 +14,15 @@ class Main:
         self.winflag = pygame.RESIZABLE
         self.screen = pygame.display.set_mode(self.size, self.winflag)
         self.level, self.clock, self.running = None, None, False
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, size):
+        self.screen = pygame.display.set_mode(size, self.winflag)
+        self._size = list(size)
 
     def load_level(self, level):
         self.level = level

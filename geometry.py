@@ -724,7 +724,7 @@ class Polygon:
         """
         Return same polygon as self is, without any reference links.
         """
-        new = Polygon([Vec2d(point) for point in self])
+        new = self.__class__([Vec2d(point) for point in self])
         new._angle = self._angle
         return new
 
@@ -904,7 +904,7 @@ class Polygon:
 
     def clipped(self, other):
         return
-        new = Polygon(other)
+        new = self.__class__(other)
         for n, p in enumerate(self):
             cut = 0
             for n2, p2 in enumerate(new):
@@ -936,7 +936,7 @@ class Polygon:
         self.move(shift)
 
     def centered(self, pos):
-        new = Polygon(self)
+        new = self.__class__(self)
         new.center = pos
         return new
 
@@ -1000,9 +1000,32 @@ class Polygon:
             return True
         else:
             if crossing:
-                return self.horizontal_intersection_num(point) % 2 == 1
+                return abs(self.collide_point(point)) == 1
             else:
                 return abs(self.winding(point)) == 1
+
+    def collide_point(self, point):
+        intersections = 0
+        ln = len(self)
+        x, y = point
+        for n, p in enumerate(self):
+            s_x, s_y = p
+            e_x, e_y = self.point((n + 1) % ln)
+            x_min, x_max = min(s_x, e_x), max(s_x, e_x)
+            y_min, y_max = min(s_y, e_y), max(s_y, e_y)
+            # on horizontal edge
+            if (s_y == e_y) and (s_y == y) and x_min < x < x_max:
+                return -1
+            if (y > y_min) and (y <= y_max) and (x <= x_max) and (s_y != e_y):
+                x_inters = (((y - s_y) * (e_x - s_x)) / (e_y - s_y)) + s_x
+                # on polygon edge
+                if x_inters == x:
+                    return -1
+                # intersects edge
+                if s_x == e_x or x <= x_inters:
+                    intersections += 1
+
+        return intersections % 2
 
     def __contains__(self, point, crossing=True):
         return self.contains(point)
@@ -1060,27 +1083,29 @@ class Polygon:
             - bool(is vertex)
         """
         mx = [None, None, None]
+        get_edge = self.edge
         for n, p in enumerate(self):
-            edge = self.edge(n)
+            edge = get_edge(n)
             to_point = point - p
-            proj = to_point.scalar_projection(edge)
-            if 0 < proj < edge.length:
-                proj_y = abs(to_point.scalar_projection(edge.perpendicular()))
+            e_ln = edge.length
+            if 0 < to_point.dot(edge) < e_ln**2:
+                proj_y = abs(to_point.dot(edge.perpendicular()) / e_ln)
                 if mx[1] is None or proj_y < mx[1]:
                     mx[0] = n
                     mx[1] = proj_y
                     mx[2] = False
-            ln = (point - p).length
-            if mx[1] is None or ln < mx[1]:
-                mx[0] = n
-                mx[1] = ln
-                mx[2] = True
+            else:
+                ln = to_point.length
+                if mx[1] is None or ln < mx[1]:
+                    mx[0] = n
+                    mx[1] = ln
+                    mx[2] = True
         if mx[2]:
             return self[mx[0]], mx[1], mx[0], mx[2]
         elif mx[2] is not None:
             p = self.points[mx[0]]
             to_point = point - p
-            return p + to_point.projection(self.edge(mx[0])), mx[1], mx[0], mx[2]
+            return p + to_point.projection(get_edge(mx[0])), mx[1], mx[0], mx[2]
 
     def minkowski(self, other):
         """
@@ -1091,7 +1116,7 @@ class Polygon:
         for p1 in self:
             for p2 in other:
                 points.append(p1 + p2)
-        return Polygon(points)
+        return self.__class__(points)
 
     def __add__(self, other):
         """
@@ -1151,16 +1176,19 @@ class Polygon:
         In other words, count crossing number of point and polygon.
         """
         c = 0
+        hor_raycast_edge = self.hor_raycast_edge
+        get_edge = self.edge
+        edges = [get_edge(n) for n in range(len(self))]
         for n in range(len(self)):
             p = n - 1
-            v_in, v_out = self.edge(p), self.edge(n)
+            v_in, v_out = edges[p], edges[n]
             if v_out[1] == 0:
                 continue
             while v_in[1] == 0:
                 p -= 1
-                v_in = self.edge(p)
+                v_in = edges[p]
             vert_angle = (v_in[1] >= 0) == (v_out[1] <= 0)
-            if self.hor_raycast_edge(n, point, include_start=not vert_angle, include_end=False):
+            if hor_raycast_edge(n, point, include_start=not vert_angle, include_end=False):
                 c += 1
         return c
 
@@ -1189,7 +1217,7 @@ class Polygon:
         Check if two polygons intersect.
         (Uses Gilbert-Johnson-Keerthi algorithm)
         """
-        other = Polygon(other)
+        other = self.__class__(other)
         cso = self.minkowski(-other)
         cso.convex()
         return [0, 0] in cso
@@ -1229,14 +1257,15 @@ class Polygon:
            - penetration vector
            - collision point on polygon's perimeter
         """
-        # other = Polygon(other)
+        # other = self.__class__(other)
         # cso = self.minkowski(-other)
         # cso.convex()
         # data = cso.nearest_point([0, 0])
         # ip = self.nearest_point(data[0] + other.center)[0]
         # pygame.draw.circle(screen, (255, 0, 0), ip.int(), 4)
         # return data[1], [0, 0] in cso, data[0]
-        other = Polygon(other)
+
+        other = self.__class__(other)
         points = []
         origin = {}
         for n1, p1 in enumerate(self):
@@ -1244,40 +1273,42 @@ class Polygon:
                 p = p1 + p2
                 points.append(p)
                 origin[id(p)] = n1
-        cso = Polygon(None)
+        cso = self.__class__(None)
         cso.points = points
         cso.convex()
+
         data = cso.nearest_point([0, 0])
+
         o1, o2 = origin[id(cso.point(data[2]))], origin[id(cso.point(data[2] + 1))]
         if data[3] or o1 == o2:
             ip = self.points[o1]
         else:
             ip = self.points[o1] + (data[0] - cso.points[data[2]])
-        # ip = self.nearest_point(data[0] + other.center)[0]
-        # pygame.draw.circle(screen, (255, 0, 0), ip.int(), 4)
+
         return data[1], [0, 0] in cso, data[0], ip
 
     def SAT(self, other):
         """
         Compute intersection using Separating axis theorem.
         """
-        return
-        other = Polygon(other)
-        p_data = [None, None, None]
-        for n, p in enumerate(self):
-            axis = self.edge(n).perpendicular()
-            ps = self.scalar_axis_projection(axis, p)
-            po = other.scalar_axis_projection(axis, p)
-            st, end = proj_intersection(ps, po)
-            pygame.draw.line(screen, (100, 100, 100), p, p + axis)
-            pygame.draw.line(screen, (0, 255, 0), p + axis.resized(ps[0]), p + axis.resized(ps[1]), 2)
-            pygame.draw.line(screen, (255, 0, 0), p + axis.resized(po[0]), p + axis.resized(po[1]))
-            if st is None:
-                return None, False, None
-            if p_data[1] is None or abs(end - st) < abs(p_data[1]):
-                p_data[0] = n
-                p_data[1] = end - st
-                p_data[2] = axis
+        other = self.__class__(other)
+        p_data = [None, None, None, None]
+        for pi, poly, poly2 in ((0, self, other), (1, other, self)):
+            for n, p in enumerate(poly):
+                axis = poly.edge(n).perpendicular()
+                ps = self.scalar_axis_projection(axis, p)
+                po = other.scalar_axis_projection(axis, p)
+                st, end = proj_intersection(ps, po)
+                pygame.draw.line(screen, (100, 100, 100), p, p + axis)
+                pygame.draw.line(screen, (0, 255, 0), p + axis.resized(ps[0]), p + axis.resized(ps[1]), 2)
+                pygame.draw.line(screen, (255, 0, 0), p + axis.resized(po[0]), p + axis.resized(po[1]))
+                if st is None:
+                    return None, False, None
+                if p_data[1] is None or abs(end - st) < abs(p_data[1]):
+                    p_data[0] = n
+                    p_data[1] = end - st
+                    p_data[2] = axis
+                    p_data[3] = pi
         p_data[2].length = p_data[1]
         return abs(p_data[1]), True, p_data[2]
 
@@ -1294,13 +1325,13 @@ class Polygon:
         return iter(self.points)
 
     def __neg__(self):
-        return Polygon([-point for point in self])
+        return self.__class__([-point for point in self])
 
     def __len__(self):
         return len(self.points)
 
     def __repr__(self):
-        return 'Polygon({0})'.format('; '.join('[{0}, {1}]'.format(*point) for point in self))
+        return '{1}({0})'.format('; '.join('[{0}, {1}]'.format(*point) for point in self), self.__class__.__name__)
 
     def draw(self, surface, color=(255, 0, 0), width=1):
         """
@@ -1423,6 +1454,7 @@ if test == 1:
                                 poly = p
                                 break
                 elif event.button == 3:
+                    print(msm.contains(ms))
                     print(msm.nearest_edge(ms))
                     print(p1.collide(p2))
                 elif event.button == 4:
@@ -1463,7 +1495,7 @@ if test == 1:
 
         p2.draw(screen)
         c = Circle(p2)
-        inter = c.collision_data(p1)
+        inter = p2.collision_data(p1)
         if inter[1] or pressed[pygame.K_z]:
             p2.move(-inter[2])
             c.move(-inter[2])
