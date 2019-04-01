@@ -58,7 +58,7 @@ class FRect:
         self._y += y
 
     def move(self, x, y):
-        new = FRect(self)
+        new = self.copy()
         new.move_ip(x, y)
         return new
 
@@ -69,7 +69,7 @@ class FRect:
         self.center = center
 
     def inflate(self, w, h):
-        new = FRect(self)
+        new = self.copy()
         new.inflate_ip(w, h)
 
     def clamp_ip(self, rect):
@@ -88,7 +88,7 @@ class FRect:
             self.centery = rect[1] + rect[3] / 2
 
     def clamp(self, rect):
-        new = FRect(self)
+        new = self.copy()
         new.clamp_ip(rect)
         return new
 
@@ -109,7 +109,7 @@ class FRect:
             self._h -= self.y - rect[1] - rect[3]
 
     def clip(self, rect):
-        new = FRect(self)
+        new = self.copy()
         new.clip_ip(rect)
 
     def contains(self, rect):
@@ -123,18 +123,22 @@ class FRect:
                self.y <= pos[1] <= self.bottom
 
     def colliderect(self, rect):
-        return (rect[0] <= self.x <= rect[0] + rect[2] or
-                rect[0] <= self.right <= rect[0] + rect[2]) and \
-               (rect[1] <= self.x <= rect[1] + rect[3] or
-                rect[1] <= self.right <= rect[1] + rect[3])
+        return rect[0] - self._w <= self._x <= rect[0] + rect[2] and rect[1] - self._h <= self._y <= rect[1] + rect[3]
 
     def make_int(self):
         for n in range(4):
             self[n] = int(self[n])
+    
+    def int(self):
+        new = self.copy()
+        new.make_int()
 
     def round(self, digs):
         for n in range(4):
             self[n] = round(self[n], digs)
+
+    def copy(self):
+        return FRect(self._x, self._y, self._w, self._h)
 
     def __getitem__(self, ind):
         return [self._x, self._y, self._w, self._h][ind]
@@ -273,7 +277,7 @@ class FRect:
         self._y = y - self._h / 2
 
     def centered(self, pos):
-        new = FRect(self)
+        new = self.copy()
         new.center = pos
         return new
 
@@ -675,6 +679,12 @@ class Vec2d:
 
     def int(self):
         return Vec2d(int(self.x), int(self.y))
+    
+    def make_int(self):
+        self.x, self.y = int(self.x), int(self.y)
+
+    def __ceil__(self):
+        return Vec2d(math.ceil(self.x), math.ceil(self.y))
 
     def __getstate__(self):
         return [self.x, self.y]

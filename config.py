@@ -1,19 +1,12 @@
-import pygame
-
-
-class LAYER:
+class DRAW_LAYER:
     PLANET = 0
-    SHIP = 1
-    PROJECTILE = 2
-    FIELD = 3
+    WEAPON = 5
+    SHIP = 10
+    COMPONENT = 15
+    ENGINE = 15
+    PROJECTILE = 20
+    FIELD = 30
 
 
-class ROLE:
-    NORMAL = 0
-    PROJECTILE = 1
-    FIELD = 2
-
-
-class TEAM:
-    NORMAL = 0
-    PLAYER = 1
+class COLLISION_TYPE:
+    SHIELD = 5

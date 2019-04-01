@@ -1,10 +1,12 @@
 import sys
+import os
 import traceback
 import time
 
 APP_NAME = 'Game'
 EXCEPTION_FILE = 'Game_traceback.txt'
 LOAD_MEIPASS = True
+PATH = (sys._MEIPASS if LOAD_MEIPASS and getattr(sys, 'frozen', False) else os.path.split(__file__)[0])
 
 
 def except_hook(cls, exception, c_traceback):
@@ -20,8 +22,5 @@ def except_hook(cls, exception, c_traceback):
 
 
 # For one file .exe to work
-def get_file_path(path):
-    if LOAD_MEIPASS and getattr(sys, 'frozen', False):
-        return '\\'.join([sys._MEIPASS, path])
-    else:
-        return path
+def get_path(path):
+    return os.path.join(PATH, path)
