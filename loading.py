@@ -19,7 +19,7 @@ def cast_image(source, center, size_inc):
     tl = ceil(hf_size - img_center)
 
     img = pygame.Surface(hf_size * 2).convert_alpha()
-    img.fill((255, 255, 255, 255))
+    img.fill((0, 0, 0, 0))
     img.blit(pygame.transform.scale(source, size),
              tl)
     return img, tl - hf_size

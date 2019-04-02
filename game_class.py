@@ -3,6 +3,7 @@ import pymunk
 from geometry import Vec2d
 from base_class import PhysObject
 from config import *
+import math
 
 
 class BaseShip(PhysObject):
@@ -33,6 +34,7 @@ class Component(PhysObject):
         super().__init__()
         self.draw_layer = DRAW_LAYER.COMPONENT
         self._pos = Vec2d(0, 0)
+        self._ang = 0
         self._parent = None
         self._i_shape = None
         self._i_body = None
@@ -46,7 +48,6 @@ class Component(PhysObject):
     def mount(self, parent):
         self._parent = parent
         self.body = parent.body
-        self.apply_rect()
 
     def unmount(self):
         if self.mounted():
@@ -56,10 +57,9 @@ class Component(PhysObject):
             if self._space:
                 self._space.add(self._i_body)
             self.body = self._i_body
-            self.local_pos = (0, 0)
+            self.set_local_placement((0, 0), 0)
             self.pos = pos
             self.ang = ang
-            self.apply_rect()
 
     @property
     def space(self):
@@ -106,7 +106,7 @@ class Component(PhysObject):
                 self._space.remove(self._shape)
             self._space.add(shape)
         self._shape = shape
-        self.local_pos = self._pos
+        self.update_local_placement()
 
     @property
     def body(self):
@@ -120,6 +120,22 @@ class Component(PhysObject):
             self._shape.body = body
         self.space = body.space
         self._body = body
+        self.apply_rect()
+
+    def update_local_placement(self):
+        pos, ang = self.local_pos, self.local_angle
+        i_shape = self._i_shape
+        shape = self._shape
+        if isinstance(i_shape, pymunk.Poly):
+            shape.unsafe_set_vertices((e + pos for e in i_shape.get_vertices()))
+        elif isinstance(i_shape, pymunk.Segment):
+            shape.unsafe_set_endpoints(i_shape.a + pos, i_shape.b + pos)
+        elif isinstance(i_shape, pymunk.Circle):
+            shape.unsafe_set_offset(Vec2d(pos) + self._i_shape.offset)
+
+    def set_local_placement(self, pos, ang):
+        self._pos, self._ang = Vec2d(pos), ang
+        self.update_local_placement()
 
     @property
     def local_pos(self):
@@ -127,24 +143,37 @@ class Component(PhysObject):
 
     @local_pos.setter
     def local_pos(self, pos):
-        i_shape = self._i_shape
-        shape = self._shape
-        if isinstance(i_shape, pymunk.Poly):
-            shape.unsafe_set_vertices((pos + e for e in i_shape.get_vertices()))
-        elif isinstance(i_shape, pymunk.Segment):
-            shape.unsafe_set_endpoints(i_shape.a + pos, i_shape.b + pos)
-        elif isinstance(i_shape, pymunk.Circle):
-            shape.unsafe_set_offset(pos)
         self._pos = Vec2d(pos)
+        self.update_local_placement()
+
+    @property
+    def local_angle(self):
+        return self._ang
+
+    @local_angle.setter
+    def local_angle(self, ang):
+        self._ang = ang
+        self.update_local_placement()
 
     def _get_pos(self):
         return self.local_to_world(self._pos)
 
     def _set_pos(self, p):
-        if self._parent is None:
+        if not self.mounted():
             self._rect.center = p
             self._body.position = p
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+
+    def _get_angle(self):
+        return self._body.angle / math.pi * 180 + self._ang
+
+    def _set_angle(self, ang):
+        if self.mounted():
+            self._ang = ang - self._body.angle / math.pi * 180
+        else:
+            self._body.angle = ang / 180 * math.pi
+        self.update_local_placement()
+    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
     def apply_rect(self):
         self._rect.center = self.local_to_world(self._pos)
@@ -268,6 +297,7 @@ if __name__ == '__main__':
                         self.engine.unmount()
                     else:
                         self.ship.mount_to(self.engine, (-40, 0))
+                        self.engine.local_angle = 90
                 elif event.key == pygame.K_i:
                     print(self.engine.velocity, self.engine.pos)
                     self.engine.pos = [300, 300]
@@ -302,7 +332,7 @@ if __name__ == '__main__':
 
 
     main.size = [800, 600]
-    level = TestLevel([800, 600], [800, 600])
+    level = TestLevel([2000, 1500], [800, 600])
 
     main.load_level(level)
     main.start()

@@ -1,10 +1,7 @@
-import pygame
 import pymunk
 from geometry import Vec2d, FRect
 from loading import load_image, cast_image
 from game_class import BaseEngine
-from math import ceil
-
 
 NAME = 'red_small_booster'
 I_IMG = load_image('Engines\\Models\\%s.png' % (NAME,))
@@ -27,7 +24,7 @@ class Engine(BaseEngine):
 
         self.body = pymunk.Body()
         self._i_body = self.body
-        self.shape = pymunk.Circle(self.body, self.RADIUS)
+        self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((30, 19)))
         self.shape.density = 1
         self.pos = [0, 0]
 
@@ -38,7 +35,7 @@ class Engine(BaseEngine):
 
     @classmethod
     def calculate_collision_shape(cls):
-        radius = 25
+        radius = 22
 
         cls.RADIUS = radius * cls.SIZE_INC
 

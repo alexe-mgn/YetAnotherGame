@@ -1,18 +1,17 @@
-import pygame
 import pymunk
 from geometry import Vec2d, FRect
 from loading import load_image, cast_image
 from game_class import BaseShip
-from math import ceil
 
-I_IMG = load_image('Ships\\Models\\Vessel.png')
+NAME = 'Vessel'
+I_IMG = load_image('Ships\\Models\\%s.png' % (NAME,))
 I_SIZE = Vec2d(I_IMG.get_size())
 
 I_IMG_CENTER = Vec2d(300, 395)
 
 
 class Ship(BaseShip):
-    SIZE_INC = 1 / 6
+    SIZE_INC = 1 / 2
 
     def __init__(self):
         super().__init__()

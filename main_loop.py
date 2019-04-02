@@ -29,6 +29,8 @@ class Main:
         self.level = level
 
     def start(self):
+        pygame.time.set_timer(30, 250)
+
         if self.level is None:
             self.load_level(Level([6000, 6000], self.size))
         self.clock = pygame.time.Clock()
@@ -48,6 +50,8 @@ class Main:
             elif event.type == pygame.VIDEORESIZE:
                 self.size = list(event.size)
                 pygame.display.set_mode(self.size, self.winflag)
+            elif event.type == 30:
+                pygame.display.set_caption(str(1000 / upd_time))
         self.level.handle_keys()
         self.level.update()
         self.level.end_step()
