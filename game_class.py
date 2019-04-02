@@ -17,7 +17,6 @@ class BaseShip(PhysObject):
         self.components = []
 
     def image_to_local(self, pos):
-        print(self.SIZE_INC * Vec2d(pos) + self.IMAGE_SHIFT)
         return Vec2d(pos) * self.SIZE_INC + self.IMAGE_SHIFT
 
     def mount_to(self, obj, pos):
@@ -122,10 +121,12 @@ class Component(PhysObject):
         self.space = body.space
         self._body = body
 
-    def _get_local_pos(self):
+    @property
+    def local_pos(self):
         return self._pos
 
-    def _set_local_pos(self, pos):
+    @local_pos.setter
+    def local_pos(self, pos):
         i_shape = self._i_shape
         shape = self._shape
         if isinstance(i_shape, pymunk.Poly):
@@ -135,7 +136,6 @@ class Component(PhysObject):
         elif isinstance(i_shape, pymunk.Circle):
             shape.unsafe_set_offset(pos)
         self._pos = Vec2d(pos)
-    local_pos = property(_get_local_pos, _set_local_pos)
 
     def _get_pos(self):
         return self.local_to_world(self._pos)
