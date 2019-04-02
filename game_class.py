@@ -36,15 +36,31 @@ class Component(PhysObject):
         self._pos = Vec2d(0, 0)
         self._parent = None
         self._i_shape = None
+        self._i_body = None
 
     def image_to_local(self, pos):
         return pos * self.SIZE_INC + self.IMAGE_SHIFT
 
+    def mounted(self):
+        return self._parent is not None
+
     def mount(self, parent):
-        # self.space = None
         self._parent = parent
         self.body = parent.body
-        # self.space = parent.space
+        self.apply_rect()
+
+    def unmount(self):
+        if self.mounted():
+            pos = self.pos
+            ang = self.ang
+            self._parent = None
+            if self._space:
+                self._space.add(self._i_body)
+            self.body = self._i_body
+            self.local_pos = (0, 0)
+            self.pos = pos
+            self.ang = ang
+            self.apply_rect()
 
     @property
     def space(self):
@@ -52,14 +68,16 @@ class Component(PhysObject):
 
     @space.setter
     def space(self, space):
+        # shapes ???
+        own_body = self._body is not None and self._body is self._i_body
         if self._space is not None:
-            if self.shapes:
-                self._space.remove(*self.shapes)
-            if self._body is not None and self._parent is None:
+            if self._shape:
+                self._space.remove(self._shape)
+            if own_body:
                 self._space.remove(self._body)
         self._space = space
         if space is not None:
-            if self._body is not None and self._parent is None:
+            if own_body:
                 space.add(self._body)
             if self._shape is not None:
                 space.add(self._shape)
@@ -79,16 +97,16 @@ class Component(PhysObject):
         if i_space:
             i_space.remove(i_shape)
         i_shape.body = None
-        i_shape.sensor = True
-        if shape.body is not self._body:
+        self._i_shape = i_shape
+        if shape.space:
             shape.space.remove(shape)
+        if shape.body is not self._body:
             shape.body = self._body
         if self._space is not None:
             if self._shape is not None:
                 self._space.remove(self._shape)
-            self._space.add(self._shape)
+            self._space.add(shape)
         self._shape = shape
-        self._i_shape = i_shape
         self.local_pos = self._pos
 
     @property
@@ -97,21 +115,12 @@ class Component(PhysObject):
 
     @body.setter
     def body(self, body):
-        # shapes !!!
-        if self._space is not None:
-            if self._body != getattr(self._parent, 'body', None):
-                self._space.remove(self._body)
-            if self._parent is None:
-                self._space.add(body)
+        self.space = None
+        self._body = None
+        if self._i_shape is not None:
+            self._shape.body = body
+        self.space = body.space
         self._body = body
-        shape = self._shape
-        if shape is not None and self._space is not None:
-            self._space.remove(shape)
-            shape.body = body
-            if body.space:
-                body.space.add(shape)
-        if self._rect is not None:
-            self.apply_rect()
 
     def _get_local_pos(self):
         return self._pos
@@ -124,12 +133,7 @@ class Component(PhysObject):
         elif isinstance(i_shape, pymunk.Segment):
             shape.unsafe_set_endpoints(i_shape.a + pos, i_shape.b + pos)
         elif isinstance(i_shape, pymunk.Circle):
-            space = shape.space
-            new = pymunk.Circle(self._body, i_shape.radius, pos)
-            if space:
-                space.remove(shape)
-                space.add(new)
-            self._shape = new
+            shape.unsafe_set_offset(pos)
         self._pos = Vec2d(pos)
     local_pos = property(_get_local_pos, _set_local_pos)
 
@@ -177,12 +181,17 @@ if __name__ == '__main__':
             engine = Engine()
             engine.pos = (100, 100)
             engine.add(group)
-            ship.mount_to(engine, ship.image_to_local((690, 395)))
+            self.engine = engine
+            # ship.mount_to(engine, ship.image_to_local((690, 395)))
 
             self.groups.append(group)
 
         def pregenerate2(self):
             space = pymunk.Space()
+            def begin(arbiter, space, dct):
+                print(arbiter)
+                return True
+            space.add_wildcard_collision_handler(3).begin = begin
             space.gravity = [0, 1000]
 
             body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -207,6 +216,7 @@ if __name__ == '__main__':
             engine = Engine()
             engine.pos = (100, 100)
             engine.add(group)
+            self.engine = engine
             for n in range(20):
                 size = 100
                 sprite = PhysObject()
@@ -252,6 +262,16 @@ if __name__ == '__main__':
                     s = self.get_mouse_sprite()
                     if s is not None:
                         s.vel = [0, -500]
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_u:
+                    if self.engine.mounted():
+                        self.engine.unmount()
+                    else:
+                        self.ship.mount_to(self.engine, (-40, 0))
+                elif event.key == pygame.K_i:
+                    print(self.engine.velocity, self.engine.pos)
+                    self.engine.pos = [300, 300]
+                    self.engine.vel = [0, 0]
 
         def end_step(self):
             super().end_step()
@@ -260,6 +280,9 @@ if __name__ == '__main__':
             if drag_sprite is not None:
                 drag_sprite.pos = self.mouse_absolute
                 drag_sprite.vel = [0, 0]
+
+        def handle_keys(self):
+            super().handle_keys()
 
         def draw(self, surface):
             super().draw(surface)

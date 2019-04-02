@@ -138,13 +138,14 @@ class PhysObject(pygame.sprite.Sprite):
     
     @shape.setter
     def shape(self, shape):
-        if shape.body is not self._body:
+        if shape.space:
             shape.space.remove(shape)
+        if shape.body is not self._body:
             shape.body = self._body
         if self._space is not None:
             if self._shape is not None:
                 self._space.remove(self._shape)
-            self._space.add(self._shape)
+            self._space.add(shape)
         self._shape = shape
 
     @property
@@ -152,8 +153,9 @@ class PhysObject(pygame.sprite.Sprite):
         return self._body.shapes
 
     def add_shape(self, shape):
-        if shape.body is not self._body:
+        if shape.space:
             shape.space.remove(shape)
+        if shape.body is not self._body:
             shape.body = self._body
         if self._space is not None:
             self._space.add(shape)
