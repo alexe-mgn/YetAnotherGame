@@ -23,18 +23,11 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         blit = surface.blit
         for sprite in self.layer_sorted():
             if sprite.rect.colliderect(cam_rect):
-                if not isinstance(sprite._image, pygame.Surface):
-                    s_img = sprite.read_image()
-                    s_size = s_img.get_size()
-                    tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
-                    self.spritedict[sprite] = blit(
-                        pygame.transform.scale(s_img, [int(e * zoom) for e in s_size]), tl)
-                else:
-                    s_img = sprite.read_image()
-                    s_size = s_img.get_size()
-                    tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
-                    self.spritedict[sprite] = blit(
-                        pygame.transform.scale(s_img, [int(e * zoom) for e in s_size]), tl)
+                s_img = sprite.read_image()
+                s_size = s_img.get_size()
+                tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
+                self.spritedict[sprite] = blit(
+                    pygame.transform.scale(s_img, [int(e * zoom) for e in s_size]), tl)
         self.lostsprites = []
 
 
