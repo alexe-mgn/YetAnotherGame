@@ -4,11 +4,11 @@ from loading import load_image, cast_image
 from game_class import BaseEngine
 from config import *
 
-NAME = 'red_small_booster'
+NAME = ''
 I_IMG = load_image('Engines\\Models\\%s.png' % (NAME,))
 I_SIZE = Vec2d(I_IMG.get_size())
 
-I_IMG_CENTER = Vec2d(40, 19)
+I_IMG_CENTER = Vec2d(0, 0)
 
 
 class Engine(BaseEngine):
@@ -19,10 +19,8 @@ class Engine(BaseEngine):
 
         self.body = pymunk.Body()
         self._i_body = self.body
-        self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((30, 19)))
+        self.shape = pymunk.Poly(self.body, self.COLLISION_SHAPE)
         self.shape.density = MASS_COEF
-
-        self.force = 10000000 * MASS_COEF
 
     @classmethod
     def init_class(cls):
@@ -31,9 +29,10 @@ class Engine(BaseEngine):
 
     @classmethod
     def calculate_collision_shape(cls):
-        radius = 22
-
-        cls.RADIUS = radius * cls.SIZE_INC
+        img_poly_left = []
+        poly_left = [tuple(e[n] - I_IMG_CENTER[n] for n in range(2)) for e in img_poly_left]
+        poly_right = [(e[0], -e[1]) for e in poly_left[::-1]]
+        cls.COLLISION_SHAPE = [(e[0] * cls.SIZE_INC, e[1] * cls.SIZE_INC) for e in poly_left + poly_right]
 
 
 Engine.init_class()

@@ -1,7 +1,7 @@
 import pygame
 import sys
 from main_settings import except_hook
-from base_class import Level
+from interface import Level
 
 
 sys.excepthook = except_hook
@@ -12,7 +12,7 @@ class Main:
 
     def __init__(self):
         # pygame.init()
-        self.winflag = pygame.RESIZABLE
+        self.winflag = pygame.RESIZABLE | pygame.DOUBLEBUF
         self.size = [900, 600]
         self.level, self.clock, self.running = None, None, False
 
@@ -42,6 +42,7 @@ class Main:
         upd_time = self.clock.tick(240)
         if not 0 < upd_time < 100:
             upd_time = 1
+        self.screen.fill((0, 0, 0))
         self.level.start_step(upd_time)
         for event in pygame.event.get():
             self.level.send_event(event)
@@ -55,12 +56,9 @@ class Main:
         self.level.handle_keys()
         self.level.update()
         self.level.end_step()
-        self.render()
-        pygame.display.flip()
-
-    def render(self):
-        self.screen.fill((0, 0, 0))
         self.level.draw(self.screen)
+        # self.level.update()
+        pygame.display.flip()
 
 
 if __name__ == '__main__':

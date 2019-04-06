@@ -1,7 +1,8 @@
 import pymunk
 from geometry import Vec2d, FRect
 from loading import load_image, cast_image
-from game_class import BaseShip
+from game_class import BaseShip, Mount
+from config import *
 
 NAME = 'Vessel'
 I_IMG = load_image('Ships\\Models\\%s.png' % (NAME,))
@@ -11,21 +12,30 @@ I_IMG_CENTER = Vec2d(300, 395)
 
 
 class Ship(BaseShip):
-    SIZE_INC = 1 / 2
+    SIZE_INC = 1 / 2 * SIZE_COEF
 
     def __init__(self):
         super().__init__()
-        self._image = None
-        del self._image
-        size = self._image.get_size()
-        a = (size[0] ** 2 + size[1] ** 2) ** .5
-        self.rect = FRect(0, 0, 0, 0)
-        self.rect.inflate_ip(a, a)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Poly(self.body, self.COLLISION_SHAPE)
-        self.shape.density = 1
-        self.pos = [0, 0]
+        self.shape.density = MASS_COEF
+        self.init_mounts((Mount(self, position=self.image_to_local((80, 395)), allowed=(ROLE.ENGINE,)),
+                          'middle_engine'),
+
+                         (Mount(self, position=self.image_to_local((298, 240)), angle=105.36, allowed=(ROLE.ENGINE,
+                                                                                                       ))),
+                         (Mount(self, position=self.image_to_local((298, 550)), angle=-105.36,
+                                allowed=(ROLE.ENGINE,))),
+
+                         (Mount(self, position=self.image_to_local((630, 330)), angle=113.33,
+                                allowed=(ROLE.ENGINE,))),
+                         (Mount(self, position=self.image_to_local((630, 460)), angle=-113.33,
+                                allowed=(ROLE.ENGINE,))),
+
+                         (Mount(self, position=self.image_to_local((600, 395)), allowed=(ROLE.WEAPON,), top=False),
+                          'main_weapon')
+                         )
 
     @classmethod
     def init_class(cls):

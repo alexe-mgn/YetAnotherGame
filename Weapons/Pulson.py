@@ -1,28 +1,26 @@
 import pymunk
 from geometry import Vec2d, FRect
 from loading import load_image, cast_image
-from game_class import BaseEngine
+from game_class import BaseWeapon
 from config import *
 
-NAME = 'red_small_booster'
-I_IMG = load_image('Engines\\Models\\%s.png' % (NAME,))
+NAME = 'Pulson'
+I_IMG = load_image('Weapons\\Models\\%s.png' % (NAME,))
 I_SIZE = Vec2d(I_IMG.get_size())
 
-I_IMG_CENTER = Vec2d(40, 19)
+I_IMG_CENTER = Vec2d(24, 30)
 
 
-class Engine(BaseEngine):
-    SIZE_INC = SIZE_COEF
+class Weapon(BaseWeapon):
+    SIZE_INC = 1 * SIZE_COEF
 
     def __init__(self):
         super().__init__()
 
         self.body = pymunk.Body()
         self._i_body = self.body
-        self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((30, 19)))
+        self.shape = pymunk.Circle(self.body, self.RADIUS, offset=self.image_to_local((48, 30)))
         self.shape.density = MASS_COEF
-
-        self.force = 10000000 * MASS_COEF
 
     @classmethod
     def init_class(cls):
@@ -31,9 +29,9 @@ class Engine(BaseEngine):
 
     @classmethod
     def calculate_collision_shape(cls):
-        radius = 22
+        radius = 40
 
         cls.RADIUS = radius * cls.SIZE_INC
 
 
-Engine.init_class()
+Weapon.init_class()

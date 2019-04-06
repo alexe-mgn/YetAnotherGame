@@ -1,46 +1,171 @@
 import pygame
 import pymunk
-from geometry import Vec2d
-from base_class import PhysObject
+from geometry import Vec2d, FRect
+from physics import PhysObject
 from config import *
 import math
 
 
-class BaseShip(PhysObject):
-    SIZE_INC = 1
+class ImageHandler(PhysObject):
+    draw_layer = 0
+    SIZE_INC = SIZE_COEF
     IMAGE_SHIFT = Vec2d(0, 0)
 
-    def __init__(self):
+    def __init__(self, obj=None):
         super().__init__()
-        self.draw_layer = DRAW_LAYER.SHIP
-        self.weapons = []
-        self.engines = []
-        self.components = []
+        if obj is None:
+            self._image = None
+            del self._image
+        else:
+            self._image = obj
+        size = self._image.get_size()
+        a = (size[0] ** 2 + size[1] ** 2) ** .5
+        self.rect = FRect(0, 0, 0, 0)
+        self.rect.inflate_ip(a, a)
 
     def image_to_local(self, pos):
         return Vec2d(pos) * self.SIZE_INC + self.IMAGE_SHIFT
 
-    def mount_to(self, obj, pos):
-        obj.mount(self)
-        obj.local_pos = pos
-        self.components.append(obj)
+
+class Mount:
+
+    def __init__(self, parent, position=None, angle=0, allowed=None, top=True):
+        self.parent = parent
+        self._pos = Vec2d(0, 0) if position is None else Vec2d(position)
+        self._ang = angle
+        self.allowed = [] if allowed is None else list(allowed)
+        self.object = None
+        self.role = None
+        self.top = top
+
+    def _get_pos(self):
+        return self._pos
+
+    def _set_pos(self, pos):
+        if self.object:
+            self.object.position = pos
+        self._pos = Vec2d(pos)
+
+    pos, position = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+
+    def _get_angle(self):
+        return self._ang
+
+    def _set_angle(self, ang):
+        if self.object:
+            self.object.angle = ang
+        self._ang = ang
+
+    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
+
+    def mount(self, obj):
+        if not self.object and (self.allowed[0] is True or getattr(obj, 'role', None) in self.allowed):
+            self.object = obj
+            self.role = obj.role
+            obj.mount(self.parent)
+            obj.set_local_placement(self._pos, self._ang)
+            obj.draw_layer = DRAW_LAYER.SHIP_TOP if self.top else DRAW_LAYER.SHIP_BOTTOM
+            if self.role == ROLE.ENGINE:
+                force = obj.force
+                self.boost_vec = Vec2d(force * math.cos(math.radians(self._ang)), force * math.sin(math.radians(
+                    self._ang)))
+            return True
+        else:
+            return False
+
+    def unmount(self):
+        if self.object:
+            self.object.unmount()
+            del self.object.draw_layer
+            self.object = None
+            self.role = None
+            return True
+        else:
+            return False
 
 
-class Component(PhysObject):
-    SIZE_INC = 1
-    IMAGE_SHIFT = Vec2d(0, 0)
+class BaseProjectile(ImageHandler):
+    draw_layer = DRAW_LAYER.PROJECTILE
 
     def __init__(self):
         super().__init__()
-        self.draw_layer = DRAW_LAYER.COMPONENT
+        self.team = TEAM.ENEMY
+
+    @property
+    def shape(self):
+        return super().shape
+
+    @shape.setter
+    def shape(self, shape):
+        super().shape = shape
+        shape.collision_type = COLLISION_TYPE.PROJECTILE
+    # BODY SHAPES !!!
+
+
+class BaseShip(ImageHandler):
+    draw_layer = DRAW_LAYER.SHIP
+
+    def __init__(self):
+        super().__init__()
+
+        self.mounts = []
+        self.mounts_names = {}
+
+    def mount(self, obj, index=None, key=None):
+        if index is not None:
+            return self.mounts[index].mount(obj)
+        elif key is not None:
+            return self.mounts[self.mounts_names[key]].mount(obj)
+        return False
+
+    def unmount(self, index=None, key=None):
+        if index is not None:
+            return self.mounts[index].unmount()
+        elif key is not None:
+            return self.mounts[self.mounts_names[key]].unmount()
+        return False
+
+    def init_mounts(self, *mounts):
+        shift = len(self.mounts)
+        for n, i in enumerate(mounts):
+            if hasattr(i, '__iter__'):
+                v, k = i
+                self.mounts_names[k] = shift + n
+            else:
+                v = i
+            self.mounts.append(v)
+
+    def get_engines(self):
+        return [e.object for e in self.mounts if e.role == ROLE.ENGINE]
+
+    def get_weapons(self):
+        return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
+
+    def boost_to(self, pos):
+        loc = self.world_to_local(pos)
+        tv = (pos - self.pos) / 10
+        self.boost_vel(tv)
+
+    def boost_vel(self, t):
+        dif = t - self.velocity
+
+    def disable_engines(self):
+        for e in self.get_engines():
+            e.k = 0
+
+
+class Component(ImageHandler):
+    draw_layer = DRAW_LAYER.COMPONENT
+    role = ROLE.COMPONENT
+
+    def __init__(self):
+        super().__init__()
+
         self._pos = Vec2d(0, 0)
         self._ang = 0
         self._parent = None
         self._i_shape = None
         self._i_body = None
-
-    def image_to_local(self, pos):
-        return pos * self.SIZE_INC + self.IMAGE_SHIFT
 
     def mounted(self):
         return self._parent is not None
@@ -70,16 +195,16 @@ class Component(PhysObject):
         # shapes ???
         own_body = self._body is not None and self._body is self._i_body
         if self._space is not None:
-            if self._shape:
-                self._space.remove(self._shape)
+            if self.shapes:
+                self._space.remove(*self.shapes)
             if own_body:
                 self._space.remove(self._body)
         self._space = space
         if space is not None:
             if own_body:
                 space.add(self._body)
-            if self._shape is not None:
-                space.add(self._shape)
+            if self.shapes:
+                space.add(*self.shapes)
 
     @property
     def source_shape(self):
@@ -109,6 +234,13 @@ class Component(PhysObject):
         self.update_local_placement()
 
     @property
+    def shapes(self):
+        return [self.shape]
+
+    def own_body(self):
+        return self._parent is None
+
+    @property
     def body(self):
         return self._body
 
@@ -134,7 +266,8 @@ class Component(PhysObject):
             shape.unsafe_set_offset(Vec2d(pos) + self._i_shape.offset)
 
     def set_local_placement(self, pos, ang):
-        self._pos, self._ang = Vec2d(pos), ang
+        self._pos = Vec2d(pos)
+        self._ang = ang
         self.update_local_placement()
 
     @property
@@ -162,17 +295,19 @@ class Component(PhysObject):
         if not self.mounted():
             self._rect.center = p
             self._body.position = p
+
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
     def _get_angle(self):
-        return self._body.angle / math.pi * 180 + self._ang
+        return math.degrees(self._body.angle) + self._ang
 
     def _set_angle(self, ang):
         if self.mounted():
-            self._ang = ang - self._body.angle / math.pi * 180
+            self._ang = ang - math.degrees(self._body.angle)
         else:
-            self._body.angle = ang / 180 * math.pi
+            self._body.angle = math.radians(ang)
         self.update_local_placement()
+
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
     def apply_rect(self):
@@ -180,15 +315,48 @@ class Component(PhysObject):
 
 
 class BaseEngine(Component):
+    draw_layer = DRAW_LAYER.ENGINE
+    role = ROLE.ENGINE
 
     def __init__(self):
         super().__init__()
-        self.draw_layer = DRAW_LAYER.ENGINE
+        self.k = 0
+        self.force = 0
+
+    def pre_update(self):
+        if self.k > .001:
+            self.boost()
+        else:
+            self.k = 0
+
+    def vector_force(self, ang):
+        force = self.force
+        k = self.k
+        return Vec2d(force * (k * math.cos(math.radians(ang))), force * (k * math.sin(math.radians(ang))))
+
+    def max_vector_force(self, ang):
+        force = self.force
+        return Vec2d(force * (math.cos(math.radians(ang))), force * (math.sin(math.radians(ang))))
+
+    def boost(self):
+        force = self.force
+        ang = self._ang
+        self._body.apply_force_at_local_point(self.vector_force(self._ang), self._body.center_of_gravity)
+
+
+class BaseWeapon(Component):
+    draw_layer = DRAW_LAYER.WEAPON
+    role = ROLE.WEAPON
+
+    def __init__(self):
+        super().__init__()
 
 
 if __name__ == '__main__':
     from main_loop import Main
-    from base_class import PhysicsGroup, Level
+    from interface import Level
+    from physics import PhysicsGroup
+
     drag_sprite = None
     main = Main()
     import random
@@ -203,74 +371,59 @@ if __name__ == '__main__':
             group = PhysicsGroup(space)
             from Ships.Vessel import Ship
             from Engines.red_small_booster import Engine
+            from Weapons.Pulson import Weapon
             ship = Ship()
             ship.pos = (50, 50)
             ship.add(group)
             self.ship = ship
-            engine = Engine()
-            engine.pos = (100, 100)
-            engine.add(group)
-            self.engine = engine
-            # ship.mount_to(engine, ship.image_to_local((690, 395)))
+            for n in self.ship.mounts:
+                engine = Engine()
+                engine.add(group)
+                engine.pos = (400, 400)
+                n.mount(engine)
+            w = Weapon()
+            w.add(group)
+            w.pos = (300, 300)
+            self.w = w
+            self.ship.mount(w, key='main_weapon')
 
-            self.groups.append(group)
+            from loading import GObject, load_frames, cast_frames, load_image
 
-        def pregenerate2(self):
-            space = pymunk.Space()
-            def begin(arbiter, space, dct):
-                print(arbiter)
-                return True
-            space.add_wildcard_collision_handler(3).begin = begin
-            space.gravity = [0, 1000]
+            class Animation(ImageHandler):
 
-            body = pymunk.Body(body_type=pymunk.Body.STATIC)
-            shape = pymunk.Segment(body, [0, self.size[1]], [self.size[0], self.size[1]], 10)
-            space.add(body, shape)
+                def __init__(self):
+                    super().__init__()
+                    self.body = pymunk.Body()
+                    self.shape = pymunk.Circle(self.body, 10)
+                    self.shape.density = 1
 
-            body = pymunk.Body(body_type=pymunk.Body.STATIC)
-            shape = pymunk.Segment(body, [0, 0], [0, self.size[1]], 0)
-            space.add(body, shape)
+                @classmethod
+                def init_class(cls):
+                    frames = load_frames('Resources\\Sci-fi\\Explosion')
+                    ln = len(frames)
+                    cls._image, cls.IMAGE_SHIFT = cast_frames(frames, [(170, 170)] * ln, [1] * ln)
+                    cls._image = GObject(cls._image)
+                    # cls._image = GObject(pygame.transform.scale(load_image('Resources\\Sci-fi\\explosion\\0000.png'),(500, 500)))
 
-            body = pymunk.Body(body_type=pymunk.Body.STATIC)
-            shape = pymunk.Segment(body, [self.size[0], 0], [self.size[0], self.size[1]], 10)
-            space.add(body, shape)
+                @property
+                def image(self):
+                    return self._image.read()
 
-            group = PhysicsGroup(space)
-            from Ships.Vessel import Ship
-            from Engines.red_small_booster import Engine
-            ship = Ship()
-            ship.pos = [10, 100]
-            ship.add(group)
-            self.ship = ship
-            engine = Engine()
-            engine.pos = (100, 100)
-            engine.add(group)
-            self.engine = engine
-            for n in range(20):
-                size = 100
-                sprite = PhysObject()
-                sprite.image = pygame.Surface([size] * 2).convert_alpha()
-                sprite.image.fill((0, 0, 0, 0))
-                pygame.draw.circle(sprite.image, (0, 0, 255), [size // 2] * 2, size // 2)
-                sprite.rect = sprite.image.get_rect()
-                sprite.body = pymunk.Body()
-                sprite.shape = pymunk.Circle(sprite.body, size // 2)
-                sprite.shape.density = 1
+                def read_image(self):
+                    return pygame.transform.rotate(self.image, -self.angle)
 
-                sprite.pos = [random.randint(0, self.size[0]), random.randint(0, self.size[1])]
-                sprite.vel = [10, 0]
-                group.add(sprite)
-                sprite.shape.friction = 1
-                if n == 0:
-                    sprite.pos = [0, 0]
-                    pygame.draw.circle(sprite.image, (0, 255, 0), [size // 2] * 2, size // 2)
-                    pygame.draw.line(sprite.image, (255, 0, 0), [size // 2] * 2, [size, size // 2])
-                    group.uni = sprite
+            Animation.init_class()
+
+            an = Animation()
+            an.pos = (400, 400)
+            an._image.fps = 30
+            an.add(group)
+            self.an = an
 
             self.groups.append(group)
 
         def get_mouse_sprite(self):
-            for s in self.groups[0].sprites():
+            for s in self.groups[0].layer_sorted()[::-1]:
                 if s.shape.point_query(self.mouse_absolute)[0] <= 0:
                     return s
             return None
@@ -283,7 +436,10 @@ if __name__ == '__main__':
                     if drag_sprite is None:
                         s = self.get_mouse_sprite()
                         if s is not None:
-                            drag_sprite = s
+                            if s.own_body():
+                                drag_sprite = s
+                            else:
+                                s.k = int(not bool(s.k))
                     else:
                         drag_sprite.vel = (self.mouse_absolute - self.mouse_absolute_prev) / self.step_time * 1000
                         drag_sprite = None
@@ -294,14 +450,13 @@ if __name__ == '__main__':
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_u:
                     if self.engine.mounted():
-                        self.engine.unmount()
+                        self.ship.unmount(index=0)
                     else:
-                        self.ship.mount_to(self.engine, (-40, 0))
-                        self.engine.local_angle = 90
-                elif event.key == pygame.K_i:
-                    print(self.engine.velocity, self.engine.pos)
-                    self.engine.pos = [300, 300]
-                    self.engine.vel = [0, 0]
+                        self.ship.mount(self.engine, index=0)
+                elif event.key == pygame.K_MINUS:
+                    self.ship.angle -= 10
+                elif event.key == pygame.K_EQUALS:
+                    self.ship.angle += 10
 
         def end_step(self):
             super().end_step()
@@ -310,25 +465,22 @@ if __name__ == '__main__':
             if drag_sprite is not None:
                 drag_sprite.pos = self.mouse_absolute
                 drag_sprite.vel = [0, 0]
+            self.an._image.update(self.step_time)
 
         def handle_keys(self):
             super().handle_keys()
+            if self.pressed[pygame.K_h]:
+                self.ship.boost(self.mouse_absolute)
+            else:
+                pass  # self.ship.disable_engines()
 
         def draw(self, surface):
             super().draw(surface)
-            shape = self.ship.shape
-            vert = shape.get_vertices()
-            ang = self.ship.angle
-            for n in range(-1, len(vert) - 1):
-                a_s = Vec2d(vert[n]).rotated(ang) + self.ship.pos
-                a_e = Vec2d(vert[n + 1]).rotated(ang) + self.ship.pos
-                pygame.draw.line(surface, (255, 0, 0),
-                                 self.camera.world_to_local(a_s),
-                                 self.camera.world_to_local(a_e))
-            pygame.draw.circle(surface, (255, 0, 0), self.camera.world_to_local(self.ship.IMAGE_SHIFT +
-                                                                                self.ship.pos).int(), 3)
-            pygame.draw.circle(surface, (255, 255, 0), self.camera.world_to_local(
-                                                                                self.ship.pos).int(), 3)
+            w_to_l = self.camera.world_to_local
+            for i in self.ship.get_engines():
+                pygame.draw.line(surface, (255, 0, 0), w_to_l(i.pos), w_to_l(i.pos + i.vector_force(i.angle)))
+            # pygame.draw.circle(surface, (255, 0, 0), w_to_l(self.w.local_to_world(self.w.shape.offset)).int(),
+            # int(self.w.shape.radius))
 
 
     main.size = [800, 600]
