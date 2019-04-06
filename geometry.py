@@ -33,6 +33,17 @@ def proj_intersection(p1, p2):
         return None, None
 
 
+def normalized_angle(ang):
+    """
+    Return equivalent of given ang, but inside [0, 360)
+    """
+    if ang < 0:
+        ang = 360 - abs(ang) % 360
+    if ang >= 360:
+        ang %= 360
+    return ang
+
+
 class FRect:
     """
     Float precision version of pygame.Rect class

@@ -1,6 +1,6 @@
 import pygame
 import pymunk
-from geometry import Vec2d, FRect
+from geometry import Vec2d, FRect, normalized_angle
 from physics import PhysObject
 from config import *
 import math
@@ -110,20 +110,28 @@ class BaseShip(ImageHandler):
 
         self.mounts = []
         self.mounts_names = {}
+        self._boost_map = [[0, 0], [0, 0]]
 
     def mount(self, obj, index=None, key=None):
+        print(obj)
         if index is not None:
-            return self.mounts[index].mount(obj)
+            m = self.mounts[index]
         elif key is not None:
-            return self.mounts[self.mounts_names[key]].mount(obj)
-        return False
+            m = self.mounts[self.mounts_names[key]]
+        if obj.role == ROLE.ENGINE:
+            self.recalculate_boost_map()
+        s = m.mount(obj)
+        return s
 
     def unmount(self, index=None, key=None):
         if index is not None:
-            return self.mounts[index].unmount()
+            m = self.mounts[index]
         elif key is not None:
-            return self.mounts[self.mounts_names[key]].unmount()
-        return False
+            m = self.mounts[self.mounts_names[key]]
+        if m.role == ROLE.ENGINE:
+            self.recalculate_boost_map()
+        s = m.unmount()
+        return s
 
     def init_mounts(self, *mounts):
         shift = len(self.mounts)
@@ -141,6 +149,19 @@ class BaseShip(ImageHandler):
     def get_weapons(self):
         return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
 
+    def recalculate_boost_map(self):
+        self._boost_map = self.calculate_boost_map()
+
+    def calculate_boost_map(self):
+        b_map = [[0, 0], [0, 0]]
+        engines = self.get_engines()
+        for e in engines:
+            ang = e.local_angle
+            f = e.max_vector_force(ang)
+            b_map[0][0 if f[0] >= 0 else 1] += f[0]
+            b_map[1][0 if f[1] >= 0 else 1] += f[1]
+        return b_map
+
     def boost_to(self, pos):
         loc = self.world_to_local(pos)
         tv = (pos - self.pos) / 10
@@ -148,6 +169,17 @@ class BaseShip(ImageHandler):
 
     def boost_vel(self, t):
         dif = t - self.velocity
+        self.boost(t)
+
+    def boost(self, vec):
+        b_map = self._boost_map
+        self._body.force += (b_map[0][0 if vec[0] > 0 else 1] if vec[0] != 0 else 0,
+                             b_map[1][0 if vec[1] >= 0 else 1] if vec[1] != 0 else 0)
+
+    def rotate_to(self, ang):
+        dif_l = normalized_angle(ang - self.ang)
+        dif_r = 360 - dif_l
+        c_vel = self._body
 
     def disable_engines(self):
         for e in self.get_engines():
@@ -372,53 +404,55 @@ if __name__ == '__main__':
             from Ships.Vessel import Ship
             from Engines.red_small_booster import Engine
             from Weapons.Pulson import Weapon
-            ship = Ship()
-            ship.pos = (50, 50)
-            ship.add(group)
-            self.ship = ship
-            for n in self.ship.mounts:
-                engine = Engine()
-                engine.add(group)
-                engine.pos = (400, 400)
-                n.mount(engine)
-            w = Weapon()
-            w.add(group)
-            w.pos = (300, 300)
-            self.w = w
-            self.ship.mount(w, key='main_weapon')
+            for ns in range(10):
+                ship = Ship()
+                ship.pos = (400, 300)
+                ship.add(group)
+                self.ship = ship
+                self.player = ship
+                for n in range(len(self.ship.mounts)):
+                    engine = Engine()
+                    engine.add(group)
+                    engine.pos = (400, 400)
+                    self.ship.mount(engine, index=n)
+                w = Weapon()
+                w.add(group)
+                w.pos = (300, 300)
+                self.w = w
+                self.ship.mount(w, key='main_weapon')
 
-            from loading import GObject, load_frames, cast_frames, load_image
-
-            class Animation(ImageHandler):
-
-                def __init__(self):
-                    super().__init__()
-                    self.body = pymunk.Body()
-                    self.shape = pymunk.Circle(self.body, 10)
-                    self.shape.density = 1
-
-                @classmethod
-                def init_class(cls):
-                    frames = load_frames('Resources\\Sci-fi\\Explosion')
-                    ln = len(frames)
-                    cls._image, cls.IMAGE_SHIFT = cast_frames(frames, [(170, 170)] * ln, [1] * ln)
-                    cls._image = GObject(cls._image)
-                    # cls._image = GObject(pygame.transform.scale(load_image('Resources\\Sci-fi\\explosion\\0000.png'),(500, 500)))
-
-                @property
-                def image(self):
-                    return self._image.read()
-
-                def read_image(self):
-                    return pygame.transform.rotate(self.image, -self.angle)
-
-            Animation.init_class()
-
-            an = Animation()
-            an.pos = (400, 400)
-            an._image.fps = 30
-            an.add(group)
-            self.an = an
+            # from loading import GObject, load_frames, cast_frames, load_image
+            #
+            # class Animation(ImageHandler):
+            #
+            #     def __init__(self):
+            #         super().__init__()
+            #         self.body = pymunk.Body()
+            #         self.shape = pymunk.Circle(self.body, 10)
+            #         self.shape.density = 1
+            #
+            #     @classmethod
+            #     def init_class(cls):
+            #         frames = load_frames('Resources\\Sci-fi\\Explosion')
+            #         ln = len(frames)
+            #         cls._image, cls.IMAGE_SHIFT = cast_frames(frames, [(170, 170)] * ln, [1] * ln)
+            #         cls._image = GObject(cls._image)
+            #         # cls._image = GObject(pygame.transform.scale(load_image(# 'Resources\\Sci-fi\\explosion\\0000.png'),(500, 500)))
+            #
+            #     @property
+            #     def image(self):
+            #         return self._image.read()
+            #
+            #     def read_image(self):
+            #         return pygame.transform.rotate(self.image, -self.angle)
+            #
+            # Animation.init_class()
+            #
+            # an = Animation()
+            # an.pos = (400, 400)
+            # an._image.fps = 30
+            # an.add(group)
+            # self.an = an
 
             self.groups.append(group)
 
@@ -465,12 +499,11 @@ if __name__ == '__main__':
             if drag_sprite is not None:
                 drag_sprite.pos = self.mouse_absolute
                 drag_sprite.vel = [0, 0]
-            self.an._image.update(self.step_time)
 
         def handle_keys(self):
             super().handle_keys()
             if self.pressed[pygame.K_h]:
-                self.ship.boost(self.mouse_absolute)
+                self.ship.boost(self.mouse_absolute - self.ship.pos)
             else:
                 pass  # self.ship.disable_engines()
 
@@ -484,7 +517,7 @@ if __name__ == '__main__':
 
 
     main.size = [800, 600]
-    level = TestLevel([2000, 1500], [800, 600])
+    level = TestLevel([6000, 6000], [800, 600])
 
     main.load_level(level)
     main.start()

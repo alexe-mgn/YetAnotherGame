@@ -37,12 +37,12 @@ class PhysicsGroup(CameraGroup):
         super().__init__()
         self._space = space
 
-    def update(self, upd_time):
+    def update(self, upd_time, time_coef=1):
         sprites = self.sprites()
         for s in sprites:
-            s.start_step(upd_time)
+            s.start_step(upd_time * time_coef)
             s.pre_update()
-        self._space.step(upd_time / 1000)
+        self._space.step(upd_time / 1000 * time_coef)
         for s in sprites:
             s.update()
             s.end_step()
@@ -196,7 +196,7 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def image(self):
-        return self._image
+        return self._image.read()
 
     # THIS MUST be used for drawing, not .image
     def read_image(self):

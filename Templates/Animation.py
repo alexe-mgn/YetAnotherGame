@@ -19,7 +19,7 @@ class Animation(BaseAnimation):
 
     @classmethod
     def init_class(cls):
-        cls._frames, cls.IMAGE_SHIFTS = cast_frames(FRAMES, FRAME_CENTER, cls.SIZE_INCS)
+        cls._image, cls.IMAGE_SHIFTS = cast_frames(FRAMES, FRAME_CENTER, cls.SIZE_INCS)
         cls.calculate_collision_shape()
 
     @classmethod

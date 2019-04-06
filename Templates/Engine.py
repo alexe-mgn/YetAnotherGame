@@ -1,6 +1,6 @@
 import pymunk
 from geometry import Vec2d, FRect
-from loading import load_image, cast_image
+from loading import load_image, cast_image, GObject
 from game_class import BaseEngine
 from config import *
 
@@ -25,6 +25,7 @@ class Engine(BaseEngine):
     @classmethod
     def init_class(cls):
         cls._image, cls.IMAGE_SHIFT = cast_image(I_IMG, I_IMG_CENTER, cls.SIZE_INC)
+        cls._image = GObject(cls._image)
         cls.calculate_collision_shape()
 
     @classmethod

@@ -136,7 +136,9 @@ class Level:
         self.camera = Camera([300, 300], self.screen_size, self.get_rect(), [None, 4])
         self.visible = self.camera.get_rect()
 
+        self.player = None
         self.step_time = 1
+        self.space_time_coef = 1
         self.groups = []
         self.pressed = []
         self.mouse_relative_prev = Vec2d(0, 0)
@@ -168,9 +170,15 @@ class Level:
             self.camera.move_smooth([0, -1])
         if pressed[pygame.K_DOWN]:
             self.camera.move_smooth([0, 1])
+        if self.player:
+            self.player.boost((
+                int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
+                int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
+            ))
+            self.player.rotate_to((self.mouse_absolute - self.player.pos).angle)
 
-    def start_step(self, upd_time):
-        self.step_time = upd_time
+    def start_step(self, upd_time, time_coef=1):
+        self.step_time = upd_time * time_coef
         self.pressed = pygame.key.get_pressed()
         self.mouse_relative_prev = self.mouse_relative
         self.mouse_absolute_prev = self.mouse_absolute
@@ -184,7 +192,7 @@ class Level:
         self.camera.update(self.step_time)
         self.visible = self.camera.get_rect()
         for group in self.groups:
-            group.update(self.step_time)
+            group.update(self.step_time, time_coef=self.space_time_coef)
 
     def draw(self, surface):
         for group in self.groups:
