@@ -39,7 +39,7 @@ class Main:
             self.update()
 
     def update(self):
-        upd_time = self.clock.tick(60)
+        upd_time = self.clock.tick(240)
         if not 0 < upd_time < 100:
             upd_time = 1
         self.screen.fill((0, 0, 0))

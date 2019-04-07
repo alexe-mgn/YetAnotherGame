@@ -5,8 +5,10 @@ class HandlerTracked:
 
     @staticmethod
     def begin(arbiter, space, data):
-        print(arbiter)
-        return True
+        sha, shb = arbiter.shapes
+        ba, bb = sha.body, shb.body
+        sa, sb = ba.sprite, bb.sprite
+        return sa.collideable(sb) and sb.collideable(sa)
 
     @staticmethod
     def pre_solve(arbiter, space, data):

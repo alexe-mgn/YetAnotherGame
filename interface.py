@@ -171,11 +171,10 @@ class Level:
         if pressed[pygame.K_DOWN]:
             self.camera.move_smooth([0, 1])
         if self.player:
-            self.player.boost((
+            self.player.walk((
                 int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
                 int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
             ))
-            self.player.rotate_to((self.mouse_absolute - self.player.pos).angle)
 
     def start_step(self, upd_time, time_coef=1):
         self.step_time = upd_time * time_coef

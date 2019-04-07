@@ -139,7 +139,7 @@ class FRect:
     def make_int(self):
         for n in range(4):
             self[n] = int(self[n])
-    
+
     def int(self):
         new = self.copy()
         new.make_int()
@@ -690,7 +690,7 @@ class Vec2d:
 
     def int(self):
         return Vec2d(int(self.x), int(self.y))
-    
+
     def make_int(self):
         self.x, self.y = int(self.x), int(self.y)
 
@@ -704,6 +704,7 @@ class Vec2d:
         self.x, self.y = dct
 
 
+'''
 class Polygon:
     """
     Polygon class with support of most common methods/algorithms.
@@ -1591,3 +1592,4 @@ elif test == 2:
         pygame.display.flip()
 
     pygame.quit()
+'''

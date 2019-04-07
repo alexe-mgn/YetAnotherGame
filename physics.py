@@ -1,5 +1,4 @@
 import pygame
-import pymunk
 from geometry import Vec2d, FRect
 from config import *
 from loading import GObject
@@ -35,7 +34,7 @@ class PhysicsGroup(CameraGroup):
 
     def __init__(self, space):
         super().__init__()
-        self._space = space
+        self.space = space
 
     def update(self, upd_time, time_coef=1):
         sprites = self.sprites()
@@ -49,7 +48,7 @@ class PhysicsGroup(CameraGroup):
 
     def remove_internal(self, sprite):
         super().remove_internal(sprite)
-        self._space.remove(sprite.body, sprite.shape)
+        sprite.space = None
 
     def add_internal(self, sprite):
         super().add_internal(sprite)
@@ -64,23 +63,20 @@ class PhysicsGroup(CameraGroup):
         for s in self.sprites():
             s.space = space
         self._space = space
-        for c in COLLISION_TYPE:
-            ch = get_handler(c)
-            if ch:
-                dh = space.add_wildcard_collision_handler(c)
-                for i in ['begin', 'pre_solve', 'post_solve', 'separate']:
-                    setattr(dh, i, getattr(ch, i))
+        hs = []
+        for c in COLLISION_TYPE.values():
+            if c not in hs:
+                ch = get_handler(c)
+                if ch:
+                    dh = space.add_wildcard_collision_handler(c)
+                    for i in ['begin', 'pre_solve', 'post_solve', 'separate']:
+                        setattr(dh, i, getattr(ch, i))
+                hs.append(c)
 
 
-class PhysObject(pygame.sprite.Sprite):
+class StaticImage(pygame.sprite.Sprite):
 
     def __init__(self):
-        """
-        Necessary assignment
-           - rect
-           - image
-           - shape
-        """
         super().__init__()
         self._rect = None
 
@@ -92,22 +88,108 @@ class PhysObject(pygame.sprite.Sprite):
         self.step_time = 1
 
     @property
+    def rect(self):
+        return self._rect
+
+    @rect.setter
+    def rect(self, rect):
+        self._rect = FRect(rect)
+        if self._body is not None:
+            self._body.position = self._rect.center
+
+    @property
+    def image(self):
+        return self._image
+
+    # THIS MUST be used for drawing, not .image
+    def read_image(self):
+        return pygame.transform.rotate(self.image, -self.angle)
+
+    @image.setter
+    def image(self, surf):
+        self._image = surf
+
+    def effect(self, obj, c_data):
+        pass
+
+    def pre_update(self):
+        pass
+
+    def update(self):
+        pass
+
+    def start_step(self, upd_time):
+        self.step_time = upd_time
+
+    def end_step(self):
+        self.apply_rect()
+
+    def apply_rect(self):
+        self._rect.center = self._body.position
+
+    def _get_pos(self):
+        return self.body.position
+
+    def _set_pos(self, p):
+        self._rect.center = p
+        self.body.position = p
+
+    pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+
+    def _get_angle(self):
+        return self._angle
+
+    def _set_angle(self, ang):
+        self._angle = ang
+
+    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
+
+    def _get_velocity(self):
+        return self._body.velocity
+
+    def _set_velocity(self, vel):
+        self._body.velocity = (vel[0], vel[1])
+
+    vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
+
+
+class PhysObject(pygame.sprite.Sprite):
+
+    def __init__(self):
+        """
+        Necessary assignment
+           - rect
+           - image
+           - shape
+        """
+        self._rect = None
+
+        self._image = None
+        self._space = None
+        self._body = None
+        self._shape = None
+
+        self.step_time = 1
+        super().__init__()
+
+    @property
     def space(self):
         return self._space
 
     @space.setter
     def space(self, space):
+        shapes = self.shapes
         if self._space is not None:
-            if self.shapes:
-                self._space.remove(*self.shapes)
+            if shapes:
+                self._space.remove(*shapes)
             if self._body is not None:
                 self._space.remove(self._body)
         self._space = space
         if space is not None:
             if self._body is not None:
                 space.add(self._body)
-            if self._shape is not None:
-                space.add(self._shape)
+            if shapes:
+                space.add(shapes)
 
     def own_body(self):
         return True
@@ -121,9 +203,12 @@ class PhysObject(pygame.sprite.Sprite):
         # shapes !!!
         if self._space is not None:
             if self._body is not None:
+                self._body.sprite = None
                 self._space.remove(self._body)
             self._space.add(body)
         self._body = body
+        if body is not None:
+            body.sprite = self
         if self._rect is not None:
             self._rect.center = body.position
 
@@ -167,7 +252,8 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def shapes(self):
-        return self._body.shapes
+        body = self._body
+        return body.shapes if body is not None else []
 
     def add_shape(self, shape):
         if shape.space:
@@ -196,7 +282,7 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def image(self):
-        return self._image.read()
+        return self._image
 
     # THIS MUST be used for drawing, not .image
     def read_image(self):
@@ -205,9 +291,6 @@ class PhysObject(pygame.sprite.Sprite):
     @image.setter
     def image(self, surf):
         self._image = surf
-
-    def handle_borders(self):
-        pass
 
     def effect(self, obj, c_data):
         pass
@@ -263,3 +346,6 @@ class PhysObject(pygame.sprite.Sprite):
         self._shape = None
         self._body = None
         super().kill()
+
+    def collideable(self, obj):
+        return True

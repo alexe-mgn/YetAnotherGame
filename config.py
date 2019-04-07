@@ -4,27 +4,29 @@ MASS_COEF = 1
 
 class NS:
 
-    def __iter__(self):
-        return [e for e in dir(self) if e not in self.builtins]
+    @classmethod
+    def values(cls):
+        dct = cls.__dict__
+        return [v for k, v in dct.items() if k not in cls.builtins]
 
     @classmethod
     def init_class(cls):
         cls.builtins = dir(cls)
+        cls.builtins.append('builtins')
 
 
 NS.init_class()
 
 
 class DRAW_LAYER:
-    PLANET = 0
-    WEAPON = 5
-    SHIP = 10
-    SHIP_BOTTOM = SHIP - 1
-    SHIP_TOP = SHIP + 1
+    UNLIVING = 5
+    CREATURE = 10
+    CREATURE_BOTTOM = CREATURE - 1
+    CREATURE_TOP = CREATURE + 1
     COMPONENT = 15
-    ENGINE = 15
-    PROJECTILE = 20
-    FIELD = 30
+    WEAPON = 15
+    STATIC = 20
+    PROJECTILE = 25
 
 
 class COLLISION_TYPE(NS):
@@ -40,5 +42,7 @@ class ROLE:
 
 
 class TEAM:
-    PLAYER = 0
-    ENEMY = 1
+    DEFAULT = 0
+    PLAYER = 1
+    ENEMY = 2
+    NEUTRAL = 3
