@@ -12,7 +12,9 @@ CS = Vec2d(43, 47)
 
 class Engine(BaseEngine):
     size_inc = SIZE_COEF
-    max_fps = 4
+    engine_force = 10000000 * MASS_COEF
+    max_vel = 300 * SIZE_COEF
+    max_fps = 12
 
     def __init__(self):
         super().__init__()

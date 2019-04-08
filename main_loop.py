@@ -54,10 +54,10 @@ class Main:
             elif event.type == 30:
                 pygame.display.set_caption(str(1000 / upd_time))
         self.level.handle_keys()
+        self.level.draw(self.screen)
         self.level.update()
         self.level.end_step()
-        self.level.draw(self.screen)
-        # self.level.update()
+        # self.level.draw(self.screen)
         pygame.display.flip()
 
 

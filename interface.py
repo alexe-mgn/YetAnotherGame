@@ -183,6 +183,8 @@ class Level:
         self.mouse_absolute_prev = self.mouse_absolute
         self.mouse_relative = Vec2d(pygame.mouse.get_pos())
         self.mouse_absolute = self.get_mouse()
+        if self.player:
+            self.player.angle = (self.mouse_absolute - self.player.pos).angle
 
     def end_step(self):
         pass

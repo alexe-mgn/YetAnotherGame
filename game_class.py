@@ -27,7 +27,7 @@ class ImageHandler(PhysObject):
     def end_step(self):
         super().end_step()
         self._image.update(self.step_time)
-    
+
     @classmethod
     def image_to_local(cls, pos):
         return Vec2d(pos) * cls.size_inc + cls.IMAGE_SHIFT
@@ -89,6 +89,9 @@ class Mount:
         else:
             return False
 
+    def __bool__(self):
+        return self.object is not None
+
 
 class BaseProjectile(ImageHandler):
     draw_layer = DRAW_LAYER.PROJECTILE
@@ -117,6 +120,7 @@ class BaseProjectile(ImageHandler):
             self._space.add(shape)
         self._shape = shape
         shape.collision_type = COLLISION_TYPE.PROJECTILE
+
     # BODY SHAPES !!!
 
     def fire(self, ang):
@@ -144,24 +148,27 @@ class BaseCreature(ImageHandler):
         self.mounts = []
         self.mounts_names = {}
 
-    def mount(self, obj, index=None, key=None):
+    def get_mount(self, index=None, key=None):
         if index is not None:
             m = self.mounts[index]
         elif key is not None:
             m = self.mounts[self.mounts_names[key]]
+        return m
+
+    def mount(self, obj, index=None, key=None):
+        m = self.get_mount(index, key)
         s = m.mount(obj)
         if s:
+            obj.team = self.team
             obj.activate()
         return s
 
     def unmount(self, index=None, key=None):
-        if index is not None:
-            m = self.mounts[index]
-        elif key is not None:
-            m = self.mounts[self.mounts_names[key]]
+        m = self.get_mount(index, key)
         o = m.object
         s = m.unmount()
         if s:
+            o.team = TEAM.DEFAULT
             o.deactivate()
         return s
 
@@ -182,9 +189,9 @@ class BaseCreature(ImageHandler):
         return [e.object for e in self.mounts if e.role == ROLE.ENGINE]
 
     def walk(self, vec):
-        engines = self.get_engines()
-        if engines:
-            engines[0].walk(vec)
+        engine = self.get_mount(key='engine')
+        if engine:
+            engine.object.walk(vec)
 
 
 class BaseComponent(ImageHandler):
@@ -363,13 +370,17 @@ class BaseComponent(ImageHandler):
     def apply_rect(self):
         self._rect.center = self.local_to_world(self._pos)
 
+    def apply_damping(self):
+        if self.own_body() and self.height <= 0 and self.damping:
+            self.velocity *= (1 - self.damping)
+
 
 class BaseEngine(BaseComponent):
     draw_layer = DRAW_LAYER.CREATURE_BOTTOM
     role = ROLE.ENGINE
 
-    engine_force = 100
-    max_vel = 100
+    engine_force = 100 * MASS_COEF
+    max_vel = 100 * SIZE_COEF
     max_fps = 10
 
     def __init__(self):
@@ -383,10 +394,7 @@ class BaseEngine(BaseComponent):
             cv = self.vel
             dif = tv - cv
             dif.length = self.engine_force
-            self._body.apply_force_at_local_point(
-                dif,
-                self._body.center_of_gravity
-            )
+            self._body.force += dif
 
     def end_step(self):
         super().end_step()

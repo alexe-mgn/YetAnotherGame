@@ -169,6 +169,8 @@ class PhysObject(pygame.sprite.Sprite):
         self._body = None
         self._shape = None
 
+        self.damping = 0
+        self.height = 0
         self.step_time = 1
         super().__init__()
 
@@ -305,10 +307,15 @@ class PhysObject(pygame.sprite.Sprite):
         self.step_time = upd_time
 
     def end_step(self):
+        self.apply_damping()
         self.apply_rect()
 
     def apply_rect(self):
         self._rect.center = self._body.position
+
+    def apply_damping(self):
+        if self.height <= 0 and self.damping:
+            self.velocity *= (1 - self.damping)
 
     def _get_pos(self):
         return self.body.position
