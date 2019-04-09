@@ -63,11 +63,11 @@ class GObject:
         else:
             self._frames = [obj]
             self._len = 1
-        self._animated = self._len > 1
+        self._animated = False
         self._size = self._frames[0].get_size()
         self.n = 0
-        self._fps = 1
-        self._ft = 1000 / self._fps
+        self._fps = 0
+        self._ft = 0
         self.cycles = 0
         self.last_upd = 0
         self.start_que = []

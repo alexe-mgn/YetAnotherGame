@@ -1,6 +1,6 @@
 import pymunk
 from geometry import Vec2d
-from loading import load_model, cast_model, GObject
+from loading import load_model, cast_model
 from game_class import BaseProjectile
 from config import *
 
@@ -19,6 +19,10 @@ class Projectile(BaseProjectile):
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
         self.shape.density = MASS_COEF
+        self._image.fps = 10
+
+    def effect(self, obj):
+        self.kill()
 
     @classmethod
     def init_class(cls):

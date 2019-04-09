@@ -51,11 +51,9 @@ class FRect:
     """
 
     def __init__(self, x=None, y=0, w=0, h=0):
-        if isinstance(x, pygame.Rect):
-            self.pygame = x
-        elif isinstance(x, FRect):
-            for i in range(4):
-                self[i] = x[i]
+        if hasattr(x, '__getitem__'):
+            for n in range(4):
+                self[n] = x[n]
         else:
             if x is None:
                 x = 0
@@ -129,9 +127,9 @@ class FRect:
                rect[1] >= self.y and \
                rect[1] + rect[3] <= self.bottom
 
-    def collidepoint(self, pos):
-        return self.x <= pos[0] <= self.right and \
-               self.y <= pos[1] <= self.bottom
+    def collidepoint(self, x, y):
+        return self.x <= x <= self.right and \
+               self.y <= y <= self.bottom
 
     def colliderect(self, rect):
         return rect[0] - self._w <= self._x <= rect[0] + rect[2] and rect[1] - self._h <= self._y <= rect[1] + rect[3]

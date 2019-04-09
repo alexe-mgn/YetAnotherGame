@@ -138,6 +138,9 @@ class BaseProjectile(ImageHandler):
         if self.life_left <= 0:
             self.kill()
 
+    def _get_angle(self):
+        return math.degrees(self.velocity.angle)
+
 
 class BaseCreature(ImageHandler):
     draw_layer = DRAW_LAYER.CREATURE
@@ -385,23 +388,56 @@ class BaseEngine(BaseComponent):
 
     def __init__(self):
         super().__init__()
+        self.working = False
         self._image.fps = 0
 
     def walk(self, vec):
+        cv = self.vel
         if any(vec):
             tv = Vec2d(vec)
             tv.length = self.max_vel
-            cv = self.vel
             dif = tv - cv
             dif.length = self.engine_force
             self._body.force += dif
+            self.working = True
+        elif abs(cv[0]) > .01 and abs(cv[1] > .01):
+            # stopping
+            cv.length = self.engine_force
+            self._body.force -= cv
+        else:
+            self.velocity = (0, 0)
 
     def end_step(self):
         super().end_step()
         if self.activated:
             vel = self.velocity
-            self._image.fps = self.max_fps * vel.length / self.max_vel
-            self.angle = math.degrees(vel.angle)
+            if any(vel):
+                self._image.fps = self.max_fps * vel.length / self.max_vel
+                self.angle = math.degrees(vel.angle)
+            else:
+                self._image.fps = 0
+        self.working = False
+
+    @property
+    def local_angle(self):
+        return self._ang - math.degrees(self._body.angle)
+
+    @local_angle.setter
+    def local_angle(self, ang):
+        self._ang = math.degrees(self._body.angle) + ang
+        self.update_local_placement()
+
+    def _get_angle(self):
+        return self._ang
+
+    def _set_angle(self, ang):
+        if self.mounted():
+            self._ang = ang
+        else:
+            self._body.angle = math.radians(ang)
+        self.update_local_placement()
+
+    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
 
 class BaseWeapon(BaseComponent):
@@ -433,6 +469,7 @@ if __name__ == '__main__':
 
         def pregenerate(self):
             space = pymunk.Space()
+            space.damping = 1
             space.gravity = [0, 0]
 
             group = PhysicsGroup(space)
@@ -453,8 +490,18 @@ if __name__ == '__main__':
             ls.add(group)
             ls.pos = (300, 300)
             mc.mount(ls, key='engine')
-
+            mc.team = TEAM.PLAYER
             self.player = mc
+
+            for n in range(5):
+                mc = Creature()
+                mc.add(group)
+                mc.pos = (500, 500)
+                ls = Engine()
+                ls.add(group)
+                ls.pos = (300, 300)
+                mc.mount(ls, key='engine')
+
 
             self.groups.append(group)
 
@@ -503,10 +550,16 @@ if __name__ == '__main__':
 
         def draw(self, surface):
             super().draw(surface)
+            tl = self.camera.world_to_local((0, 0))
+            br = self.camera.world_to_local(VISION_SIZE)
+            pygame.draw.line(surface, (255, 0, 0), tl, br)
 
 
-    main.size = [800, 600]
-    level = TestLevel([6000, 6000], [800, 600])
+    main.size = [800, 400]
+    print(main.visible)
+    level = TestLevel([6000, 6000], main.visible)
+    level.camera.zoom_offset = main.zoom_offset
+    level.camera.zoom = 1
 
     main.load_level(level)
     main.start()

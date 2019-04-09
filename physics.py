@@ -36,15 +36,16 @@ class PhysicsGroup(CameraGroup):
         super().__init__()
         self.space = space
 
-    def update(self, upd_time, time_coef=1):
+    def update(self, upd_time):
         sprites = self.sprites()
         for s in sprites:
-            s.start_step(upd_time * time_coef)
+            s.start_step(upd_time)
             s.pre_update()
-        self._space.step(upd_time / 1000 * time_coef)
+        self._space.step(upd_time / 1000)
         for s in sprites:
-            s.update()
-            s.end_step()
+            if s:
+                s.update()
+                s.end_step()
 
     def remove_internal(self, sprite):
         super().remove_internal(sprite)
@@ -70,7 +71,8 @@ class PhysicsGroup(CameraGroup):
                 if ch:
                     dh = space.add_wildcard_collision_handler(c)
                     for i in ['begin', 'pre_solve', 'post_solve', 'separate']:
-                        setattr(dh, i, getattr(ch, i))
+                        if hasattr(ch, i):
+                            setattr(dh, i, getattr(ch, i))
                 hs.append(c)
 
 
@@ -109,7 +111,7 @@ class StaticImage(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj, c_data):
+    def effect(self, obj):
         pass
 
     def pre_update(self):
@@ -294,7 +296,7 @@ class PhysObject(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj, c_data):
+    def effect(self, obj):
         pass
 
     def pre_update(self):
@@ -356,3 +358,6 @@ class PhysObject(pygame.sprite.Sprite):
 
     def collideable(self, obj):
         return True
+
+    def __bool__(self):
+        return bool(self.groups())
