@@ -1,233 +1,229 @@
 import pygame
-import pymunk
 from geometry import Vec2d, FRect
+from loading import get_path, load_model
 
 
-class Camera:
+def draw_text(font_path, surface, text, rect, color=(255, 255, 255), alignment='center', size=None):
+    if size is None:
+        size = int(min((rect.height * .9, rect.width * .9 * 1.6 / len(text))))
+    else:
+        size = int(size)
+    font = pygame.font.Font(font_path,
+                            size)
+    text = font.render(text, 1, color)
+    t_rect = text.get_rect()
+    t_rect.centery = rect.centery
+    if alignment == 'left':
+        t_rect.left = rect.left
+    elif alignment == 'right':
+        t_rect.right = rect.right
+    else:
+        t_rect.centerx = rect.centerx
+    surface.blit(text, t_rect)
 
-    def __init__(self, center, size, constraint, zoom_con=None, zoom_offset=1):
-        self._constraint = pygame.Rect(constraint)
-        self.i_size = list(size)
 
-        if zoom_con is None:
-            self.zoom_con = [None, None]
+class Division:
+    _draw_debug = False
+
+    def __init__(self, parent=None, main=None):
+        self._parent = parent
+        self._main = main
+        if main is None and parent is not None:
+            self._main = parent.main
+
+        if main is not None or parent is not None:
+            if parent is not None:
+                parent.add(self)
+            self._rect = FRect(0, 0, 100, 100)
+            self.absolute = False
         else:
-            self.zoom_con = zoom_con
-        self.zoom_offset = zoom_offset
-        self._zoom = 1 / zoom_offset
-        if self.zoom_con[0] is not None and self._zoom < self.zoom_con[0]:
-            self._zoom = self.zoom_con[0]
-        if self.zoom_con[1] is not None and self._zoom > self.zoom_con[1]:
-            self._zoom = self.zoom_con[1]
+            self._rect = FRect(0, 0, 0, 0)
+            self.absolute = True
+        self._abs_rect = self.global_rect()
 
-        self.move_speed = 6
-        self.zoom_speed = 2
-
-        self.rect = FRect(0, 0, *self.i_size)
-        self.rect.center = center
-        self.rect.clamp_ip(self._constraint)
-
-        self.c_rect = FRect(self.rect)
-        self.zoom = 1
-
-    def update(self, upd_time):
-        tc, cc = self.rect.center, self.c_rect.center
-        ts, cs = self.rect.size, self.c_rect.size
-        dis_x, dis_y = tc[0] - cc[0], tc[1] - cc[1]
-        ds_x, ds_y = ts[0] - cs[0], ts[1] - cs[1]
-
-        if abs(ds_x) < .5:
-            self.c_rect.w = ts[0]
-        else:
-            self.c_rect.w += ds_x * self.zoom_speed * upd_time / 1000
-        if abs(ds_y) < .5:
-            self.c_rect.h = ts[1]
-        else:
-            self.c_rect.h += ds_y * self.zoom_speed * upd_time / 1000
-
-        if abs(dis_x) < .5:
-            self.c_rect.centerx = tc[0]
-        else:
-            self.c_rect.centerx = cc[0] + dis_x * self.move_speed * upd_time / 1000
-        if abs(dis_y) < .5:
-            self.c_rect.centery = tc[1]
-        else:
-            self.c_rect.centery = cc[1] + dis_y * self.move_speed * upd_time / 1000
-        self.c_rect.clamp_ip(self._constraint)
-
-    def get_rect(self):
-        return self.c_rect
-        rect = pygame.Rect(0, 0, 0, 0)
-        rect.center = self.c_rect.center
-        rect.inflate_ip(self.c_rect.width // 2 * 2, self.c_rect.height // 2 * 2)
-        return rect
-
-    def move(self, shift):
-        self.rect.x += shift[0]
-        self.rect.y += shift[1]
-        self.rect.clamp_ip(self._constraint)
-
-    def move_smooth(self, coef):
-        self.rect.x += self.c_rect.width * coef[0] / 100
-        self.rect.y += self.c_rect.height * coef[1] / 100
-        self.rect.clamp_ip(self._constraint)
-
-    def get_zoom(self):
-        return self._zoom * self.zoom_offset
-
-    def set_zoom(self, zoom):
-        zoom = zoom / self.zoom_offset
-        if zoom <= 0:
-            return
-        center = self.rect.center
-        if self.zoom_con[0] is not None and zoom < self.zoom_con[0]:
-            zoom = self.zoom_con[0]
-        if self.zoom_con[1] is not None and zoom > self.zoom_con[1]:
-            zoom = self.zoom_con[1]
-        premade = [e / zoom for e in self.i_size]
-        if premade[0] > self._constraint.size[0] or premade[1] > self._constraint.size[1]:
-            m_ind = min((0, 1), key=lambda e: self._constraint.size[e] - premade[e])
-            self.set_zoom(self.i_size[m_ind] / self._constraint.size[m_ind])
-            return
-        self.rect.size = premade
-        self.rect.center = center
-        self.rect.clamp_ip(self._constraint)
-        self._zoom = zoom
-    zoom = property(get_zoom, set_zoom)
-
-    def get_current_zoom(self):
-        return self.i_size[0] / self.c_rect.width
+        self.image = None
+        self.elements = []
+        self.disabled = []
+        self.step_time = 1
+        self.hover = False
+        self.press = False
 
     @property
-    def center(self):
-        return self.rect.center
+    def main(self):
+        return self._main
 
-    @center.setter
-    def center(self, pos):
-        self.rect.center = pos
+    @main.setter
+    def main(self, new):
+        self._main = new
+        for i in self.elements:
+            i.main = new
+        for i in self.disabled:
+            i.main = new
 
-    def get_constraint(self):
-        return self._constraint
+    @property
+    def parent(self):
+        return self._parent
 
-    def set_constraint(self, rect):
-        self._constraint = pygame.Rect(rect)
-        self.set_zoom(self.get_zoom())
-    constraint = property(get_constraint, set_constraint)
+    @parent.setter
+    def parent(self, new):
+        if self._parent is not None:
+            self._parent.remove(self)
+        self._parent = new
+        if new is not None:
+            self._main = new.main
+            new.add(self)
 
-    def move_constraint(self, rect):
-        self._constraint = pygame.Rect(rect)
-        self.rect.clamp_ip(self._constraint)
+    def global_rect(self):
+        if self._parent is not None:
+            rect = self._parent.abs_rect
+        elif self._main is not None:
+            rect = self._main.rect
+        else:
+            return FRect(self._rect)
+        if self.absolute:
+            return FRect(*map(sum, zip(rect.topleft, self._rect.topleft)), *self._rect.size)
+        else:
+            s_rect = self._rect
+            s_tl = Vec2d(s_rect.topleft)
+            s_sz = Vec2d(s_rect.size)
+            return FRect(*(s_tl / 100 * rect.size + rect.topleft), *(s_sz / 100 * rect.size))
 
-    def get_size(self):
-        return self.i_size
+    @property
+    def rect(self):
+        return self._rect
 
-    def set_size(self, size):
-        self.i_size = size
-        self.set_zoom(self.get_zoom())
-    size = property(get_size, set_size)
+    @rect.setter
+    def rect(self, rect):
+        self._rect = FRect(rect)
 
-    def world_to_local(self, pos):
-        rect = self.get_rect()
-        tl = rect.topleft
-        zoom = self.get_current_zoom()
-        return (Vec2d(pos) - tl) * zoom
+    @property
+    def local_rect(self):
+        return FRect(0, 0, *self.rect.size)
 
+    @property
+    def abs_rect(self):
+        return self._abs_rect
 
-class Level:
+    def add(self, element):
+        if element not in self.elements:
+            self.elements.append(element)
 
-    def __init__(self, size=None, screen_size=None, zoom_offset=1):
-        self.size = size if size is not None else [6000, 6000]
-        self.screen_size = screen_size if screen_size is not None else [600, 600]
-        self.update_rect = pygame.Rect(0, 0, *self.size)
+    def remove(self, obj):
+        if obj in self.elements:
+            obj.deactivate()
+            self.elements.remove(obj)
 
-        self.camera = Camera((0, 0), self.screen_size, self.get_rect(), [None, 4], zoom_offset=zoom_offset)
-        self.visible = self.camera.get_rect()
+    def enable(self, obj):
+        if obj in self.disabled:
+            self.disabled.remove(obj)
+            self.elements.append(obj)
 
-        self.player = None
-        self.step_time = 1
-        self.space_time_coef = 1
-        self.phys_group = None
-        self.gui = None
-        self.pressed = []
-        self.mouse_relative_prev = Vec2d(0, 0)
-        self.mouse_absolute_prev = Vec2d(0, 0)
-        self.mouse_relative = Vec2d(0, 0)
-        self.mouse_absolute = Vec2d(0, 0)
-        self.pregenerate()
+    def disable(self, obj):
+        if obj in self.elements:
+            obj.deactivate()
+            self.elements.remove(obj)
+            self.disabled.append(obj)
 
-    def pregenerate(self):
-        pass
+    def enable_all(self):
+        for i in self.disabled:
+            self.elements.append(i)
+        self.disabled.clear()
+
+    def deactivate(self):
+        self.hover = False
+        self.press = False
+        for i in self.elements:
+            i.deactivate()
+
+    def checkout(self, obj):
+        active = obj in self.elements
+        disabled = obj in self.disabled
+        if active or disabled:
+            for i in self.elements:
+                if i is not obj:
+                    i.deactivate()
+                    self.disabled.append(i)
+            if disabled:
+                self.disabled.remove(obj)
+            self.elements.clear()
+            self.elements.append(obj)
+
+    def checkout_menu(self, obj):
+        active = obj in self.elements
+        disabled = obj in self.disabled
+        if active or disabled:
+            mfd = []
+            for i in self.elements:
+                if i is not obj and isinstance(i, Menu):
+                    i.deactivate()
+                    mfd.append(i)
+                    self.disabled.append(i)
+            for i in mfd:
+                self.elements.remove(i)
+            if disabled:
+                self.disabled.remove(obj)
+                self.elements.append(obj)
+
+    def collidepoint(self, pos):
+        return self._abs_rect.collidepoint(*pos)
+
+    def get_point_hits(self, pos):
+        hits = []
+        if self.hover:
+            for i in self.elements:
+                if i.collidepoint(pos):
+                    hits.append(i)
+        return hits
+
+    def start_step(self, upd_time):
+        ms = pygame.mouse.get_pos()
+        self.step_time = upd_time
+        self._abs_rect = self.global_rect()
+        if self.collidepoint(ms):
+            self.mouse_on()
+        else:
+            self.mouse_off()
+        for i in self.elements:
+            i.start_step(upd_time)
+
+    def update(self):
+        for i in self.elements:
+            i.update()
+
+    def end_step(self):
+        for i in self.elements:
+            i.end_step()
 
     def send_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 4:
-                self.camera.zoom /= .75
-            elif event.button == 5:
-                self.camera.zoom *= .75
-
-    def set_screen_size(self, size, offset=1):
-        self.screen_size = size
-        self.camera.zoom_offset = offset
-        self.camera.size = size
-
-    def handle_keys(self):
-        pressed = self.pressed
-        if pressed[pygame.K_RIGHT]:
-            self.camera.move_smooth([1, 0])
-        if pressed[pygame.K_LEFT]:
-            self.camera.move_smooth([-1, 0])
-        if pressed[pygame.K_UP]:
-            self.camera.move_smooth([0, -1])
-        if pressed[pygame.K_DOWN]:
-            self.camera.move_smooth([0, 1])
-        if self.player:
-            self.player.walk((
-                int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
-                int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
-            ))
-
-    def start_step(self, upd_time, time_coef=1):
-        self.step_time = upd_time * time_coef
-        self.pressed = pygame.key.get_pressed()
-        self.mouse_relative_prev = self.mouse_relative
-        self.mouse_absolute_prev = self.mouse_absolute
-        self.mouse_relative = Vec2d(pygame.mouse.get_pos())
-        self.mouse_absolute = self.get_mouse()
-        if self.player:
-            self.player.angle = (self.mouse_absolute - self.player.pos).angle
-
-    def end_step(self):
-        pass
-
-    def update(self):
-        self.camera.update(self.step_time)
-        self.visible = self.camera.get_rect()
-        if self.phys_group:
-            self.phys_group.update(self.step_time * self.space_time_coef)
-        if self.gui:
-            self.gui.update()
+            if self.hover:
+                self.button_down()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.button_up()
+        for i in self.elements:
+            i.send_event(event)
 
     def draw(self, surface):
-        if self.phys_group:
-            self.phys_group.draw(surface, self.camera)
-        if self.gui:
-            self.gui.draw(surface)
+        if self.image is not None:
+            self.draw_image(surface)
+        for i in self.elements:
+            i.draw(surface)
+        if self._draw_debug:
+            self.draw_debug(surface)
 
-    def get_rect(self):
-        return pygame.Rect(0, 0, *self.size)
+    def draw_image(self, surface):
+        surface.blit(pygame.transform.scale(self.image, self.abs_rect.size), self.abs_rect)
 
-    def get_mouse(self):
-        ms = pygame.mouse.get_pos()
-        sc, vs = self.screen_size, self.visible.size
-        zoom = max((sc[0] / vs[0], sc[1] / vs[1]))
-        return Vec2d(ms) / zoom + self.visible.topleft
+    def draw_debug(self, surface):
+        if self.press:
+            pygame.draw.rect(surface, (0, 255, 0), self._abs_rect.pygame, 1)
+        elif self.hover:
+            pygame.draw.rect(surface, (255, 255, 0), self._abs_rect.pygame, 1)
+        else:
+            pygame.draw.rect(surface, (255, 0, 0), self._abs_rect.pygame, 1)
 
-
-class Menu:
-
-    def __init__(self):
-        self.image = None
-        self.elements = []
+    def __len__(self):
+        return len(self.elements)
 
     def __iter__(self):
         return self.elements
@@ -241,106 +237,143 @@ class Menu:
     def __delitem__(self, ind):
         del self.elements[ind]
 
-    def add(self, element):
-        self.elements.append(element)
-
-    def get_mouse_hits(self):
-        ms = pygame.mouse.get_pos()
-        hits = []
-        for i in self.elements:
-            if i.collidepoint(ms):
-                hits.append(i)
-        return hits
-
-    def update(self):
-        ms = pygame.mouse.get_pos()
-        hits = self.get_mouse_hits()
-        for i in self.elements:
-            if i.collidepoint(ms):
-                i.mouse_on()
-            else:
-                i.mouse_off()
-        for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for i in hits:
-                        i.button_down()
-            elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:
-                    for i in self.elements:
-                        i.button_up()
-
-    def draw(self, surface, rect=None):
-        rect = pygame.Rect(rect if rect else surface.get_rect())
-        if self.image:
-            surface.blit(pygame.transform.scale(self.image, rect.size), rect)
-        for i in self.elements:
-            i.draw(surface, rect)
-
-
-class Element:
-
-    def __init__(self, menu=None):
-        self.image = None
-        self._rect = FRect(0, 0, 0, 0)
-        self.hover = False
-        self.press = False
-        if menu:
-            menu.add(self)
-
-    @property
-    def rect(self):
-        return self._rect
-
-    @rect.setter
-    def rect(self, rect):
-        self._rect = FRect(rect)
-
-    def update(self):
-        pass
-
-    def collidepoint(self, pos):
-        return self.rect.collidepoint(*pos)
-
     def mouse_on(self):
+        if not self.hover:
+            self.on_focus()
         self.hover = True
 
     def mouse_off(self):
+        if self.hover:
+            self.on_unfocus()
         self.hover = False
-        self.press = False
 
     def button_down(self):
         self.press = True
 
     def button_up(self):
+        if self.hover and self.press:
+            self.on_click()
         self.press = False
 
-    def draw(self, surface, rect=None):
-        rect = pygame.Rect(rect) if rect else surface.get_rect()
-        tl = Vec2d(rect.topleft)
-        sz = Vec2d(rect.size)
-        s_rect = self.rect
-        s_tl = Vec2d(s_rect.topleft)
-        s_sz = Vec2d(s_rect.size)
-        k = sz / 100
-        if self.image:
-            surface.blit(pygame.transform.scale(self.image, s_sz * k), tl + s_tl * k)
-        else:
-            pygame.draw.rect(surface, (255, 0, 0), (*(tl + s_tl * k), *(s_sz * k)), 1)
+    def on_click(self):
+        pass
+
+    def on_focus(self):
+        pass
+
+    def on_unfocus(self):
+        pass
 
 
-class Button(Element):
+class Menu(Division):
     pass
 
 
-if __name__ == '__main__':
-    from main_loop import Main
-    import random
-    main = Main()
-    level = Level(screen_size=main.visible, zoom_offset=main.zoom_offset)
-    menu = Menu()
-    el = Element(menu)
-    el.rect = (0, 0, 99.9, 50)
-    level.gui = menu
-    main.load_level(level)
-    main.start()
+"""
+class Table(Division):
+    
+    def __init__(self, cols=0, rows=0, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.t_size = (cols, rows)
+        self.table = [[None] * cols for _ in range(rows)]
+    
+    @property
+    def cols(self):
+        return self.t_size[0]
+    
+    @property
+    def rows(self):
+        return self.t_size[1]
+    
+    def add(self, element, col=None, row=None):
+        super().add(element)
+    
+    def __iter__(self):
+        return self.table
+
+    def __getitem__(self, ind):
+        return self.table[ind]
+
+    def __setitem__(self, ind, val):
+        pass
+"""
+
+
+class Element(Division):
+    font = pygame.font.match_font('times')
+    image = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text = ''
+        self.text_size = None
+        self.text_color = pygame.Color('white')
+        self.text_alignment = 'center'
+
+    def draw(self, surface):
+        super().draw(surface)
+        if self.text:
+            draw_text(self.font,
+                      surface,
+                      self.text,
+                      self._abs_rect,
+                      color=self.text_color,
+                      alignment=self.text_alignment,
+                      size=self.text_size)
+
+
+class TextField(Element):
+    font = get_path('Res\\potra.ttf')
+
+
+class Button(Element):
+    image = None
+    images = (
+        None, None, None
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = None
+        del self.image
+
+    def draw_image(self, surface):
+        b_rect = self._abs_rect
+        if self.press:
+            n = 1
+        elif self.hover:
+            n = 2
+        else:
+            n = 0
+        surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+
+
+class BtnLarge(Button):
+    font = get_path('Res\\potra.ttf')
+    image = True
+    images = (
+        load_model('Res\\UI\\btn_large'),
+        load_model('Res\\UI\\btn_large_click'),
+        load_model('Res\\UI\\btn_large_hover')
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_color = (255, 255, 255)
+
+
+class BtnSmall(Button):
+    font = get_path('Res\\potra.ttf')
+    image = True
+    images = (
+        load_model('Res\\UI\\btn_small'),
+        load_model('Res\\UI\\btn_small_click'),
+        load_model('Res\\UI\\btn_small_hover')
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_color = (255, 255, 255)
+
+    def draw(self, surface):
+        super().draw(surface)

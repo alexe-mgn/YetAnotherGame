@@ -1,7 +1,6 @@
 import pygame
 from geometry import Vec2d, FRect
 from config import *
-from loading import GObject
 from col_handlers import get_handler
 import math
 
@@ -11,23 +10,34 @@ class CameraGroup(pygame.sprite.AbstractGroup):
     def __init__(self):
         super().__init__()
         self.default_layer = 9
+        self._offset = Vec2d(0, 0)
 
     def layer_sorted(self):
         return sorted(self.sprites(), key=lambda e: getattr(e, 'draw_layer', self.default_layer))
 
     def draw(self, surface, camera):
         cam_rect = camera.get_rect()
-        cam_tl = cam_rect.topleft
+        cam_tl = Vec2d(cam_rect.topleft)
+        cam_offset = self.draw_offset
         zoom = camera.get_current_zoom()
         blit = surface.blit
         for sprite in self.layer_sorted():
             if sprite.rect.colliderect(cam_rect):
                 s_img = sprite.read_image()
-                s_size = s_img.get_size()
-                tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
+                s_size = Vec2d(s_img.get_size())
+                tl = ((-s_size / 2 - cam_tl + sprite.pos) * zoom).int()
+                # tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
                 self.spritedict[sprite] = blit(
-                    pygame.transform.scale(s_img, [int(e * zoom) for e in s_size]), tl)
+                    pygame.transform.scale(s_img, (s_size * zoom).int()), tl + cam_offset)
         self.lostsprites = []
+
+    @property
+    def draw_offset(self):
+        return self._offset
+
+    @draw_offset.setter
+    def draw_offset(self, vec):
+        self._offset = Vec2d(vec)
 
 
 class PhysicsGroup(CameraGroup):
@@ -68,7 +78,7 @@ class PhysicsGroup(CameraGroup):
         for c in COLLISION_TYPE.values():
             if c not in hs:
                 ch = get_handler(c)
-                if ch:
+                if ch is not None:
                     dh = space.add_wildcard_collision_handler(c)
                     for i in ['begin', 'pre_solve', 'post_solve', 'separate']:
                         if hasattr(ch, i):

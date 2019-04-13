@@ -1,3 +1,7 @@
+APP_NAME = r'Game'
+EXCEPTION_FILE = '%s_traceback.txt' % (APP_NAME,)
+LOAD_MEIPASS = True
+
 SIZE_COEF = 1
 MASS_COEF = 1
 VISION_SIZE = (1200 * SIZE_COEF, 1200 * SIZE_COEF)
@@ -48,3 +52,39 @@ class TEAM:
     PLAYER = 1
     ENEMY = 2
     NEUTRAL = 3
+
+
+class EmptyGameObject:
+    _draw_debug = False
+
+    def start_step(self, upd_time):
+        pass
+
+    def update(self):
+        pass
+
+    def end_step(self):
+        pass
+
+    def send_event(self, event):
+        pass
+
+    def handle_keys(self):
+        pass
+
+    def draw(self, surface):
+        pass
+
+    def set_screen(self, *args):
+        pass
+
+    @property
+    def main(self):
+        return
+
+    @main.setter
+    def main(self, o):
+        pass
+
+    def __bool__(self):
+        return False

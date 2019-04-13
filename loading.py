@@ -159,6 +159,9 @@ class GObject:
     def __getitem__(self, ind):
         return self._frames[ind]
 
+    def __repr__(self):
+        return 'GObject([%s])' % (', '.join(str(e) for e in self._frames),)
+
 
 def load_model(path):
     fp = get_path(path)

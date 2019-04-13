@@ -1,6 +1,6 @@
 import pygame
 import pymunk
-from geometry import Vec2d, FRect, normalized_angle
+from geometry import Vec2d, FRect
 from physics import PhysObject
 from loading import GObject
 from config import *
@@ -11,7 +11,7 @@ class ImageHandler(PhysObject):
     draw_layer = 0
     size_inc = SIZE_COEF
     IMAGE_SHIFT = Vec2d(0, 0)
-    team = TEAM.NEUTRAL
+    team = TEAM.DEFAULT
 
     def __init__(self, obj=None):
         super().__init__()
@@ -52,7 +52,7 @@ class Mount:
         return self._pos
 
     def _set_pos(self, pos):
-        if self.object:
+        if self.object is not None:
             self.object.position = pos
         self._pos = Vec2d(pos)
 
@@ -62,7 +62,7 @@ class Mount:
         return self._ang
 
     def _set_angle(self, ang):
-        if self.object:
+        if self.object is not None:
             self.object.angle = ang
         self._ang = ang
 
@@ -80,7 +80,7 @@ class Mount:
             return False
 
     def unmount(self):
-        if self.object:
+        if self.object is not None:
             self.object.unmount()
             del self.object.draw_layer
             self.object = None
@@ -130,7 +130,7 @@ class BaseProjectile(ImageHandler):
         self.angle = ang
 
     def collideable(self, obj):
-        return obj.team != self.team
+        return obj is not self.parent and (not self.team or not obj.team or obj.team != self.team)
 
     def end_step(self):
         super().end_step()
@@ -223,7 +223,7 @@ class BaseComponent(ImageHandler):
             pos = self.pos
             ang = self.ang
             self._parent = None
-            if self._space:
+            if self._space is not None:
                 self._space.add(self._i_body)
             self.body = self._i_body
             self.set_local_placement((0, 0), 0)
@@ -309,7 +309,7 @@ class BaseComponent(ImageHandler):
     def i_body(self, body):
         if self.own_body():
             self.body = body
-        if self._i_body:
+        if self._i_body is not None:
             self._i_body.sprite = None
         self._i_body = body
         body.sprite = self
@@ -456,7 +456,7 @@ class BaseWeapon(BaseComponent):
 
 if __name__ == '__main__':
     from main_loop import Main
-    from interface import Level
+    from level import Level
     from physics import PhysicsGroup
 
     drag_sprite = None
@@ -503,10 +503,10 @@ if __name__ == '__main__':
                 mc.mount(ls, key='engine')
 
 
-            self.groups.append(group)
+            self.phys_group = group
 
         def get_mouse_sprite(self):
-            for s in self.groups[0].layer_sorted()[::-1]:
+            for s in self.phys_group.layer_sorted()[::-1]:
                 if s.shape.point_query(self.mouse_absolute)[0] <= 0:
                     return s
             return None
@@ -529,10 +529,12 @@ if __name__ == '__main__':
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_f:
                     proj = Projectile()
-                    proj.add(self.groups[0])
+                    proj.add(self.phys_group)
                     proj.fire(self.mouse_absolute.angle)
                 elif event.key == pygame.K_g:
                     self.w.fire()
+                elif event.key == pygame.K_l:
+                    self.camera.center = self.player.pos
 
         def end_step(self):
             super().end_step()
@@ -551,13 +553,13 @@ if __name__ == '__main__':
         def draw(self, surface):
             super().draw(surface)
             tl = self.camera.world_to_local((0, 0))
-            br = self.camera.world_to_local(VISION_SIZE)
+            br = self.camera.world_to_local(self.screen)
             pygame.draw.line(surface, (255, 0, 0), tl, br)
+            pygame.draw.rect(surface, (0, 255, 0), self.screen, 1)
 
 
     main.size = [800, 400]
-    print(main.visible)
-    level = TestLevel([6000, 6000], main.visible)
+    level = TestLevel([6000, 6000], main.rect)
     level.camera.zoom_offset = main.zoom_offset
     level.camera.zoom = 1
 
