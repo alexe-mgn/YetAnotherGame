@@ -11,9 +11,9 @@ CS = Vec2d(43, 47)
 
 
 class Engine(BaseEngine):
-    size_inc = SIZE_COEF
-    engine_force = 10000000 * MASS_COEF
-    max_vel = 300 * SIZE_COEF
+    size_inc = 1
+    engine_force = 10000000
+    max_vel = 300
     max_fps = 12
 
     def __init__(self):
@@ -21,7 +21,7 @@ class Engine(BaseEngine):
 
         self.i_body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
-        self.shape.density = MASS_COEF
+        self.shape.density = 1
 
     @classmethod
     def init_class(cls):

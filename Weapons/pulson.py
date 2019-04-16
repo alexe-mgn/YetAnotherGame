@@ -4,27 +4,29 @@ from loading import load_model, cast_model, GObject
 from game_class import BaseWeapon, BaseProjectile
 from config import *
 
-NAME = 'Pulson'
+NAME = 'pulson'
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 
 CS = Vec2d(24, 30)
 
 
 class Weapon(BaseWeapon):
+    fire_delay = 2000
+    proj_velocity = 1000
 
     def __init__(self):
         super().__init__()
 
         self.i_body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((48, 30)))
-        self.shape.density = MASS_COEF
+        self.shape.density = 1
 
     @classmethod
     def init_class(cls):
         cls._frames, cls.IMAGE_SHIFT = cast_model(MODEL, CS, cls.size_inc)
         cls.precalculate_shape()
         cls.calculate_poly_shape()
-        from Projectiles.Pulson import Projectile
+        from Projectiles.pulson import Projectile
         cls.Projectile = Projectile
         cls.fire_pos = cls.image_to_local((64, 30))
 

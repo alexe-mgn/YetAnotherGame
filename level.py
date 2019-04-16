@@ -86,7 +86,7 @@ class Camera:
         premade = [e / zoom for e in self.i_size]
         if premade[0] > self._constraint.size[0] or premade[1] > self._constraint.size[1]:
             m_ind = min((0, 1), key=lambda e: self._constraint.size[e] - premade[e])
-            self.set_zoom(self.i_size[m_ind] / self._constraint.size[m_ind])
+            self.set_zoom(self.i_size[m_ind] / self._constraint.size[m_ind] * self.zoom_offset)
             return
         self.rect.size = premade
         self.rect.center = center
@@ -140,7 +140,8 @@ class Camera:
 
 class Level:
 
-    def __init__(self, size=None, screen=None, zoom_offset=1):
+    def __init__(self, main, size=None, screen=None, zoom_offset=1):
+        self.main = main
         self.size = size if size is not None else [6000, 6000]
         self.screen = pygame.Rect(screen if screen is not None else [0, 0, 800, 600])
         self.update_rect = pygame.Rect(0, 0, *self.size)
@@ -154,6 +155,7 @@ class Level:
         self.phys_group = None
         self.gui = None
         self.pressed = []
+        self.paused = False
         self.mouse_relative_prev = Vec2d(0, 0)
         self.mouse_absolute_prev = Vec2d(0, 0)
         self.mouse_relative = Vec2d(0, 0)
@@ -164,13 +166,30 @@ class Level:
         pass
 
     def send_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 4:
-                self.camera.zoom /= .75
-            elif event.button == 5:
-                self.camera.zoom *= .75
         if self.gui is not None:
             self.gui.send_event(event)
+        if not event.ignore:
+            if self.player:
+                self.player.send_event(event)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pass
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:
+                    self.camera.zoom /= .75
+                elif event.button == 5:
+                    self.camera.zoom *= .75
+
+    def pause(self):
+        self.space_time_coef = 0
+        self.paused = True
+
+    def unpause(self):
+        self.space_time_coef = 1
+        self.paused = False
+
+    def end_game(self):
+        pass
 
     def set_screen(self, rect, offset=1):
         rect = pygame.Rect(rect)
@@ -194,19 +213,21 @@ class Level:
 
     def handle_keys(self):
         pressed = self.pressed
-        if pressed[pygame.K_RIGHT]:
-            self.camera.move_smooth([1, 0])
-        if pressed[pygame.K_LEFT]:
-            self.camera.move_smooth([-1, 0])
-        if pressed[pygame.K_UP]:
-            self.camera.move_smooth([0, -1])
-        if pressed[pygame.K_DOWN]:
-            self.camera.move_smooth([0, 1])
-        if self.player is not None:
-            self.player.walk((
-                int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
-                int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
-            ))
+        if not self.paused:
+            # if pressed[pygame.K_RIGHT]:
+            #     self.camera.move_smooth([1, 0])
+            # if pressed[pygame.K_LEFT]:
+            #     self.camera.move_smooth([-1, 0])
+            # if pressed[pygame.K_UP]:
+            #     self.camera.move_smooth([0, -1])
+            # if pressed[pygame.K_DOWN]:
+            #     self.camera.move_smooth([0, 1])
+            if pressed[pygame.K_DOWN]:
+                self.space_time_coef = .1
+            else:
+                self.space_time_coef = 1
+            if self.player is not None:
+                self.player.handle_keys()
 
     def start_step(self, upd_time, time_coef=1):
         self.step_time = upd_time * time_coef
@@ -215,10 +236,11 @@ class Level:
         self.mouse_absolute_prev = self.mouse_absolute
         self.mouse_relative = Vec2d(pygame.mouse.get_pos())
         self.mouse_absolute = self.get_mouse()
-        if self.player is not None:
-            self.player.angle = (self.mouse_absolute - self.player.pos).angle
         if self.gui is not None:
             self.gui.start_step(upd_time)
+        if self.player is not None:
+            tp = self.mouse_relative - self.screen.center
+            self.camera.center = self.player.pos + tp
 
     def end_step(self):
         if self.gui is not None:

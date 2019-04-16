@@ -6,7 +6,7 @@ from config import *
 
 drag_sprite = None
 import random
-from Projectiles.Pulson import Projectile
+from Projectiles.pulson import Projectile
 
 
 class TestLevel(Level):
@@ -17,7 +17,7 @@ class TestLevel(Level):
         space.gravity = [0, 0]
 
         group = PhysicsGroup(space)
-        from Weapons.Pulson import Weapon
+        from Weapons.pulson import Weapon
         w = Weapon()
         w.add(group)
         w.pos = (300, 300)
@@ -73,7 +73,7 @@ class TestLevel(Level):
             if event.key == pygame.K_f:
                 proj = Projectile()
                 proj.add(self.phys_group)
-                proj.fire(self.mouse_absolute.angle)
+                proj.fire(self.mouse_absolute.angle, 1000)
             elif event.key == pygame.K_g:
                 self.w.fire()
             elif event.key == pygame.K_l:

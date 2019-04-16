@@ -9,7 +9,7 @@ import math
 
 class ImageHandler(PhysObject):
     draw_layer = 0
-    size_inc = SIZE_COEF
+    size_inc = 1
     IMAGE_SHIFT = Vec2d(0, 0)
     team = TEAM.DEFAULT
 
@@ -96,13 +96,13 @@ class Mount:
 class BaseProjectile(ImageHandler):
     draw_layer = DRAW_LAYER.PROJECTILE
     lifetime = 1000
-    st_velocity = 1000
 
     def __init__(self):
         super().__init__()
         self.lifetime = 1000
         self.life_left = self.lifetime
         self.parent = None
+        self.timeout = False
 
     @property
     def shape(self):
@@ -123,9 +123,9 @@ class BaseProjectile(ImageHandler):
 
     # BODY SHAPES !!!
 
-    def fire(self, ang):
+    def fire(self, ang, vel):
         rad = math.radians(ang)
-        vec = Vec2d(self.st_velocity * math.cos(rad), self.st_velocity * math.sin(rad))
+        vec = Vec2d(vel * math.cos(rad), vel * math.sin(rad))
         self.velocity = vec
         self.angle = ang
 
@@ -136,7 +136,14 @@ class BaseProjectile(ImageHandler):
         super().end_step()
         self.life_left -= self.step_time
         if self.life_left <= 0:
-            self.kill()
+            if not self.timeout:
+                self.on_life_end()
+            self.timeout = True
+        else:
+            self.timeout = False
+
+    def on_life_end(self):
+        self.kill()
 
     def _get_angle(self):
         return math.degrees(self.velocity.angle)
@@ -144,12 +151,14 @@ class BaseProjectile(ImageHandler):
 
 class BaseCreature(ImageHandler):
     draw_layer = DRAW_LAYER.CREATURE
+    max_health = 100
 
     def __init__(self):
         super().__init__()
 
         self.mounts = []
         self.mounts_names = {}
+        self.health = self.max_health
 
     def get_mount(self, index=None, key=None):
         if index is not None:
@@ -175,6 +184,9 @@ class BaseCreature(ImageHandler):
             o.deactivate()
         return s
 
+    def mounted_objects(self):
+        return [e.object for e in self.mounts if e.object is not None]
+
     def init_mounts(self, *mounts):
         shift = len(self.mounts)
         for n, i in enumerate(mounts):
@@ -188,6 +200,10 @@ class BaseCreature(ImageHandler):
     def get_weapons(self):
         return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
 
+    def shot(self):
+        for i in self.get_weapons():
+            i.shot()
+
     def get_engines(self):
         return [e.object for e in self.mounts if e.role == ROLE.ENGINE]
 
@@ -196,10 +212,24 @@ class BaseCreature(ImageHandler):
         if engine:
             engine.object.walk(vec)
 
+    def damage(self, val):
+        self.health -= val
+        if self.health <= 0:
+            self.death()
+
+    def death(self):
+        self.kill()
+
+    def kill(self):
+        for n in range(len(self.mounts)):
+            self.unmount(index=n)
+        super().kill()
+
 
 class BaseComponent(ImageHandler):
     draw_layer = DRAW_LAYER.COMPONENT
     role = ROLE.COMPONENT
+    max_health = 50
 
     def __init__(self):
         super().__init__()
@@ -210,6 +240,8 @@ class BaseComponent(ImageHandler):
         self._i_shape = None
         self._i_body = None
         self.activated = False
+
+        self.health = self.max_health
 
     def mounted(self):
         return self._parent is not None
@@ -349,7 +381,7 @@ class BaseComponent(ImageHandler):
         self.update_local_placement()
 
     def _get_pos(self):
-        return self.local_to_world(self._pos)
+        return self._body.local_to_world(self._pos)
 
     def _set_pos(self, p):
         if not self.mounted():
@@ -370,6 +402,12 @@ class BaseComponent(ImageHandler):
 
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
+    def local_to_world(self, pos):
+        return self._body.local_to_world(self.local_pos + pos)
+
+    def world_to_local(self, pos):
+        return self._body.world_to_local(pos) - self.local_pos
+
     def apply_rect(self):
         self._rect.center = self.local_to_world(self._pos)
 
@@ -377,19 +415,31 @@ class BaseComponent(ImageHandler):
         if self.own_body() and self.height <= 0 and self.damping:
             self.velocity *= (1 - self.damping)
 
+    def damage(self, val):
+        self.health -= val
+        if self.health <= 0:
+            self.death()
+
+    def death(self):
+        self.kill()
+
+    def kill(self):
+        super().kill()
+
 
 class BaseEngine(BaseComponent):
     draw_layer = DRAW_LAYER.CREATURE_BOTTOM
     role = ROLE.ENGINE
 
-    engine_force = 100 * MASS_COEF
-    max_vel = 100 * SIZE_COEF
+    engine_force = 100
+    max_vel = 100
     max_fps = 10
 
     def __init__(self):
         super().__init__()
         self.working = False
         self._image.fps = 0
+        self.parent_default_damping = 0
 
     def walk(self, vec):
         cv = self.vel
@@ -416,7 +466,22 @@ class BaseEngine(BaseComponent):
                 self.angle = math.degrees(vel.angle)
             else:
                 self._image.fps = 0
+        else:
+            self._image.fps = 0
         self.working = False
+
+    def mount(self, parent):
+        s = super().mount(parent)
+        if s:
+            self.parent_default_damping = parent.damping
+            parent.damping = 0
+
+    def unmount(self):
+        p = self._parent
+        s = super().unmount()
+        if s:
+            p.damping = self.parent_default_damping
+            self.parent_default_damping = 0
 
     @property
     def local_angle(self):
@@ -444,14 +509,30 @@ class BaseWeapon(BaseComponent):
     draw_layer = DRAW_LAYER.WEAPON
     role = ROLE.WEAPON
     fire_pos = Vec2d(0, 0)
+    proj_velocity = 1000
+    fire_delay = 1000
 
-    def fire(self):
+    def __init__(self):
+        super().__init__()
+        self.recharge = 0
+
+    def end_step(self):
+        super().end_step()
+        if self.recharge > 0:
+            self.recharge -= self.step_time
+
+    def shot(self):
+        if self.recharge <= 0:
+            self.force_fire()
+            self.recharge = self.fire_delay
+
+    def force_fire(self):
         proj = self.Projectile()
         proj.add(*self.groups())
         proj.parent = self
         proj.team = self.team
         proj.pos = self.local_to_world(self.fire_pos)
-        proj.fire(self.angle)
+        proj.fire(self.angle, self.proj_velocity)
 
 
 if __name__ == '__main__':
@@ -462,7 +543,7 @@ if __name__ == '__main__':
     drag_sprite = None
     main = Main()
     import random
-    from Projectiles.Pulson import Projectile
+    from Projectiles.pulson import Projectile
 
 
     class TestLevel(Level):
@@ -473,7 +554,7 @@ if __name__ == '__main__':
             space.gravity = [0, 0]
 
             group = PhysicsGroup(space)
-            from Weapons.Pulson import Weapon
+            from Weapons.pulson import Weapon
             w = Weapon()
             w.add(group)
             w.pos = (300, 300)
@@ -501,7 +582,6 @@ if __name__ == '__main__':
                 ls.add(group)
                 ls.pos = (300, 300)
                 mc.mount(ls, key='engine')
-
 
             self.phys_group = group
 

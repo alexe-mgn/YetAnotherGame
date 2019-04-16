@@ -8,11 +8,13 @@ class HandlerTracked:
     def begin(arbiter, space, data):
         sha, shb = arbiter.shapes
         ba, bb = sha.body, shb.body
-        sa, sb = ba.sprite, bb.sprite
+        sa, sb = getattr(ba, 'sprite', None), getattr(bb, 'sprite', None)
+        if sa is None or sb is None:
+            return True
         col = sa.collideable(sb) and sb.collideable(sa)
         if col:
-            sa.effect(sb)
-            sb.effect(sa)
+            sa.effect(sb, arbiter)
+            sb.effect(sa, arbiter)
         return col
 
 
@@ -37,11 +39,15 @@ class HandlerProjectile:
     def begin(arbiter, space, data):
         sha, shb = arbiter.shapes
         ba, bb = sha.body, shb.body
-        sa, sb = ba.sprite, bb.sprite
+        sa, sb = getattr(ba, 'sprite', None), getattr(bb, 'sprite', None)
+        if sa is None or sb is None:
+            return True
         col = sa.collideable(sb) and sb.collideable(sa)
         if col:
-            sa.effect(sb)
-            sb.effect(sa)
+            def f(*args):
+                sa.effect(sb, arbiter)
+                sb.effect(sa, arbiter)
+            space.add_post_step_callback(f, id(f))
         return col
 
     @staticmethod

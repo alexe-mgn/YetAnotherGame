@@ -1,6 +1,7 @@
 import pygame
 from geometry import Vec2d, FRect
 from loading import get_path, load_model
+from config import *
 
 
 def draw_text(font_path, surface, text, rect, color=(255, 255, 255), alignment='center', size=None):
@@ -45,6 +46,7 @@ class Division:
         self.elements = []
         self.disabled = []
         self.step_time = 1
+        self.event = None
         self.hover = False
         self.press = False
 
@@ -195,13 +197,27 @@ class Division:
             i.end_step()
 
     def send_event(self, event):
+        self.event = event
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.hover:
-                self.button_down()
+                if event.button == 1:
+                    self.button_down()
         elif event.type == pygame.MOUSEBUTTONUP:
-            self.button_up()
+            if event.button == 1:
+                self.button_up()
+                if self.press:
+                    self.on_event_hit(event)
+        if self.hover:
+            self.on_event_hit(event)
         for i in self.elements:
             i.send_event(event)
+        self.post_handle(event)
+
+    def post_handle(self, event):
+        pass
+
+    def on_event_hit(self, event):
+        pass
 
     def draw(self, surface):
         if self.image is not None:
@@ -248,14 +264,25 @@ class Division:
         self.hover = False
 
     def button_down(self):
+        # hovered and pressed
         self.press = True
+        self.on_hold()
 
     def button_up(self):
-        if self.hover and self.press:
-            self.on_click()
+        # button unhold - any case
+        if self.press:
+            self.on_unhold()
+            if self.hover:
+                self.on_click()
         self.press = False
 
     def on_click(self):
+        pass
+
+    def on_hold(self):
+        pass
+
+    def on_unhold(self):
         pass
 
     def on_focus(self):
@@ -347,6 +374,10 @@ class Button(Element):
             n = 0
         surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
 
+    def on_event_hit(self, event):
+        if event.type in MOUSE_EVENTS:
+            event.ignore = True
+
 
 class BtnLarge(Button):
     font = get_path('Res\\potra.ttf')
@@ -374,6 +405,3 @@ class BtnSmall(Button):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.text_color = (255, 255, 255)
-
-    def draw(self, surface):
-        super().draw(surface)

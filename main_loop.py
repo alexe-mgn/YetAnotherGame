@@ -1,7 +1,9 @@
 import pygame
 import sys
+import os
 from main_settings import except_hook
 from config import *
+from loading import get_path, load_image
 
 sys.excepthook = except_hook
 pygame.init()
@@ -15,6 +17,9 @@ class Main:
         self.winflag = pygame.RESIZABLE | pygame.DOUBLEBUF
         self.level, self.gui, self.clock, self.running = None, None, None, False
         self.size = [800, 600]
+        pygame.display.set_caption(APP_NAME)
+        if os.path.isfile(get_path('game_icon.ico')):
+            pygame.display.set_icon(load_image('game_icon.ico'))
 
     def calculate_visible(self, c):
         tg = VISION_SIZE
@@ -44,6 +49,7 @@ class Main:
 
     def load_level(self, level):
         self.level = level
+        self.load_gui(None)
         if level is not None:
             self.level.set_screen(self._visible, self.zoom_offset)
         else:
@@ -62,14 +68,14 @@ class Main:
         if self.gui is None:
             self.load_gui(EmptyGameObject())
         if self.level is None:
-            self.load_level(EmptyGameObject())
+            self.home()
         self.clock = pygame.time.Clock()
         self.running = True
         while self.running:
             self.update()
 
     def update(self):
-        upd_time = self.clock.tick(90)
+        upd_time = self.clock.tick(60)
         if not 0 < upd_time < 100:
             upd_time = 1
         self.screen.fill((0, 0, 0))
@@ -78,6 +84,7 @@ class Main:
         gui.start_step(upd_time)
         level.start_step(upd_time)
         for event in pygame.event.get():
+            event.ignore = False
             gui.send_event(event)
             level.send_event(event)
             if event.type == pygame.QUIT:
@@ -96,14 +103,20 @@ class Main:
         gui.draw(self.screen)
         pygame.display.flip()
 
+    def home(self):
+        self.load_level(None)
+        self.load_gui(MainMenu(main=self))
+
     def quit(self):
         self.running = False
+
+    def load_survival(self):
+        self.load_level(Survival(main=self))
 
 
 if __name__ == '__main__':
     from Game.GUI import MainMenu
+    from Game.Levels.Survival import Survival
 
     main = Main()
-    menu = MainMenu(main=main)
-    main.load_gui(menu)
     main.start()

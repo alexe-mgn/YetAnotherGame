@@ -121,7 +121,7 @@ class StaticImage(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj):
+    def effect(self, obj, arbiter):
         pass
 
     def pre_update(self):
@@ -306,7 +306,7 @@ class PhysObject(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj):
+    def effect(self, obj, arbiter):
         pass
 
     def pre_update(self):
@@ -362,12 +362,15 @@ class PhysObject(pygame.sprite.Sprite):
             if self._body is not None:
                 space.remove(self._body)
             self._space = None
-        self._shape = None
-        self._body = None
+        # self._shape = None
+        # self._body = None
         super().kill()
 
     def collideable(self, obj):
         return True
+
+    def damage(self, val):
+        pass
 
     def __bool__(self):
         return bool(self.groups())

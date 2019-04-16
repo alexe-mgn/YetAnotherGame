@@ -5,9 +5,9 @@ import os
 from math import ceil
 
 
-def load_image(path):
-    surface = pygame.image.load(get_path(path)).convert_alpha()
-    return surface
+def load_image(path, alpha=True):
+    surface = pygame.image.load(get_path(path))
+    return surface.convert_alpha() if alpha else surface.convert()
 
 
 def cast_image(source, center, size_inc):
@@ -23,6 +23,7 @@ def cast_image(source, center, size_inc):
     img.fill((255, 255, 255, 0))
     img.blit(pygame.transform.scale(source, size),
              tl)
+    # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
     return img, -img_center
 
 
@@ -36,21 +37,45 @@ def load_frames(path):
     return frames
 
 
+# def cast_frames(source, centers, size_incs):
+#     frames = []
+#     c0 = Vec2d(0, 0)
+#     for n, f in enumerate(source):
+#         b_rect = f.get_bounding_rect()
+#         s_inc = size_incs[n]
+#         b_size = Vec2d(b_rect.size) * s_inc
+#         img = pygame.Surface(b_size).convert_alpha()
+#         img.fill((255, 255, 255, 0))
+#         c = Vec2d(centers[n] if centers[n] is not None else b_size / 2) * s_inc
+#         tl = b_size / 2 - c
+#         if n == 0:
+#             c0 = c
+#         img.blit(pygame.transform.scale(f,
+#                                         [ceil(e * s_inc) for e in f.get_size()]),
+#                  tl)
+#         pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
+#         frames.append(img)
+#     return frames, c0
+
 def cast_frames(source, centers, size_incs):
-    ln = len(source)
-    i_sizes = [Vec2d(e.get_size()) for e in source]
-    sizes = [ceil(i_sizes[n] * size_incs[n]) for n in range(ln)]
-    mx = Vec2d(max(sizes, key=lambda e: e[0])[0], max(sizes, key=lambda e: e[1])[1])
-    frames, shifts = [], []
+    frames = []
+    c0 = Vec2d(0, 0)
     for n, f in enumerate(source):
-        img = pygame.Surface(mx * 2).convert_alpha()
+        b_rect = f.get_bounding_rect()
+        s_inc = size_incs[n]
+        b_size = Vec2d(b_rect.size) * s_inc
+        img = pygame.Surface(b_size).convert_alpha()
         img.fill((255, 255, 255, 0))
-        center = ceil(Vec2d(centers[n]) * size_incs[n] if centers[n] is not None else sizes[n] / 2)
-        tl = ceil(mx - center)
-        img.blit(pygame.transform.scale(f, sizes[n]), tl)
+        c = Vec2d(centers[n] if centers[n] is not None else b_size / 2) * s_inc
+        tl = b_size / 2 - c
+        if n == 0:
+            c0 = c
+        img.blit(pygame.transform.scale(f,
+                                        [ceil(e * s_inc) for e in f.get_size()]),
+                 tl)
+        # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
         frames.append(img)
-        shifts.append(-center)
-    return frames, shifts
+    return frames, c0
 
 
 class GObject:
@@ -148,6 +173,7 @@ class GObject:
 
     def read(self):
         return self._frames[self.n]
+
     image = property(read)
 
     def get_by_ind(self, n):

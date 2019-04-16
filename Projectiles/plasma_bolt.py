@@ -1,16 +1,16 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseCreature, Mount
+from game_class import BaseProjectile
 from config import *
 
-NAME = 'MechZero'
-MODEL = load_model('Creatures\\Models\\%s' % (NAME,))
+NAME = 'plasma_bolt'
+MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))
 
-CS = Vec2d(42, 77)
+CS = Vec2d(76.5, 28.5)
 
 
-class Creature(BaseCreature):
+class Projectile(BaseProjectile):
     size_inc = 1
 
     def __init__(self):
@@ -19,12 +19,11 @@ class Creature(BaseCreature):
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
         self.shape.density = 1
+        self._image.fps = 10
 
-        self.init_mounts((Mount(self, allowed=[ROLE.ENGINE], top=False), 'engine'),
-                         (Mount(self, allowed=[ROLE.WEAPON], top=False,
-                                position=self.image_to_local((43, 11))), 'weapon_left'),
-                         (Mount(self, allowed=[ROLE.WEAPON], top=False,
-                                position=self.image_to_local((43, 143))), 'weapon_right'))
+    def effect(self, obj, arbiter):
+        obj.damage(10)
+        self.kill()
 
     @classmethod
     def init_class(cls):
@@ -34,7 +33,7 @@ class Creature(BaseCreature):
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 50
+        radius = 9
 
         cls.RADIUS = radius * cls.size_inc
 
@@ -46,4 +45,4 @@ class Creature(BaseCreature):
         cls.POLY_SHAPE = [(e[0] * cls.size_inc, e[1] * cls.size_inc) for e in poly_left + poly_right]
 
 
-Creature.init_class()
+Projectile.init_class()

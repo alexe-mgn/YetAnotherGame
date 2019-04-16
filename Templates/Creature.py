@@ -11,14 +11,14 @@ CS = Vec2d(0, 0)
 
 
 class Creature(BaseCreature):
-    size_inc = SIZE_COEF
+    size_inc = 1
 
     def __init__(self):
         super().__init__()
 
         self.body = pymunk.Body()
         self.shape = pymunk.Poly(self.body, self.POLY_SHAPE)
-        self.shape.density = MASS_COEF
+        self.shape.density = 1
 
     @classmethod
     def init_class(cls):
