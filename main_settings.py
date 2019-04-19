@@ -6,7 +6,7 @@ from config import LOAD_MEIPASS, EXCEPTION_FILE
 
 cwd = os.getcwd()
 PATH = (sys._MEIPASS if LOAD_MEIPASS and getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__)))
-WRITE_PATH = os.getcwd()
+WRITE_PATH = cwd
 
 
 # For one file .exe to work

@@ -1,10 +1,9 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseWeapon, BaseProjectile
-from config import *
+from game_class import BaseWeapon
 
-NAME = 'plasma_repeater'
+NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 
 CS = Vec2d(13, 17)
@@ -33,7 +32,7 @@ class Weapon(BaseWeapon):
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 26
+        radius = 22
 
         cls.RADIUS = radius * cls.size_inc
 

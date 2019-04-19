@@ -4,7 +4,7 @@ from loading import load_model, cast_model
 from game_class import BaseCreature, Mount
 from config import *
 
-NAME = 'MechZero'
+NAME = __name__.split('.')[-1]
 MODEL = load_model('Creatures\\Models\\%s' % (NAME,))
 
 CS = Vec2d(42, 77)
@@ -12,6 +12,7 @@ CS = Vec2d(42, 77)
 
 class Creature(BaseCreature):
     size_inc = 1
+    max_health = 250
 
     def __init__(self):
         super().__init__()

@@ -2,16 +2,20 @@ import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
 from game_class import BaseProjectile
+from VFX.dissipation import VideoEffect
 from config import *
 
-NAME = 'plasma_bolt'
+NAME = __name__.split('.')[-1]
 MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))
 
 CS = Vec2d(76.5, 28.5)
 
 
 class Projectile(BaseProjectile):
+    mat = MAT_TYPE.ENERGY
     size_inc = 1
+    lifetime = 1500
+    hit_damage = 10
 
     def __init__(self):
         super().__init__()
@@ -21,9 +25,18 @@ class Projectile(BaseProjectile):
         self.shape.density = 1
         self._image.fps = 10
 
-    def effect(self, obj, arbiter):
-        obj.damage(10)
+    def damage(self, val):
+        pass
+
+    def effect(self, obj, arbiter, first=True):
+        obj.damage(self.hit_damage)
         self.kill()
+
+    def kill(self):
+        v = VideoEffect()
+        v.add(self.groups())
+        v.pos = self.pos
+        super().kill()
 
     @classmethod
     def init_class(cls):

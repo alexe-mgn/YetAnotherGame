@@ -27,6 +27,7 @@ NS.init_class()
 
 
 class DRAW_LAYER:
+    DEFAULT = 15
     UNLIVING = 5
     CREATURE = 10
     CREATURE_BOTTOM = CREATURE - 1
@@ -35,25 +36,44 @@ class DRAW_LAYER:
     WEAPON = 15
     STATIC = 20
     PROJECTILE = 25
+    VFX = 30
 
 
 class COLLISION_TYPE(NS):
     TRACKED = 5
     PROJECTILE = 5
-    SHIELD = 10
+
+
+class MAT_TYPE:
+    MATERIAL = 0
+    ENERGY = 1
 
 
 class ROLE:
-    COMPONENT = 0
-    ENGINE = 1
-    WEAPON = 2
+    OBJECT = 0
+    COMPONENT = 1
+    ENGINE = 2
+    WEAPON = 3
 
 
-class TEAM:
+class TEAM(NS):
     DEFAULT = 0
     PLAYER = 1
     ENEMY = 2
     NEUTRAL = 3
+
+
+def collide_case(a, b):
+    ta, tb = getattr(a, 'team', TEAM.DEFAULT), getattr(b, 'team', TEAM.DEFAULT)
+    ma, mb = getattr(a, 'mat', MAT_TYPE.MATERIAL), getattr(b, 'mat', MAT_TYPE.MATERIAL)
+    if ma == mb == MAT_TYPE.ENERGY:
+        return False
+    if ta != tb:
+        return True
+    elif ta == TEAM.DEFAULT:
+        return True
+    else:
+        return False
 
 
 class EmptyGameObject:

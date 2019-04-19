@@ -1,10 +1,16 @@
-from Creatures.MechZero import Creature
+from Creatures.MechSoldier import Creature
 from Game.Character import BaseEnemy
-from Weapons.plasma_repeater import Weapon
+from Components.LegsSoldier import Engine as Legs
+from Weapons.plasma_repeater import Weapon as DefaultW
 
 
 class Character(BaseEnemy, Creature):
 
-    def __init__(self, level):
-        super().__init__(level)
-
+    def pregenerate(self):
+        self.fire_delay = 2000
+        l = Legs()
+        l.add(*self.groups())
+        self.mount(l, key='engine')
+        w = DefaultW()
+        w.add(self.level.phys_group)
+        self.mount(w)

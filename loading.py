@@ -12,6 +12,13 @@ def load_image(path, alpha=True):
 
 def cast_image(source, center, size_inc):
     i_size = Vec2d(source.get_size())
+    if center is None:
+        center = i_size / 2
+    else:
+        if center[0] is None:
+            center[0] = i_size[0] / 2
+        if center[1] is None:
+            center[1] = i_size[1] / 2
     size = ceil(i_size * size_inc)
     h_size = size / 2
     img_center = ceil(Vec2d(center) * size_inc if center is not None else h_size)
@@ -83,7 +90,7 @@ class GObject:
     def __init__(self, obj):
         if not isinstance(obj, pygame.Surface):
             frames = obj
-            self._frames = frames
+            self._frames = frames[:]
             self._len = len(frames)
         else:
             self._frames = [obj]
@@ -200,7 +207,7 @@ def load_model(path):
 def cast_model(source, cs, sis):
     if not isinstance(source, pygame.Surface):
         ln = len(source)
-        if hasattr(cs[0], '__int__'):
+        if cs is None or hasattr(cs[0], '__int__'):
             cs = [cs] * ln
         if hasattr(sis, '__int__'):
             sis = [sis] * ln

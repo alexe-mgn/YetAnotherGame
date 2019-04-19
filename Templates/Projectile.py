@@ -2,9 +2,8 @@ import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
 from game_class import BaseProjectile
-from config import *
 
-NAME = ''
+NAME = __name__.split('.')[1]
 MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))
 
 CS = Vec2d(0, 0)
@@ -12,6 +11,8 @@ CS = Vec2d(0, 0)
 
 class Projectile(BaseProjectile):
     size_inc = 1
+    lifetime = 1000
+    damage = 10
 
     def __init__(self):
         super().__init__()

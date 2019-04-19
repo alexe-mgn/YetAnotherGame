@@ -87,17 +87,83 @@ class PhysicsGroup(CameraGroup):
 
 
 class StaticImage(pygame.sprite.Sprite):
+    draw_layer = DRAW_LAYER.VFX
 
     def __init__(self):
-        super().__init__()
+        """
+        Necessary assignment
+           - rect
+           - image
+           - shape
+        """
         self._rect = None
+        self._angle = 0
 
         self._image = None
-        self._space = None
-        self._body = None
-        self._shape = None
 
+        self.damping = 0
+        self.height = 0
         self.step_time = 1
+        super().__init__()
+
+    @property
+    def space(self):
+        return None
+
+    @space.setter
+    def space(self, space):
+        pass
+
+    def own_body(self):
+        return True
+
+    @property
+    def body(self):
+        return None
+
+    @body.setter
+    def body(self, body):
+        pass
+
+    def local_to_world(self, pos):
+        return self.pos + Vec2d(pos).rotated(self.angle)
+
+    def world_to_local(self, pos):
+        return (Vec2d(pos) - self.pos).rotated(-self.angle)
+
+    @property
+    def mass(self):
+        return 0
+
+    @mass.setter
+    def mass(self, m):
+        pass
+
+    @property
+    def moment(self):
+        return 0
+
+    @moment.setter
+    def moment(self, m):
+        pass
+
+    @property
+    def shape(self):
+        return None
+
+    @shape.setter
+    def shape(self, shape):
+        pass
+
+    @property
+    def shapes(self):
+        return []
+
+    def add_shape(self, shape):
+        pass
+
+    def remove_shape(self, shape):
+        pass
 
     @property
     def rect(self):
@@ -106,12 +172,10 @@ class StaticImage(pygame.sprite.Sprite):
     @rect.setter
     def rect(self, rect):
         self._rect = FRect(rect)
-        if self._body is not None:
-            self._body.position = self._rect.center
 
     @property
     def image(self):
-        return self._image
+        return self._image.read()
 
     # THIS MUST be used for drawing, not .image
     def read_image(self):
@@ -121,7 +185,7 @@ class StaticImage(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj, arbiter):
+    def effect(self, obj, arbiter, first=True):
         pass
 
     def pre_update(self):
@@ -134,17 +198,16 @@ class StaticImage(pygame.sprite.Sprite):
         self.step_time = upd_time
 
     def end_step(self):
-        self.apply_rect()
+        self._image.update(self.step_time)
 
     def apply_rect(self):
-        self._rect.center = self._body.position
+        pass
 
     def _get_pos(self):
-        return self.body.position
+        return self._rect.center
 
     def _set_pos(self, p):
         self._rect.center = p
-        self.body.position = p
 
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
@@ -157,15 +220,25 @@ class StaticImage(pygame.sprite.Sprite):
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
     def _get_velocity(self):
-        return self._body.velocity
+        return (0, 0)
 
     def _set_velocity(self, vel):
-        self._body.velocity = (vel[0], vel[1])
+        pass
 
     vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
 
+    def collideable(self, obj):
+        return False
+
+    def damage(self, val):
+        pass
+
+    def __bool__(self):
+        return True
+
 
 class PhysObject(pygame.sprite.Sprite):
+    draw_layer = DRAW_LAYER.DEFAULT
 
     def __init__(self):
         """
@@ -306,7 +379,7 @@ class PhysObject(pygame.sprite.Sprite):
     def image(self, surf):
         self._image = surf
 
-    def effect(self, obj, arbiter):
+    def effect(self, obj, arbiter, first=True):
         pass
 
     def pre_update(self):
@@ -323,14 +396,14 @@ class PhysObject(pygame.sprite.Sprite):
         self.apply_rect()
 
     def apply_rect(self):
-        self._rect.center = self._body.position
+        self._rect.center = self.pos
 
     def apply_damping(self):
         if self.height <= 0 and self.damping:
             self.velocity *= (1 - self.damping)
 
     def _get_pos(self):
-        return self.body.position
+        return self._body.position
 
     def _set_pos(self, p):
         self._rect.center = p
@@ -342,7 +415,8 @@ class PhysObject(pygame.sprite.Sprite):
         return math.degrees(self.body.angle)
 
     def _set_angle(self, ang):
-        self._body.angle = math.radians(ang)
+        b = self._body
+        b.angle = math.radians(ang)
 
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 

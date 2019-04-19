@@ -2,9 +2,8 @@ import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
 from game_class import BaseComponent
-from config import *
 
-NAME = ''
+NAME = __name__.split('.')[1]
 MODEL = load_model('Components\\Models\\%s' % (NAME,))
 
 CS = Vec2d(0, 0)
@@ -12,6 +11,7 @@ CS = Vec2d(0, 0)
 
 class Component(BaseComponent):
     size_inc = 1
+    max_health = 50
 
     def __init__(self):
         super().__init__()

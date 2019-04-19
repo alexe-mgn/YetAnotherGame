@@ -1,18 +1,37 @@
 import pygame
 import pymunk
-from level import Level
+
+from level import Level, EventSystem, Event
 from physics import PhysicsGroup
 from Game.GUI import LevelGUI
-from Game.Player import BasePlayer
 from loading import load_image
 from config import *
+
+from debug_draw import draw_debug
+class SpawnEvent(Event):
+
+    def __init__(self, es):
+        super().__init__(es)
+        self.characters = [
+            ()
+        ]
+
+
+class SurvivalEventSystem(EventSystem):
+
+    def __init__(self, level):
+        super().__init__(level)
+        SpawnEvent(self)
 
 
 class Survival(Level):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, size=(8000, 6000), zoom_constraint=[.25, 3.5], **kwargs)
+
+    def pregenerate(self):
         self.background = pygame.transform.scale(load_image('Game\\Levels\\background.jpg', alpha=False), self.size)
+
         space = pymunk.Space()
         space.damping = 1
         space.gravity = [0, 0]
@@ -29,44 +48,22 @@ class Survival(Level):
             s = pymunk.Segment(b, ps[n], ps[n + 1], 2)
             space.add(b, s)
 
-        from Weapons.pulson import Weapon
-        w = Weapon()
-        w.add(group)
-        w.pos = (300, 300)
-        self.w = w
-        w = Weapon()
-        w.add(group)
-        w.pos = (300, 300)
-        from Creatures.MechZero import Creature
-        from Components.LegsZero import Engine
+        from Characters.player_survival import Character as Player
+        from Characters.Zero import Character as Enemy
 
-        class Player(BasePlayer, Creature):
-            pass
+        self.player = Player(self)
 
-        mc = Player(self)
-        mc.add(group)
-        mc.pos = (500, 500)
-        mc.mount(self.w, key='weapon_left')
-        #mc.mount(w, key='weapon_right')
-        ls = Engine()
-        ls.add(group)
-        ls.pos = (300, 300)
-        mc.mount(ls, key='engine')
-        mc.team = TEAM.PLAYER
-        self.player = mc
+        # self.player = Player(self)
+        # self.player.pos = (500, 500)
 
         for n in range(5):
-            mc = Creature()
-            mc.add(group)
-            mc.pos = (500, 500)
-            ls = Engine()
-            ls.add(group)
-            ls.pos = (300, 300)
-            mc.mount(ls, key='engine')
+            e = Enemy(self)
+            e.pos = (1000, 1000)
 
         self.phys_group = group
 
         self.gui = LevelGUI(main=self.main)
+        self.event_system = SurvivalEventSystem(self)
 
     def draw(self, surface):
         surface.blit(
@@ -75,3 +72,15 @@ class Survival(Level):
                 self.screen.size),
             (0, 0))
         super().draw(surface)
+        draw_debug(self.camera, surface, self.phys_group.sprites())
+        for s in self.phys_group.sprites():
+            if hasattr(s, 'health') and s.rect.collidepoint(*self.mouse_absolute) and s.own_body():
+                c = self.camera.world_to_local(s.rect.center)
+                r = pygame.Rect(0, 0, 50, 10)
+                r.center = (c[0], c[1] - 20)
+                pygame.draw.rect(surface, (0, 0, 0), r, 0)
+                r.inflate_ip(-2, -2)
+                r.width = r.width * (s.health / s.max_health)
+                pygame.draw.rect(surface, (0, 255, 0), r, 0)
+        # pygame.draw.circle(surface, (0, 255, 0), [int(e) for e in self.camera.world_to_local(self.player.get_mount(key='engine').object.pos)], 3)
+        # pygame.draw.circle(surface, (255, 0, 0), [int(e) for e in self.camera.world_to_local(self.player.pos)], 3)

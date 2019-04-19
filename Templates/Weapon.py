@@ -4,7 +4,7 @@ from loading import load_model, cast_model
 from game_class import BaseWeapon, BaseProjectile
 from config import *
 
-NAME = ''
+NAME = __name__.split('.')[1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 
 CS = Vec2d(0, 0)
@@ -12,6 +12,10 @@ CS = Vec2d(0, 0)
 
 class Weapon(BaseWeapon):
     size_inc = 1
+    max_health = 50
+    proj_velocity = 1000
+    fire_delay = 1000
+    fire_pos = Vec2d(0, 0)
 
     def __init__(self):
         super().__init__()

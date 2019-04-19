@@ -9,6 +9,10 @@ sys.excepthook = except_hook
 pygame.init()
 pygame.display.set_mode((300, 300))
 
+# Need display initialized
+from Game.GUI import MainMenu
+from Game.Levels.Survival import Survival
+
 
 class Main:
 
@@ -115,8 +119,5 @@ class Main:
 
 
 if __name__ == '__main__':
-    from Game.GUI import MainMenu
-    from Game.Levels.Survival import Survival
-
     main = Main()
     main.start()

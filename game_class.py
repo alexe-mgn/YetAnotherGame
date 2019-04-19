@@ -1,4 +1,3 @@
-import pygame
 import pymunk
 from geometry import Vec2d, FRect
 from physics import PhysObject
@@ -8,19 +7,17 @@ import math
 
 
 class ImageHandler(PhysObject):
-    draw_layer = 0
     size_inc = 1
     IMAGE_SHIFT = Vec2d(0, 0)
-    team = TEAM.DEFAULT
 
     def __init__(self, obj=None):
         super().__init__()
         if obj is None:
             self._image = GObject(self._frames)
         else:
-            self._image = obj
+            self._image = GObject(obj)
         size = self._image.get_size()
-        a = (size[0] ** 2 + size[1] ** 2) ** .5
+        a = math.sqrt(size[0] * size[0] + size[1] * size[1])
         self.rect = FRect(0, 0, 0, 0)
         self.rect.inflate_ip(a, a)
 
@@ -35,6 +32,25 @@ class ImageHandler(PhysObject):
     @property
     def image(self):
         return self._image.read()
+
+
+class DynamicObject(ImageHandler):
+    role = ROLE.OBJECT
+    team = TEAM.DEFAULT
+    mat = MAT_TYPE.MATERIAL
+    max_health = 100
+
+    def __init__(self):
+        super().__init__()
+        self.health = self.max_health
+
+    def damage(self, val):
+        self.health -= val
+        if self.health <= 0:
+            self.death()
+
+    def death(self):
+        self.kill()
 
 
 class Mount:
@@ -89,17 +105,29 @@ class Mount:
         else:
             return False
 
+    def mountable(self, obj):
+        return self.allowed is True or obj.role in self.allowed
+
+    def mount_ready(self, obj):
+        return self.object is None and (self.allowed is True or obj.role in self.allowed)
+
+    def free(self):
+        return self.object is None
+
     def __bool__(self):
         return self.object is not None
 
+    def __repr__(self):
+        return '{}.{}({})'.format(self.parent, self.__class__.__name__, self.object)
 
-class BaseProjectile(ImageHandler):
+
+class BaseProjectile(DynamicObject):
     draw_layer = DRAW_LAYER.PROJECTILE
     lifetime = 1000
+    hit_damage = 10
 
     def __init__(self):
         super().__init__()
-        self.lifetime = 1000
         self.life_left = self.lifetime
         self.parent = None
         self.timeout = False
@@ -123,14 +151,8 @@ class BaseProjectile(ImageHandler):
 
     # BODY SHAPES !!!
 
-    def fire(self, ang, vel):
-        rad = math.radians(ang)
-        vec = Vec2d(vel * math.cos(rad), vel * math.sin(rad))
-        self.velocity = vec
-        self.angle = ang
-
     def collideable(self, obj):
-        return obj is not self.parent and (not self.team or not obj.team or obj.team != self.team)
+        return obj is not self.parent and collide_case(self, obj)
 
     def end_step(self):
         super().end_step()
@@ -149,7 +171,7 @@ class BaseProjectile(ImageHandler):
         return math.degrees(self.velocity.angle)
 
 
-class BaseCreature(ImageHandler):
+class BaseCreature(DynamicObject):
     draw_layer = DRAW_LAYER.CREATURE
     max_health = 100
 
@@ -158,31 +180,41 @@ class BaseCreature(ImageHandler):
 
         self.mounts = []
         self.mounts_names = {}
-        self.health = self.max_health
 
     def get_mount(self, index=None, key=None):
         if index is not None:
-            m = self.mounts[index]
+            return self.mounts[index]
         elif key is not None:
-            m = self.mounts[self.mounts_names[key]]
-        return m
+            return self.mounts[self.mounts_names[key]]
 
     def mount(self, obj, index=None, key=None):
         m = self.get_mount(index, key)
-        s = m.mount(obj)
-        if s:
-            obj.team = self.team
-            obj.activate()
-        return s
+        if m is not None:
+            s = m.mount(obj)
+            if s:
+                obj.team = self.team
+                obj.activate()
+            return s
+        else:
+            for m in self.mounts:
+                if m.free() and m.mountable(obj):
+                    s = m.mount(obj)
+                    if s:
+                        obj.team = self.team
+                        obj.activate()
+                        return s
+        return False
 
     def unmount(self, index=None, key=None):
         m = self.get_mount(index, key)
-        o = m.object
-        s = m.unmount()
-        if s:
-            o.team = TEAM.DEFAULT
-            o.deactivate()
-        return s
+        if m is not None:
+            o = m.object
+            s = m.unmount()
+            if s:
+                o.team = TEAM.DEFAULT
+                o.deactivate()
+            return s
+        return False
 
     def mounted_objects(self):
         return [e.object for e in self.mounts if e.object is not None]
@@ -200,6 +232,11 @@ class BaseCreature(ImageHandler):
     def get_weapons(self):
         return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
 
+    def free_weapon(self):
+        for i in self.mounts:
+            if i.role == ROLE.WEAPON and i.free():
+                return i
+
     def shot(self):
         for i in self.get_weapons():
             i.shot()
@@ -212,21 +249,13 @@ class BaseCreature(ImageHandler):
         if engine:
             engine.object.walk(vec)
 
-    def damage(self, val):
-        self.health -= val
-        if self.health <= 0:
-            self.death()
-
-    def death(self):
-        self.kill()
-
     def kill(self):
         for n in range(len(self.mounts)):
             self.unmount(index=n)
         super().kill()
 
 
-class BaseComponent(ImageHandler):
+class BaseComponent(DynamicObject):
     draw_layer = DRAW_LAYER.COMPONENT
     role = ROLE.COMPONENT
     max_health = 50
@@ -240,8 +269,6 @@ class BaseComponent(ImageHandler):
         self._i_shape = None
         self._i_body = None
         self.activated = False
-
-        self.health = self.max_health
 
     def mounted(self):
         return self._parent is not None
@@ -274,20 +301,20 @@ class BaseComponent(ImageHandler):
 
     @space.setter
     def space(self, space):
-        # shapes ???
-        own_body = self._body is not None and self._body is self._i_body
-        shapes = self.shapes
-        if self._space is not None:
-            if shapes:
-                self._space.remove(*shapes)
-            if own_body:
-                self._space.remove(self._body)
-        self._space = space
-        if space is not None:
-            if own_body:
-                space.add(self._body)
-            if shapes:
-                space.add(shapes)
+        if self._space is not space:
+            own_body = self._body is not None and self._body is self._i_body
+            shapes = self.shapes
+            if self._space is not None:
+                if shapes:
+                    self._space.remove(*shapes)
+                if own_body:
+                    self._space.remove(self._body)
+            self._space = space
+            if space is not None:
+                if own_body:
+                    space.add(self._body)
+                if shapes:
+                    space.add(shapes)
 
     @property
     def source_shape(self):
@@ -415,17 +442,6 @@ class BaseComponent(ImageHandler):
         if self.own_body() and self.height <= 0 and self.damping:
             self.velocity *= (1 - self.damping)
 
-    def damage(self, val):
-        self.health -= val
-        if self.health <= 0:
-            self.death()
-
-    def death(self):
-        self.kill()
-
-    def kill(self):
-        super().kill()
-
 
 class BaseEngine(BaseComponent):
     draw_layer = DRAW_LAYER.CREATURE_BOTTOM
@@ -459,7 +475,7 @@ class BaseEngine(BaseComponent):
 
     def end_step(self):
         super().end_step()
-        if self.activated:
+        if self.activated and self.max_fps:
             vel = self.velocity
             if any(vel):
                 self._image.fps = self.max_fps * vel.length / self.max_vel
@@ -532,116 +548,9 @@ class BaseWeapon(BaseComponent):
         proj.parent = self
         proj.team = self.team
         proj.pos = self.local_to_world(self.fire_pos)
-        proj.fire(self.angle, self.proj_velocity)
-
-
-if __name__ == '__main__':
-    from main_loop import Main
-    from level import Level
-    from physics import PhysicsGroup
-
-    drag_sprite = None
-    main = Main()
-    import random
-    from Projectiles.pulson import Projectile
-
-
-    class TestLevel(Level):
-
-        def pregenerate(self):
-            space = pymunk.Space()
-            space.damping = 1
-            space.gravity = [0, 0]
-
-            group = PhysicsGroup(space)
-            from Weapons.pulson import Weapon
-            w = Weapon()
-            w.add(group)
-            w.pos = (300, 300)
-            self.w = w
-            w = Weapon()
-            w.add(group)
-            w.pos = (300, 300)
-            from Creatures.MechZero import Creature
-            from Components.LegsZero import Engine
-            mc = Creature()
-            mc.add(group)
-            mc.pos = (500, 500)
-            ls = Engine()
-            ls.add(group)
-            ls.pos = (300, 300)
-            mc.mount(ls, key='engine')
-            mc.team = TEAM.PLAYER
-            self.player = mc
-
-            for n in range(5):
-                mc = Creature()
-                mc.add(group)
-                mc.pos = (500, 500)
-                ls = Engine()
-                ls.add(group)
-                ls.pos = (300, 300)
-                mc.mount(ls, key='engine')
-
-            self.phys_group = group
-
-        def get_mouse_sprite(self):
-            for s in self.phys_group.layer_sorted()[::-1]:
-                if s.shape.point_query(self.mouse_absolute)[0] <= 0:
-                    return s
-            return None
-
-        def send_event(self, event):
-            super().send_event(event)
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                global drag_sprite
-                s = self.get_mouse_sprite()
-                if event.button == 1:
-                    if drag_sprite is not None:
-                        drag_sprite.vel = (self.mouse_absolute - self.mouse_absolute_prev) / self.step_time * 1000
-                        drag_sprite = None
-                    elif s is not None:
-                        if drag_sprite is None:
-                            drag_sprite = s
-                elif event.button == 2:
-                    if hasattr(s, 'fire'):
-                        s.fire()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_f:
-                    proj = Projectile()
-                    proj.add(self.phys_group)
-                    proj.fire(self.mouse_absolute.angle)
-                elif event.key == pygame.K_g:
-                    self.w.fire()
-                elif event.key == pygame.K_l:
-                    self.camera.center = self.player.pos
-
-        def end_step(self):
-            super().end_step()
-            global drag_sprite
-            # print(drag_sprite, self.mouse_absolute)
-            if drag_sprite is not None:
-                if drag_sprite.space:
-                    drag_sprite.pos = self.mouse_absolute
-                    drag_sprite.vel = [0, 0]
-                else:
-                    drag_sprite = None
-
-        def handle_keys(self):
-            super().handle_keys()
-
-        def draw(self, surface):
-            super().draw(surface)
-            tl = self.camera.world_to_local((0, 0))
-            br = self.camera.world_to_local(self.screen)
-            pygame.draw.line(surface, (255, 0, 0), tl, br)
-            pygame.draw.rect(surface, (0, 255, 0), self.screen, 1)
-
-
-    main.size = [800, 400]
-    level = TestLevel([6000, 6000], main.rect)
-    level.camera.zoom_offset = main.zoom_offset
-    level.camera.zoom = 1
-
-    main.load_level(level)
-    main.start()
+        ang = self.angle
+        rad = math.radians(ang)
+        vel = self.proj_velocity
+        vec = Vec2d(vel * math.cos(rad), vel * math.sin(rad))
+        proj.velocity = vec
+        proj.angle = ang

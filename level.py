@@ -92,6 +92,7 @@ class Camera:
         self.rect.center = center
         self.rect.clamp_ip(self._constraint)
         self._zoom = zoom
+
     zoom = property(get_zoom, set_zoom)
 
     def get_current_zoom(self):
@@ -111,6 +112,7 @@ class Camera:
     def set_constraint(self, rect):
         self._constraint = pygame.Rect(rect)
         self.set_zoom(self.get_zoom())
+
     constraint = property(get_constraint, set_constraint)
 
     def move_constraint(self, rect):
@@ -123,6 +125,7 @@ class Camera:
     def set_size(self, size):
         self.i_size = size
         self.set_zoom(self.get_zoom())
+
     size = property(get_size, set_size)
 
     def world_to_local(self, pos):
@@ -140,18 +143,20 @@ class Camera:
 
 class Level:
 
-    def __init__(self, main, size=None, screen=None, zoom_offset=1):
+    def __init__(self, main, size=None, screen=None, zoom_offset=1, zoom_constraint=None):
         self.main = main
         self.size = size if size is not None else [6000, 6000]
         self.screen = pygame.Rect(screen if screen is not None else [0, 0, 800, 600])
         self.update_rect = pygame.Rect(0, 0, *self.size)
+        z_const = zoom_constraint if zoom_constraint else [None, 4]
 
-        self.camera = Camera((0, 0), self.screen, self.get_rect(), [None, 4], zoom_offset=zoom_offset)
+        self.camera = Camera((0, 0), self.screen, self.get_rect(), z_const, zoom_offset=zoom_offset)
         self.visible = self.camera.get_rect()
 
         self.player = None
         self.step_time = 1
         self.space_time_coef = 1
+        self.event_system = None
         self.phys_group = None
         self.gui = None
         self.pressed = []
@@ -168,6 +173,8 @@ class Level:
     def send_event(self, event):
         if self.gui is not None:
             self.gui.send_event(event)
+        if self.event_system:
+            self.event_system.send_event(event)
         if not event.ignore:
             if self.player:
                 self.player.send_event(event)
@@ -189,7 +196,7 @@ class Level:
         self.paused = False
 
     def end_game(self):
-        pass
+        self.main.home()
 
     def set_screen(self, rect, offset=1):
         rect = pygame.Rect(rect)
@@ -236,6 +243,8 @@ class Level:
         self.mouse_absolute_prev = self.mouse_absolute
         self.mouse_relative = Vec2d(pygame.mouse.get_pos())
         self.mouse_absolute = self.get_mouse()
+        if self.event_system:
+            self.event_system.start_step(upd_time)
         if self.gui is not None:
             self.gui.start_step(upd_time)
         if self.player is not None:
@@ -249,6 +258,8 @@ class Level:
     def update(self):
         self.camera.update(self.step_time)
         self.visible = self.camera.get_rect()
+        if self.event_system:
+            self.event_system.update()
         if self.phys_group is not None:
             self.phys_group.update(self.step_time * self.space_time_coef)
         if self.gui is not None:
@@ -268,3 +279,58 @@ class Level:
         sc, vs = self.screen.size, self.visible.size
         zoom = max((sc[0] / vs[0], sc[1] / vs[1]))
         return (Vec2d(ms) - self.screen.topleft) / zoom + self.visible.topleft
+
+
+class Event:
+
+    def __init__(self, es):
+        self.event_system = es
+        self._level = self.event_system.level
+        es.add(self)
+
+    @property
+    def level(self):
+        return self._level
+
+    @level.setter
+    def level(self, level):
+        self._level = level
+
+    def update(self):
+        pass
+
+    def act(self):
+        pass
+
+
+class EventSystem:
+
+    def __init__(self, level):
+        self._level = level
+        self.events = []
+
+        self.step_time = 1
+
+    @property
+    def level(self):
+        return self._level
+
+    @level.setter
+    def level(self, level):
+        self._level = level
+        for event in self.events:
+            event.level = level
+
+    def add(self, event):
+        if event not in self.events:
+            self.events.append(event)
+
+    def send_event(self, event):
+        pass
+
+    def start_step(self, upd_time):
+        self.step_time = upd_time
+
+    def update(self):
+        for event in self.events:
+            event.update()

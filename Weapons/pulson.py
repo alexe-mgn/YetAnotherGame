@@ -1,18 +1,19 @@
 import pymunk
 from geometry import Vec2d
-from loading import load_model, cast_model, GObject
-from game_class import BaseWeapon, BaseProjectile
+from loading import load_model, cast_model
+from game_class import BaseWeapon
 from config import *
 
-NAME = 'pulson'
+NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 
 CS = Vec2d(24, 30)
 
 
 class Weapon(BaseWeapon):
+    mat = MAT_TYPE.ENERGY
     fire_delay = 2000
-    proj_velocity = 1000
+    proj_velocity = 1200
 
     def __init__(self):
         super().__init__()
