@@ -5,11 +5,11 @@ from physics import StaticImage
 NAME = __name__.split('.')[1]
 MODEL = load_model('VFX\\Models\\%s' % (NAME,))
 
-CS = Vec2d(64, 64)
+CS = Vec2d(170, 170)
 
 
 class VideoEffect(StaticImage):
-    size_inc = .75
+    size_inc = .6
 
     def __init__(self):
         super().__init__()
@@ -17,7 +17,7 @@ class VideoEffect(StaticImage):
         self._image.fps = 10
         self._image.que_end(self.kill)
         size = self._image.get_size()
-        a = (size[0] * size[0] + size[1] * size[1])**.5
+        a = (size[0] * size[0] + size[1] * size[1]) ** .5
         self.size = (a, a)
 
     @classmethod

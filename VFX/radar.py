@@ -18,8 +18,7 @@ class VideoEffect(StaticImage):
         self._image.que_end(self.kill)
         size = self._image.get_size()
         a = (size[0] * size[0] + size[1] * size[1])**.5
-        self.rect = FRect(0, 0, 0, 0)
-        self.rect.inflate_ip(a, a)
+        self.size = (a, a)
 
     @classmethod
     def init_class(cls):
