@@ -14,8 +14,11 @@ class NS:
 
     @classmethod
     def values(cls):
-        dct = cls.__dict__
-        return [v for k, v in dct.items() if k not in cls.builtins]
+        return [v for k, v in cls.__dict__.items() if k not in cls.builtins]
+
+    @classmethod
+    def dict(cls):
+        return {k: v for k, v in cls.__dict__.items() if k not in cls.builtins}
 
     @classmethod
     def init_class(cls):
@@ -24,6 +27,16 @@ class NS:
 
 
 NS.init_class()
+
+
+class EVENT(NS):
+    FPS_COUNTER = 29
+    EVENT_SYSTEM = 30
+
+
+class EVENT_TIMER(NS):
+    FPS_COUNTER = 250
+    EVENT_SYSTEM = 1000
 
 
 class DRAW_LAYER:

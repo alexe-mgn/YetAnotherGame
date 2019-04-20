@@ -16,10 +16,8 @@ class WeaponInv:
         cw = self.weapons[self._ind]
         for n, m in enumerate(parent.mounts):
             obj = m.object
-            print(obj, cw)
             if obj is not None and obj in cw:
                 if parent.unmount(index=n):
-                    print('unm')
                     obj.remove(obj.groups())
         for obj in self.weapons[ind]:
             if parent.mount(obj):
@@ -74,7 +72,7 @@ class BasePlayer(BaseCreature):
 
     def death(self):
         super().death()
-        # self.level.end_game()
+        self.level.end_game()
 
 
 class BaseEnemy(BaseCreature):
@@ -94,6 +92,8 @@ class BaseEnemy(BaseCreature):
         pass
 
     def update(self):
+        if self.target is None or not self.target.alive():
+            self.target = self.level.player
         if not self.level.paused and self.target is not None:
             t_pos = Vec2d(self.target.pos)
             to_t = t_pos - self.pos

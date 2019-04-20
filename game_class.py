@@ -1,9 +1,11 @@
 import pymunk
-from geometry import Vec2d, FRect
+from geometry import Vec2d
 from physics import PhysObject
 from loading import GObject
 from config import *
 import math
+
+from VFX.smoked import VideoEffect
 
 
 class ImageHandler(PhysObject):
@@ -16,10 +18,6 @@ class ImageHandler(PhysObject):
             self._image = GObject(self._frames)
         else:
             self._image = GObject(obj)
-        size = self._image.get_size()
-        a = math.sqrt(size[0] * size[0] + size[1] * size[1])
-        self.rect = FRect(0, 0, 0, 0)
-        self.rect.inflate_ip(a, a)
 
     def end_step(self):
         super().end_step()
@@ -50,6 +48,9 @@ class DynamicObject(ImageHandler):
             self.death()
 
     def death(self):
+        v = VideoEffect()
+        v.add(*self.groups())
+        v.pos = self.pos
         self.kill()
 
 
@@ -90,6 +91,7 @@ class Mount:
             self.role = obj.role
             obj.mount(self.parent)
             obj.set_local_placement(self._pos, self._ang)
+            obj.team = self.parent.team
             obj.draw_layer = DRAW_LAYER.CREATURE_TOP if self.top else DRAW_LAYER.CREATURE_BOTTOM
             return True
         else:
@@ -99,6 +101,7 @@ class Mount:
         if self.object is not None:
             self.object.unmount()
             del self.object.draw_layer
+            del self.object.team
             self.object = None
             self.role = None
             return True
@@ -159,13 +162,10 @@ class BaseProjectile(DynamicObject):
         self.life_left -= self.step_time
         if self.life_left <= 0:
             if not self.timeout:
-                self.on_life_end()
+                self.death()
             self.timeout = True
         else:
             self.timeout = False
-
-    def on_life_end(self):
-        self.kill()
 
     def _get_angle(self):
         return math.degrees(self.velocity.angle)
@@ -358,7 +358,6 @@ class BaseComponent(DynamicObject):
             self._shape.body = body
         self.space = body.space
         self._body = body
-        self.apply_rect()
 
     @property
     def i_body(self):
@@ -412,7 +411,6 @@ class BaseComponent(DynamicObject):
 
     def _set_pos(self, p):
         if not self.mounted():
-            self._rect.center = p
             self._body.position = p
 
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
@@ -434,9 +432,6 @@ class BaseComponent(DynamicObject):
 
     def world_to_local(self, pos):
         return self._body.world_to_local(pos) - self.local_pos
-
-    def apply_rect(self):
-        self._rect.center = self.local_to_world(self._pos)
 
     def apply_damping(self):
         if self.own_body() and self.height <= 0 and self.damping:

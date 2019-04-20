@@ -11,7 +11,7 @@ CS = Vec2d(24, 30)
 
 
 class Weapon(BaseWeapon):
-    mat = MAT_TYPE.ENERGY
+    max_health = 50
     fire_delay = 2000
     proj_velocity = 1200
 

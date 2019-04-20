@@ -10,9 +10,10 @@ CS = Vec2d(43, 47)
 
 
 class Engine(BaseEngine):
+    max_health = 60
     size_inc = 1
     engine_force = 10000000
-    max_vel = 300
+    max_vel = 175
     max_fps = 12
 
     def __init__(self):

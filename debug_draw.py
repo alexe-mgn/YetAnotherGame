@@ -28,3 +28,4 @@ def draw_debug(camera, surface, sprites):
                                    'offset',
                                    pymunk.Vec2d(0, 0)).rotated_degrees(ang)),
                                int(shape.radius * zoom), 2)
+        pygame.draw.circle(surface, (0, 0, 255), w_to_l(pos), 3)

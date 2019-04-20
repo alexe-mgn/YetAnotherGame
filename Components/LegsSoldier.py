@@ -9,9 +9,10 @@ CS = None
 
 
 class Engine(BaseEngine):
+    max_health = 30
     size_inc = 1
-    engine_force = 10000000
-    max_vel = 300
+    engine_force = 5000000
+    max_vel = 250
     max_fps = 18
 
     def __init__(self):

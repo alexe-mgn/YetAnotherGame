@@ -37,7 +37,7 @@ class Projectile(BaseProjectile):
                     (0, 0))
                 obj.damage(self.hit_damage * pc_depth)
 
-    def on_life_end(self):
+    def death(self):
         self.explode()
 
     def explode(self):

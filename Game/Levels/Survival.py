@@ -7,7 +7,11 @@ from Game.GUI import LevelGUI
 from loading import load_image
 from config import *
 
-from debug_draw import draw_debug
+from VFX.quantum_string import VideoEffect as SpawnCircle
+from Characters.Soldier import Character as Soldier
+from Characters.Zero import Character as Zero
+
+
 class SpawnEvent(Event):
 
     def __init__(self, es):
@@ -49,21 +53,26 @@ class Survival(Level):
             space.add(b, s)
 
         from Characters.player_survival import Character as Player
-        from Characters.Zero import Character as Enemy
+
+        for _ in range(10):
+            s = Soldier(self)
+            s.pos = (200, 200)
 
         self.player = Player(self)
-
-        # self.player = Player(self)
-        # self.player.pos = (500, 500)
-
-        for n in range(5):
-            e = Enemy(self)
-            e.pos = (1000, 1000)
-
-        self.phys_group = group
+        p_pos = [e / 2 for e in self.size]
+        self.player.pos = p_pos
+        s = SpawnCircle()
+        s.pos = p_pos
+        self.camera.pos = p_pos
+        self.camera.instant_target()
+        print(self.camera.rect, self.camera.c_rect)
 
         self.gui = LevelGUI(main=self.main)
         self.event_system = SurvivalEventSystem(self)
+        self.score = 0
+
+    def end_game(self):
+        self.gui.checkout_menu(self.gui.record)
 
     def draw(self, surface):
         surface.blit(
@@ -72,15 +81,13 @@ class Survival(Level):
                 self.screen.size),
             (0, 0))
         super().draw(surface)
-        draw_debug(self.camera, surface, self.phys_group.sprites())
-        for s in self.phys_group.sprites():
-            if hasattr(s, 'health') and s.rect.collidepoint(*self.mouse_absolute) and s.own_body():
-                c = self.camera.world_to_local(s.rect.center)
-                r = pygame.Rect(0, 0, 50, 10)
-                r.center = (c[0], c[1] - 20)
-                pygame.draw.rect(surface, (0, 0, 0), r, 0)
-                r.inflate_ip(-2, -2)
-                r.width = r.width * (s.health / s.max_health)
-                pygame.draw.rect(surface, (0, 255, 0), r, 0)
-        # pygame.draw.circle(surface, (0, 255, 0), [int(e) for e in self.camera.world_to_local(self.player.get_mount(key='engine').object.pos)], 3)
-        # pygame.draw.circle(surface, (255, 0, 0), [int(e) for e in self.camera.world_to_local(self.player.pos)], 3)
+        # draw_debug(self.camera, surface, self.phys_group.sprites())
+        # for s in self.phys_group.sprites():
+        #     if hasattr(s, 'health') and s.rect.collidepoint(*self.mouse_absolute) and s.own_body():
+        #         c = self.camera.world_to_local(s.rect.center)
+        #         r = pygame.Rect(0, 0, 50, 10)
+        #         r.center = (c[0], c[1] - 20)
+        #         pygame.draw.rect(surface, (0, 0, 0), r, 0)
+        #         r.inflate_ip(-2, -2)
+        #         r.width = r.width * (s.health / s.max_health)
+        #         pygame.draw.rect(surface, (0, 255, 0), r, 0)

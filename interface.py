@@ -339,6 +339,9 @@ class Element(Division):
 
     def draw(self, surface):
         super().draw(surface)
+        self.draw_text(surface)
+
+    def draw_text(self, surface):
         if self.text:
             draw_text(self.font,
                       surface,
@@ -405,3 +408,77 @@ class BtnSmall(Button):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.text_color = (255, 255, 255)
+
+
+class InputBox(Element):
+    font = get_path('Res\\potra.ttf')
+    image = True
+    images = (
+        load_model('Res\\UI\\input_normal'),
+        load_model('Res\\UI\\input_select')
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image = None
+        del self.image
+        self.text = u''
+        self.text_color = (255, 255, 255)
+        self.selected = False
+        self.timer = 0
+        self.display_carret = False
+
+    def start_step(self, upd_time):
+        super().start_step(upd_time)
+        if self.selected:
+            self.timer += upd_time
+            if self.timer >= 1000:
+                self.display_carret = not self.display_carret
+                self.timer = 0
+
+    def draw_image(self, surface):
+        b_rect = self._abs_rect
+        if self.selected:
+            n = 1
+        else:
+            n = 0
+        surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+
+    def draw_text(self, surface):
+        if self.text or self.display_carret:
+            draw_text(self.font,
+                      surface,
+                      self.text + ('|' if self.display_carret else ''),
+                      self._abs_rect,
+                      color=self.text_color,
+                      alignment=self.text_alignment,
+                      size=self.text_size)
+
+    def on_click(self):
+        self.selected = True
+        self.display_carret = True
+        self.timer = 0
+
+    def on_event_hit(self, event):
+        if event in MOUSE_EVENTS:
+            event.ignore = True
+
+    def deactivate(self):
+        self.selected = False
+        self.display_carret = False
+        self.timer = 0
+        super().deactivate()
+
+    def post_handle(self, event):
+        if self.selected and event.type in CONTROL_EVENTS:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.hover:
+                self.selected = False
+                self.display_carret = False
+                self.timer = 0
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    if len(self.text) > 0:
+                        self.text = self.text[:-1]
+                elif len(self.text) < 50:
+                    self.text += event.unicode
+            event.ignore = True

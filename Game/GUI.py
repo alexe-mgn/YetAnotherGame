@@ -168,6 +168,24 @@ class LevelGUI(Menu):
                 self.parent.pause()
                 event.ignore = True
 
+    class RecordMenu(Menu):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.title = Element(self)
+            self.title.rect.size = (90, 20)
+            self.title.rect.center = (50, 12.5)
+            self.title.text = 'Game Over'
+            self.title.font = BtnSmall.font
+
+            inp = InputBox(self)
+            self.input = inp
+            inp.rect.size = (40, 10)
+            inp.rect.center = (50, 60)
+
+        def post_handle(self, event):
+            event.ignore = True
+
     def pause(self):
         self.main.level.pause()
         self.checkout_menu(self.home)
@@ -180,4 +198,5 @@ class LevelGUI(Menu):
         super().__init__(*args, **kwargs)
         self.home = self.HomeMenu(self)
         self.ingame = self.IngameMenu(self)
+        self.record = self.RecordMenu(self)
         self.checkout_menu(self.ingame)

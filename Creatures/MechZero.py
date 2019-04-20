@@ -12,7 +12,7 @@ CS = Vec2d(42, 77)
 
 class Creature(BaseCreature):
     size_inc = 1
-    max_health = 250
+    max_health = 300
 
     def __init__(self):
         super().__init__()

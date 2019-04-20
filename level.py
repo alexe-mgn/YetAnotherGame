@@ -1,5 +1,6 @@
 import pygame
 from geometry import Vec2d, FRect
+from config import *
 
 
 class Camera:
@@ -127,6 +128,9 @@ class Camera:
         self.set_zoom(self.get_zoom())
 
     size = property(get_size, set_size)
+
+    def instant_target(self):
+        self.c_rect = self.rect.copy()
 
     def world_to_local(self, pos):
         rect = self.get_rect()
@@ -299,6 +303,9 @@ class Event:
     def update(self):
         pass
 
+    def active_update(self):
+        pass
+
     def act(self):
         pass
 
@@ -326,7 +333,8 @@ class EventSystem:
             self.events.append(event)
 
     def send_event(self, event):
-        pass
+        if event.type == EVENT.EVENT_SYSTEM:
+            self.active_update()
 
     def start_step(self, upd_time):
         self.step_time = upd_time
@@ -334,3 +342,7 @@ class EventSystem:
     def update(self):
         for event in self.events:
             event.update()
+
+    def active_update(self):
+        for event in self.events:
+            event.active_update()

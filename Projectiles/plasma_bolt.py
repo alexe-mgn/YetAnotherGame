@@ -30,13 +30,13 @@ class Projectile(BaseProjectile):
 
     def effect(self, obj, arbiter, first=True):
         obj.damage(self.hit_damage)
-        self.kill()
+        self.death()
 
-    def kill(self):
+    def death(self):
         v = VideoEffect()
         v.add(self.groups())
         v.pos = self.pos
-        super().kill()
+        self.kill()
 
     @classmethod
     def init_class(cls):

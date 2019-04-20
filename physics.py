@@ -1,4 +1,5 @@
 import pygame
+import pymunk
 from geometry import Vec2d, FRect
 from config import *
 from col_handlers import get_handler
@@ -17,12 +18,13 @@ class CameraGroup(pygame.sprite.AbstractGroup):
 
     def draw(self, surface, camera):
         cam_rect = camera.get_rect()
+        cam_bb = pymunk.BB(cam_rect.left, cam_rect.top, cam_rect.right, cam_rect.bottom)
         cam_tl = Vec2d(cam_rect.topleft)
         cam_offset = self.draw_offset
         zoom = camera.get_current_zoom()
         blit = surface.blit
         for sprite in self.layer_sorted():
-            if sprite.rect.colliderect(cam_rect):
+            if sprite.bb.intersects(cam_bb):
                 s_img = sprite.read_image()
                 s_size = Vec2d(s_img.get_size())
                 tl = ((-s_size / 2 - cam_tl + sprite.pos) * zoom).int()
@@ -96,7 +98,8 @@ class StaticImage(pygame.sprite.Sprite):
            - image
            - shape
         """
-        self._rect = None
+        self._pos = Vec2d(0, 0)
+        self._size = Vec2d(0, 0)
         self._angle = 0
 
         self._image = None
@@ -167,11 +170,21 @@ class StaticImage(pygame.sprite.Sprite):
 
     @property
     def rect(self):
-        return self._rect
+        r = FRect(*self._pos, 0, 0)
+        r.inflate_ip(*self._size)
+        return r
 
     @rect.setter
     def rect(self, rect):
-        self._rect = FRect(rect)
+        self._pos = Vec2d(rect.center)
+        self._size = Vec2d(rect.size)
+
+    @property
+    def bb(self):
+        x, y = self._pos
+        size = self._size
+        hw, hh = size[0] / 2, size[1] / 2
+        return pymunk.BB(x - hw, y + hh, x + hw, y - hh)
 
     @property
     def image(self):
@@ -200,14 +213,11 @@ class StaticImage(pygame.sprite.Sprite):
     def end_step(self):
         self._image.update(self.step_time)
 
-    def apply_rect(self):
-        pass
-
     def _get_pos(self):
-        return self._rect.center
+        return self._pos
 
     def _set_pos(self, p):
-        self._rect.center = p
+        self._pos = Vec2d(p)
 
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
@@ -220,7 +230,7 @@ class StaticImage(pygame.sprite.Sprite):
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
     def _get_velocity(self):
-        return (0, 0)
+        return Vec2d(0, 0)
 
     def _set_velocity(self, vel):
         pass
@@ -247,8 +257,6 @@ class PhysObject(pygame.sprite.Sprite):
            - image
            - shape
         """
-        self._rect = None
-
         self._image = None
         self._space = None
         self._body = None
@@ -296,8 +304,6 @@ class PhysObject(pygame.sprite.Sprite):
         self._body = body
         if body is not None:
             body.sprite = self
-        if self._rect is not None:
-            self._rect.center = body.position
 
     def local_to_world(self, pos):
         return self._body.local_to_world(pos)
@@ -359,13 +365,18 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def rect(self):
-        return self._rect
+        bb = self.bb
+        r = FRect(bb.left, bb.bottom, bb.right - bb.left, bb.top - bb.bottom)
+        return r
 
     @rect.setter
     def rect(self, rect):
-        self._rect = FRect(rect)
         if self._body is not None:
-            self._body.position = self._rect.center
+            self._body.position = FRect(rect).center
+
+    @property
+    def bb(self):
+        return self._shape.bb
 
     @property
     def image(self):
@@ -393,10 +404,6 @@ class PhysObject(pygame.sprite.Sprite):
 
     def end_step(self):
         self.apply_damping()
-        self.apply_rect()
-
-    def apply_rect(self):
-        self._rect.center = self.pos
 
     def apply_damping(self):
         if self.height <= 0 and self.damping:
@@ -406,7 +413,6 @@ class PhysObject(pygame.sprite.Sprite):
         return self._body.position
 
     def _set_pos(self, p):
-        self._rect.center = p
         self.body.position = p
 
     pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
@@ -445,6 +451,3 @@ class PhysObject(pygame.sprite.Sprite):
 
     def damage(self, val):
         pass
-
-    def __bool__(self):
-        return bool(self.groups())

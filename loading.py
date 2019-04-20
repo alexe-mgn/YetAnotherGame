@@ -11,24 +11,26 @@ def load_image(path, alpha=True):
 
 
 def cast_image(source, center, size_inc):
-    i_size = Vec2d(source.get_size())
+    i_size = source.get_size()
     if center is None:
-        center = i_size / 2
+        center = [e / 2 for e in i_size]
     else:
         if center[0] is None:
             center[0] = i_size[0] / 2
         if center[1] is None:
             center[1] = i_size[1] / 2
-    size = ceil(i_size * size_inc)
-    h_size = size / 2
-    img_center = ceil(Vec2d(center) * size_inc if center is not None else h_size)
+    b_rect = source.get_bounding_rect()
+    b_size = ceil(Vec2d(b_rect.size) * size_inc)
+    h_size = b_size / 2
+    img_center = ceil((Vec2d(center) - b_rect.topleft) * size_inc)
     inc_vector = abs(img_center - h_size)
     hf_size = h_size + inc_vector
-    tl = ceil(hf_size - img_center)
+    tl = hf_size - img_center
 
+    bs = source.subsurface(b_rect)
     img = pygame.Surface(hf_size * 2).convert_alpha()
     img.fill((255, 255, 255, 0))
-    img.blit(pygame.transform.scale(source, size),
+    img.blit(pygame.transform.scale(bs, b_size),
              tl)
     # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
     return img, -img_center
@@ -68,17 +70,30 @@ def cast_frames(source, centers, size_incs):
     frames = []
     c0 = Vec2d(0, 0)
     for n, f in enumerate(source):
+        i_size = f.get_size()
+        center = centers[n]
+        size_inc = size_incs[n]
+        if center is None:
+            center = [e / 2 for e in i_size]
+        else:
+            if center[0] is None:
+                center[0] = i_size[0] / 2
+            if center[1] is None:
+                center[1] = i_size[1] / 2
         b_rect = f.get_bounding_rect()
-        s_inc = size_incs[n]
-        b_size = Vec2d(b_rect.size) * s_inc
-        img = pygame.Surface(b_size).convert_alpha()
-        img.fill((255, 255, 255, 0))
-        c = Vec2d(centers[n] if centers[n] is not None else b_size / 2) * s_inc
-        tl = b_size / 2 - c
+        b_size = ceil(Vec2d(b_rect.size) * size_inc)
+        h_size = b_size / 2
+        img_center = ceil((Vec2d(center) - b_rect.topleft) * size_inc)
         if n == 0:
-            c0 = c
-        img.blit(pygame.transform.scale(f,
-                                        [ceil(e * s_inc) for e in f.get_size()]),
+            c0 = -img_center
+        inc_vector = abs(img_center - h_size)
+        hf_size = h_size + inc_vector
+        tl = hf_size - img_center
+
+        bs = f.subsurface(b_rect)
+        img = pygame.Surface(hf_size * 2).convert_alpha()
+        img.fill((255, 255, 255, 0))
+        img.blit(pygame.transform.scale(bs, b_size),
                  tl)
         # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
         frames.append(img)

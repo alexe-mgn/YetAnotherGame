@@ -67,7 +67,9 @@ class Main:
             self.gui = EmptyGameObject()
 
     def start(self):
-        pygame.time.set_timer(30, 150)
+        t = EVENT_TIMER.dict()
+        for k, v in EVENT.dict().items():
+            pygame.time.set_timer(v, t[k])
 
         if self.gui is None:
             self.load_gui(EmptyGameObject())
@@ -95,7 +97,7 @@ class Main:
                 self.running = False
             elif event.type == pygame.VIDEORESIZE:
                 self.size = list(event.size)
-            elif event.type == 30:
+            elif event.type == EVENT.FPS_COUNTER:
                 pygame.display.set_caption(str(int(1000 / upd_time)))
         level.handle_keys()
         # level.draw(self.screen)
