@@ -2,14 +2,19 @@ import sys
 import os
 import traceback
 import time
-from config import LOAD_MEIPASS, EXCEPTION_FILE
+from config import LOAD_RELATIVE, LOAD_MEIPASS, EXCEPTION_FILE
+"""
+File path handling, exception output, +
+"""
 
 cwd = os.getcwd()
-PATH = (sys._MEIPASS if LOAD_MEIPASS and getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__)))
+PATH = ('.' if LOAD_RELATIVE else
+        (getattr(sys, '_MEIPASS', '.')
+         if LOAD_MEIPASS and getattr(sys, 'frozen', False)
+         else os.path.dirname(os.path.abspath(__file__))))
 WRITE_PATH = cwd
 
 
-# For one file .exe to work
 def get_path(path):
     return os.path.join(PATH, path)
 

@@ -1,7 +1,6 @@
 import pygame
 import operator
 import math
-from itertools import chain
 
 
 def between(p, a, b, eq=None):
@@ -16,22 +15,22 @@ def between(p, a, b, eq=None):
     return (st <= p if eq[0] else st < p) and (p <= en if eq[1] else p < en)
 
 
-def proj_intersection(p1, p2):
-    if p2[0] <= p1[1]:
-        if p2[0] >= p1[0]:
-            if p2[1] <= p1[1]:
-                return p2[0], p2[1]
-            else:
-                return p2[0], p1[1]
-        elif p2[1] >= p1[0]:
-            if p2[1] <= p1[1]:
-                return p2[1], p1[0]
-            else:
-                return p1[1], p1[0]
-        else:
-            return None, None
-    else:
-        return None, None
+# def proj_intersection(p1, p2):
+#     if p2[0] <= p1[1]:
+#         if p2[0] >= p1[0]:
+#             if p2[1] <= p1[1]:
+#                 return p2[0], p2[1]
+#             else:
+#                 return p2[0], p1[1]
+#         elif p2[1] >= p1[0]:
+#             if p2[1] <= p1[1]:
+#                 return p2[1], p1[0]
+#             else:
+#                 return p1[1], p1[0]
+#         else:
+#             return None, None
+#     else:
+#         return None, None
 
 
 def normalized_angle(ang):
@@ -132,7 +131,7 @@ class FRect:
         new = self.copy()
         new.fit_ip(rect)
         return new
-    
+
     def union_ip(self, rect):
         l = min(self._x, rect[0])
         t = min(self._y, rect[1])
@@ -140,7 +139,7 @@ class FRect:
         b = max(self._y + self._h, rect[1] + rect[3])
         self._x, self._y = l, t
         self._w, self._h = r - l, b - t
-    
+
     def union(self, rect):
         new = self.__class__()
         l = min(self._x, rect[0])
@@ -159,7 +158,7 @@ class FRect:
         b = max(map(lambda e: e[1] + e[3], seq))
         self._x, self._y = l, t
         self._w, self._h = r - l, b - t
-    
+
     def unionall(self, rects):
         new = self.__class__()
         seq = tuple(rects) + (self,)

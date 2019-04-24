@@ -1,7 +1,7 @@
 import pygame
 import pymunk
 from geometry import Vec2d, FRect
-from physics import PhysObject
+from physics import PhysObject, collide_case
 from loading import GObject
 from config import *
 import math
@@ -11,7 +11,11 @@ from VFX.smoked import VideoEffect
 
 
 class ImageHandler(PhysObject):
+    """
+    Sprite for storing image in class attributes for RAM economy
+    """
     size_inc = 1
+    _frames = []
     IMAGE_SHIFT = Vec2d(0, 0)
 
     def __init__(self, obj=None):
@@ -35,6 +39,9 @@ class ImageHandler(PhysObject):
 
 
 class DynamicObject(ImageHandler):
+    """
+    Standard game object
+    """
     role = ROLE.OBJECT
     team = TEAM.DEFAULT
     mat = MAT_TYPE.MATERIAL
@@ -57,6 +64,9 @@ class DynamicObject(ImageHandler):
 
 
 class Mount:
+    """
+    Mount point for components on pymunk.Body bounded sprite
+    """
 
     def __init__(self, parent, position=None, angle=0, allowed=None, top=True):
         self.parent = parent
@@ -128,6 +138,7 @@ class Mount:
 
 class BaseProjectile(DynamicObject):
     draw_layer = DRAW_LAYER.PROJECTILE
+    role = ROLE.PROJECTILE
     lifetime = 1000
     hit_damage = 10
 
@@ -175,6 +186,7 @@ class BaseProjectile(DynamicObject):
 
 class BaseCreature(DynamicObject):
     draw_layer = DRAW_LAYER.CREATURE
+    role = ROLE.CREATURE
     max_health = 100
 
     def __init__(self):
@@ -258,6 +270,9 @@ class BaseCreature(DynamicObject):
 
 
 class BaseComponent(DynamicObject):
+    """
+    Mountable physical object
+    """
     draw_layer = DRAW_LAYER.COMPONENT
     role = ROLE.COMPONENT
     max_health = 50
@@ -444,6 +459,10 @@ class BaseComponent(DynamicObject):
 
 
 class BaseEngine(BaseComponent):
+    """
+    Any movement-platform/wheels/legs
+    (able of rotating independent of creature body)
+    """
     draw_layer = DRAW_LAYER.CREATURE_BOTTOM
     role = ROLE.ENGINE
 

@@ -6,10 +6,11 @@ from config import *
 from loading import get_path, load_image
 
 sys.excepthook = except_hook
+
 pygame.init()
 pygame.display.set_mode((300, 300))
-
 # Need display initialized
+
 from Game.GUI import MainMenu
 from Game.Levels.Survival import Survival
 
@@ -17,13 +18,12 @@ from Game.Levels.Survival import Survival
 class Main:
 
     def __init__(self):
-        # pygame.init()
         self.winflag = pygame.RESIZABLE | pygame.DOUBLEBUF
         self.level, self.gui, self.clock, self.running = None, None, None, False
         self.size = [800, 600]
         pygame.display.set_caption(APP_NAME)
-        if os.path.isfile(get_path('game_icon.ico')):
-            pygame.display.set_icon(load_image('game_icon.ico'))
+        if os.path.isfile(get_path('icon.ico')):
+            pygame.display.set_icon(load_image('icon.ico'))
 
     def calculate_visible(self, c):
         tg = VISION_SIZE
@@ -99,7 +99,7 @@ class Main:
             elif event.type == pygame.VIDEORESIZE:
                 self.size = list(event.size)
             elif event.type == EVENT.FPS_COUNTER:
-                pygame.display.set_caption(str(int(1000 / upd_time)))
+                pygame.display.set_caption('{} - {} fps'.format(APP_NAME, str(int(1000 / upd_time))))
         level.handle_keys()
         # level.draw(self.screen)
         gui.update()

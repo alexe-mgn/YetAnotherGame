@@ -8,7 +8,26 @@ import math
 pygame.mixer.set_reserved(len(CHANNEL.values()))
 
 
+def collide_case(a, b):
+    """
+    Standard "check collideable" function for two sprites.
+    """
+    ta, tb = getattr(a, 'team', TEAM.DEFAULT), getattr(b, 'team', TEAM.DEFAULT)
+    ma, mb = getattr(a, 'mat', MAT_TYPE.MATERIAL), getattr(b, 'mat', MAT_TYPE.MATERIAL)
+    if ma == mb == MAT_TYPE.ENERGY:
+        return False
+    if ta != tb:
+        return True
+    elif ta == TEAM.DEFAULT:
+        return True
+    else:
+        return False
+
+
 class CameraGroup(pygame.sprite.AbstractGroup):
+    """
+    Layered sprite group with camera-handling draw method.
+    """
 
     def __init__(self):
         super().__init__()
@@ -26,14 +45,15 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         cam_offset = self.draw_offset
         zoom = camera.get_current_zoom()
         blit = surface.blit
+
         for sprite in self.layer_sorted():
             if sprite.bb.intersects(cam_bb):
                 s_img = sprite.read_image()
                 s_size = Vec2d(s_img.get_size())
                 tl = ((-s_size / 2 - cam_tl + sprite.pos) * zoom).int()
-                # tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
                 self.spritedict[sprite] = blit(
                     pygame.transform.scale(s_img, (s_size * zoom).int()), tl + cam_offset)
+
         cam_c = Vec2d(cam_rect.center)
         cam_h = (CAMERA_SOUND_HEIGHT / zoom) ** 2
         for snd in self.sounds:
@@ -50,6 +70,7 @@ class CameraGroup(pygame.sprite.AbstractGroup):
                 d = to_s.get_length_sqrd()
                 v = SOUND_COEF / (math.sqrt(d + cam_h) + 1)
                 c.set_volume(v)
+
         self.sounds.clear()
         self.lostsprites = []
 
@@ -66,6 +87,9 @@ class CameraGroup(pygame.sprite.AbstractGroup):
 
 
 class PhysicsGroup(CameraGroup):
+    """
+    Sprite group handling pymunk objects.
+    """
 
     def __init__(self, space):
         super().__init__()
@@ -112,6 +136,10 @@ class PhysicsGroup(CameraGroup):
 
 
 class StaticImage(pygame.sprite.Sprite):
+    """
+    Non-physical sprite with only image, but still usable by PhysicsGroup.
+    """
+
     draw_layer = DRAW_LAYER.VFX
     sound = {}
 
@@ -120,7 +148,6 @@ class StaticImage(pygame.sprite.Sprite):
         Necessary assignment
            - rect
            - image
-           - shape
         """
         self._pos = Vec2d(0, 0)
         self._size = Vec2d(0, 0)
@@ -288,6 +315,9 @@ class StaticImage(pygame.sprite.Sprite):
 
 
 class PhysObject(pygame.sprite.Sprite):
+    """
+    Sprite bounded to single pymunk.Body and one MAIN shape
+    """
     draw_layer = DRAW_LAYER.DEFAULT
     damping = 0
     sound = {}

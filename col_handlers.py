@@ -1,6 +1,10 @@
 from config import *
 import math
 
+"""
+pymunk collision handlers
+"""
+
 
 class HandlerTracked:
 
@@ -49,6 +53,7 @@ class HandlerProjectile:
             def f(*args):
                 sa.effect(sb, arbiter)
                 sb.effect(sa, arbiter, first=False)
+
             space.add_post_step_callback(f, id(f))
         return col
 

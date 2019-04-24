@@ -1,19 +1,27 @@
+"""
+Development variables
+"""
 APP_NAME = r'Game'
 EXCEPTION_FILE = '%s_traceback.txt' % (APP_NAME,)
 RECORDS_FILE = 'Game\\storage\\game_results.json'
+
 LOAD_MEIPASS = True
+LOAD_RELATIVE = True
 
 VISION_SIZE = (1200, 1200)
 VIDEO_FIT = False
+
 CAMERA_SOUND_HEIGHT = 300
 SOUND_QUARTER_DISTANCE = 1000
 SOUND_COEF = .25 * (SOUND_QUARTER_DISTANCE + 1)
+
 MOUSE_EVENTS = (5, 6)
 KEY_EVENTS = (2, 3)
 CONTROL_EVENTS = (2, 3, 5, 6)
 
 
 class NS:
+    """Simple namespace for subclassing"""
 
     @classmethod
     def values(cls):
@@ -55,6 +63,7 @@ class DRAW_LAYER:
     VFX = 30
 
 
+# Reserved sound channels
 class CHANNEL(NS):
     PLASMA_WEAPON = 0
     PULSON_WEAPON = 1
@@ -66,6 +75,7 @@ class COLLISION_TYPE(NS):
     PROJECTILE = 5
 
 
+# Material type for collisions
 class MAT_TYPE:
     MATERIAL = 0
     ENERGY = 1
@@ -76,6 +86,8 @@ class ROLE:
     COMPONENT = 1
     ENGINE = 2
     WEAPON = 3
+    PROJECTILE = 4
+    CREATURE = 5
 
 
 class TEAM(NS):
@@ -83,19 +95,6 @@ class TEAM(NS):
     PLAYER = 1
     ENEMY = 2
     NEUTRAL = 3
-
-
-def collide_case(a, b):
-    ta, tb = getattr(a, 'team', TEAM.DEFAULT), getattr(b, 'team', TEAM.DEFAULT)
-    ma, mb = getattr(a, 'mat', MAT_TYPE.MATERIAL), getattr(b, 'mat', MAT_TYPE.MATERIAL)
-    if ma == mb == MAT_TYPE.ENERGY:
-        return False
-    if ta != tb:
-        return True
-    elif ta == TEAM.DEFAULT:
-        return True
-    else:
-        return False
 
 
 class EmptyGameObject:
