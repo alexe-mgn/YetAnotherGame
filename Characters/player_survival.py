@@ -13,7 +13,7 @@ class Character(BasePlayer, Body):
         self.health = self.max_health
         self.w_inv = WeaponInv(self)
         l = Legs()
-        l.max_vel = 500
+        l.max_vel = 400
         l.add(*self.groups())
         self.mount(l, key='engine')
         for _ in range(2):
@@ -22,9 +22,11 @@ class Character(BasePlayer, Body):
             self.mount(w)
             self.w_inv[self.w_inv.index].append(w)
         for _ in range(2):
-            self.w_inv[4].append(Pulson())
+            w = Pulson()
+            w.inaccuracy = .2
+            self.w_inv[4].append(w)
 
     def update(self):
-        add = self.step_time * self.max_health * .01 / 1000
+        add = self.step_time * self.max_health * .001 / 1000
         if self.health + add <= self.max_health:
             self.health += add

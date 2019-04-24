@@ -394,6 +394,15 @@ class Element(Division):
                       size=self.text_size)
 
 
+class Disabled(Element):
+
+    def draw(self, surface):
+        super().draw(surface)
+        b_rect = self._abs_rect
+        pygame.draw.line(surface, (255, 0, 0), b_rect.topleft, b_rect.bottomright, 2)
+        pygame.draw.line(surface, (255, 0, 0), b_rect.topright, b_rect.bottomleft, 2)
+
+
 class TextField(Element):
     font = get_path('Res\\potra.ttf')
 

@@ -30,7 +30,7 @@ class Weapon(BaseWeapon):
     def force_fire(self, **kwargs):
         self.play_sound('fire')
         proj = self.spawn_proj()
-        ang = self.angle
+        ang = self.miss_angle()
         rad = math.radians(ang)
         if 'target' in kwargs.keys():
             dis = (proj.pos - kwargs['target']).length

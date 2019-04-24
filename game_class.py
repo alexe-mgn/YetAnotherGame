@@ -5,6 +5,7 @@ from physics import PhysObject
 from loading import GObject
 from config import *
 import math
+import random
 
 from VFX.smoked import VideoEffect
 
@@ -526,6 +527,7 @@ class BaseWeapon(BaseComponent):
     fire_pos = Vec2d(0, 0)
     proj_velocity = 1000
     fire_delay = 1000
+    inaccuracy = .02
 
     def __init__(self):
         super().__init__()
@@ -549,10 +551,13 @@ class BaseWeapon(BaseComponent):
         proj.pos = self.local_to_world(self.fire_pos)
         return proj
 
+    def miss_angle(self):
+        return self.angle + 360 * (random.random() - .5) * self.inaccuracy
+
     def force_fire(self, **kwargs):
         self.play_sound('fire')
         proj = self.spawn_proj()
-        ang = self.angle
+        ang = self.miss_angle()
         rad = math.radians(ang)
         vel = self.proj_velocity
         vec = Vec2d(vel * math.cos(rad), vel * math.sin(rad))

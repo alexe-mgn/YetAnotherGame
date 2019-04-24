@@ -94,6 +94,24 @@ class CreditsMenu(Menu):
         c.rect.topleft = (50, st_y + dy * 2)
         c.text = 'opengameart.org/users/kindland'
 
+        c = CText(self)
+        c.rect.topleft = (50 - sx, st_y + dy * 3)
+        c.text = 'Sound:'
+
+        c = CText(self)
+        c.rect.topleft = (50, st_y + dy * 3)
+        c.text = 'Michel Baradari'
+        c = CText(self)
+        c.rect.topleft = (50, st_y + dy * 4)
+        c.text = 'Iwan Gabovitch'
+
+        c = CText(self)
+        c.rect.topleft = (50 - sx, st_y + dy * 5)
+        c.text = '      (Published by)'
+        c = CText(self)
+        c.rect.topleft = (50, st_y + dy * 5)
+        c.text = 'opengameart.org/users/qubodup'
+
         b = BtnLarge(self)
         b.rect.size = (35, 10)
         b.rect.center = (50, 90)
@@ -176,12 +194,15 @@ class MainMenu(Menu):
                 def update(self):
                     self.text_size = self.abs_rect.size[0] / 8
 
+            class DisCBtn(Disabled, CBtn):
+                pass
+
             super().__init__(parent)
             self.title = Title(self)
             dy = 10
             st_y = 35
 
-            b_start = CBtn(self)
+            b_start = DisCBtn(self)
             self.b_start = b_start
             b_start.rect.center = (50, st_y)
             b_start.text = ''
@@ -192,7 +213,7 @@ class MainMenu(Menu):
             b_survival.text = 'Survival Mode'
             b_survival.on_click = self.main.load_survival
 
-            b_options = CBtn(self)
+            b_options = DisCBtn(self)
             self.b_options = b_options
             b_options.rect.center = (50, st_y + dy * 2)
             b_options.text = 'Options'
