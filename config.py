@@ -1,12 +1,15 @@
 APP_NAME = r'Game'
 EXCEPTION_FILE = '%s_traceback.txt' % (APP_NAME,)
+RECORDS_FILE = 'Game\\storage\\game_results.json'
 LOAD_MEIPASS = True
 
 VISION_SIZE = (1200, 1200)
 VIDEO_FIT = False
-
-MOUSE_EVENTS = (2, 3)
-KEY_EVENTS = (5, 6)
+CAMERA_SOUND_HEIGHT = 300
+SOUND_QUARTER_DISTANCE = 1000
+SOUND_COEF = .25 * (SOUND_QUARTER_DISTANCE + 1)
+MOUSE_EVENTS = (5, 6)
+KEY_EVENTS = (2, 3)
 CONTROL_EVENTS = (2, 3, 5, 6)
 
 
@@ -36,7 +39,7 @@ class EVENT(NS):
 
 class EVENT_TIMER(NS):
     FPS_COUNTER = 250
-    EVENT_SYSTEM = 1000
+    EVENT_SYSTEM = 500
 
 
 class DRAW_LAYER:
@@ -50,6 +53,12 @@ class DRAW_LAYER:
     STATIC = 20
     PROJECTILE = 25
     VFX = 30
+
+
+class CHANNEL(NS):
+    PLASMA_WEAPON = 0
+    PULSON_WEAPON = 1
+    PULSON_EXPLOSION = 2
 
 
 class COLLISION_TYPE(NS):
@@ -108,6 +117,9 @@ class EmptyGameObject:
         pass
 
     def draw(self, surface):
+        pass
+
+    def pregenerate(self):
         pass
 
     def set_screen(self, *args):

@@ -1,6 +1,6 @@
 import pymunk
 from geometry import Vec2d
-from loading import load_model, cast_model
+from loading import load_model, cast_model, load_sound
 from game_class import BaseProjectile
 from config import *
 
@@ -11,8 +11,12 @@ CS = Vec2d(170, 170)
 
 
 class Projectile(BaseProjectile):
-    size_inc = 2
-    hit_damage = 150
+    size_inc = 2.25
+    hit_damage = 175
+    damping = .5
+    sound = {
+        'explode': [load_sound('Projectiles\\Models\\flagdrop', ext='wav'), {'channel': CHANNEL.PULSON_EXPLOSION}]
+    }
 
     def __init__(self):
         super().__init__()
@@ -20,7 +24,6 @@ class Projectile(BaseProjectile):
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
         self.shape.density = 1
-        self.damping = 0.0075
         self.explosion = False
         self._image.n = 1
 
@@ -41,6 +44,7 @@ class Projectile(BaseProjectile):
         self.explode()
 
     def explode(self):
+        self.play_sound('explode')
         self._image.n = 0
         self._image.fps = 20
         self._image.que_end(self.kill)
@@ -58,7 +62,7 @@ class Projectile(BaseProjectile):
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 9
+        radius = 12
         rs = (6, 7, 12, 18, 36, 58, 90, 120, 146)
 
         cls.RADIUS = radius * cls.size_inc

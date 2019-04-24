@@ -4,9 +4,18 @@ from loading import get_path, load_model
 from config import *
 
 
+class FONT:
+    default = pygame.font.match_font('times')
+    potra = get_path('Res\\potra.ttf')
+
+
+def fit_text(size, ln):
+    return int(min((size[1] * .8, size[0] * .9 * 1.6 / ln)))
+
+
 def draw_text(font_path, surface, text, rect, color=(255, 255, 255), alignment='center', size=None):
     if size is None:
-        size = int(min((rect.height * .9, rect.width * .9 * 1.6 / len(text))))
+        size = fit_text(rect.size, len(text))
     else:
         size = int(size)
     font = pygame.font.Font(font_path,
@@ -42,6 +51,8 @@ class Division:
             self.absolute = True
         self._abs_rect = self.global_rect()
 
+        self.in_step = False
+
         self.image = None
         self.elements = []
         self.disabled = []
@@ -49,6 +60,12 @@ class Division:
         self.event = None
         self.hover = False
         self.press = False
+        self.select = False
+        self.selected = None
+        self.post_init()
+
+    def post_init(self):
+        pass
 
     @property
     def main(self):
@@ -75,6 +92,12 @@ class Division:
             self._main = new.main
             new.add(self)
 
+    def global_parent(self):
+        if self._parent is not None:
+            return self._parent
+        else:
+            return self
+
     def global_rect(self):
         if self._parent is not None:
             rect = self._parent.abs_rect
@@ -97,6 +120,8 @@ class Division:
     @rect.setter
     def rect(self, rect):
         self._rect = FRect(rect)
+        if self.in_step:
+            self._abs_rect = self.global_rect()
 
     @property
     def local_rect(self):
@@ -119,6 +144,7 @@ class Division:
         if obj in self.disabled:
             self.disabled.remove(obj)
             self.elements.append(obj)
+            obj.activate()
 
     def disable(self, obj):
         if obj in self.elements:
@@ -129,11 +155,20 @@ class Division:
     def enable_all(self):
         for i in self.disabled:
             self.elements.append(i)
+            i.activate()
         self.disabled.clear()
+
+    def activate(self):
+        self.post_init()
+        if not self.in_step:
+            self.start_step(self.step_time)
+        for i in self.elements:
+            i.activate()
 
     def deactivate(self):
         self.hover = False
         self.press = False
+        self.select = False
         for i in self.elements:
             i.deactivate()
 
@@ -149,6 +184,7 @@ class Division:
                 self.disabled.remove(obj)
             self.elements.clear()
             self.elements.append(obj)
+            obj.activate()
 
     def checkout_menu(self, obj):
         active = obj in self.elements
@@ -165,6 +201,7 @@ class Division:
             if disabled:
                 self.disabled.remove(obj)
                 self.elements.append(obj)
+                obj.activate()
 
     def collidepoint(self, pos):
         return self._abs_rect.collidepoint(*pos)
@@ -178,6 +215,7 @@ class Division:
         return hits
 
     def start_step(self, upd_time):
+        self.in_step = True
         ms = pygame.mouse.get_pos()
         self.step_time = upd_time
         self._abs_rect = self.global_rect()
@@ -195,13 +233,16 @@ class Division:
     def end_step(self):
         for i in self.elements:
             i.end_step()
+        self.in_step = False
 
     def send_event(self, event):
         self.event = event
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.hover:
-                if event.button == 1:
+            if event.button == 1:
+                if self.hover:
                     self.button_down()
+                elif self.select and (not self._parent or (self._parent and self._parent.hover)):
+                    self.select_off()
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
                 self.button_up()
@@ -220,6 +261,7 @@ class Division:
         pass
 
     def draw(self, surface):
+        self.on_draw()
         if self.image is not None:
             self.draw_image(surface)
         for i in self.elements:
@@ -228,7 +270,8 @@ class Division:
             self.draw_debug(surface)
 
     def draw_image(self, surface):
-        surface.blit(pygame.transform.scale(self.image, self.abs_rect.size), self.abs_rect)
+        r = self.abs_rect.pygame
+        surface.blit(pygame.transform.scale(self.image, r.size), r.topleft)
 
     def draw_debug(self, surface):
         if self.press:
@@ -242,7 +285,7 @@ class Division:
         return len(self.elements)
 
     def __iter__(self):
-        return self.elements
+        return iter(self.elements)
 
     def __getitem__(self, ind):
         return self.elements[ind]
@@ -274,7 +317,33 @@ class Division:
             self.on_unhold()
             if self.hover:
                 self.on_click()
+                if not self.select:
+                    self.select_on()
         self.press = False
+
+    def set_selected(self, obj):
+        if self.selected is not None:
+            self.selected.select = False
+            self.selected.on_unselect()
+        self.selected = obj
+
+    def select_on(self):
+        self.select = True
+        if self._parent:
+            self._parent.set_selected(self)
+        self.on_select()
+
+    def select_off(self):
+        self.select = False
+        if self._parent:
+            self._parent.set_selected(None)
+        self.on_unselect()
+
+    def on_select(self):
+        pass
+
+    def on_unselect(self):
+        pass
 
     def on_click(self):
         pass
@@ -291,43 +360,16 @@ class Division:
     def on_unfocus(self):
         pass
 
+    def on_draw(self):
+        pass
+
 
 class Menu(Division):
     pass
 
 
-"""
-class Table(Division):
-    
-    def __init__(self, cols=0, rows=0, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.t_size = (cols, rows)
-        self.table = [[None] * cols for _ in range(rows)]
-    
-    @property
-    def cols(self):
-        return self.t_size[0]
-    
-    @property
-    def rows(self):
-        return self.t_size[1]
-    
-    def add(self, element, col=None, row=None):
-        super().add(element)
-    
-    def __iter__(self):
-        return self.table
-
-    def __getitem__(self, ind):
-        return self.table[ind]
-
-    def __setitem__(self, ind, val):
-        pass
-"""
-
-
 class Element(Division):
-    font = pygame.font.match_font('times')
+    font = FONT.default
     image = None
 
     def __init__(self, *args, **kwargs):
@@ -375,15 +417,16 @@ class Button(Element):
             n = 2
         else:
             n = 0
-        surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+        if self.images[n]:
+            surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
 
     def on_event_hit(self, event):
-        if event.type in MOUSE_EVENTS:
+        if (self.press or self.hover) and event.type in MOUSE_EVENTS:
             event.ignore = True
 
 
 class BtnLarge(Button):
-    font = get_path('Res\\potra.ttf')
+    font = FONT.potra
     image = True
     images = (
         load_model('Res\\UI\\btn_large'),
@@ -397,7 +440,7 @@ class BtnLarge(Button):
 
 
 class BtnSmall(Button):
-    font = get_path('Res\\potra.ttf')
+    font = FONT.potra
     image = True
     images = (
         load_model('Res\\UI\\btn_small'),
@@ -411,7 +454,6 @@ class BtnSmall(Button):
 
 
 class InputBox(Element):
-    font = get_path('Res\\potra.ttf')
     image = True
     images = (
         load_model('Res\\UI\\input_normal'),
@@ -424,13 +466,13 @@ class InputBox(Element):
         del self.image
         self.text = u''
         self.text_color = (255, 255, 255)
-        self.selected = False
+        self.select = False
         self.timer = 0
         self.display_carret = False
 
     def start_step(self, upd_time):
         super().start_step(upd_time)
-        if self.selected:
+        if self.select:
             self.timer += upd_time
             if self.timer >= 1000:
                 self.display_carret = not self.display_carret
@@ -438,7 +480,7 @@ class InputBox(Element):
 
     def draw_image(self, surface):
         b_rect = self._abs_rect
-        if self.selected:
+        if self.select:
             n = 1
         else:
             n = 0
@@ -455,7 +497,7 @@ class InputBox(Element):
                       size=self.text_size)
 
     def on_click(self):
-        self.selected = True
+        self.select = True
         self.display_carret = True
         self.timer = 0
 
@@ -464,21 +506,49 @@ class InputBox(Element):
             event.ignore = True
 
     def deactivate(self):
-        self.selected = False
+        self.select = False
         self.display_carret = False
         self.timer = 0
         super().deactivate()
 
-    def post_handle(self, event):
-        if self.selected and event.type in CONTROL_EVENTS:
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not self.hover:
-                self.selected = False
-                self.display_carret = False
-                self.timer = 0
-            elif event.type == pygame.KEYDOWN:
+    def on_select(self):
+        self.display_carret = True
+
+    def on_unselect(self):
+        self.display_carret = False
+        self.timer = 0
+
+    def on_input_completion(self):
+        pass
+
+    def send_event(self, event):
+        super().send_event(event)
+        if self.select and event.type in CONTROL_EVENTS:
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     if len(self.text) > 0:
                         self.text = self.text[:-1]
+                elif event.key == pygame.K_RETURN:
+                    self.select_off()
+                    self.on_input_completion()
                 elif len(self.text) < 50:
                     self.text += event.unicode
             event.ignore = True
+
+
+class ProgressBar(Element):
+    image = load_model('Res\\UI\\progress_overlay')
+    progress = load_model('Res\\UI\\progress_fill_blue')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.percentage = 100
+
+    def draw(self, surface):
+        super().draw(surface)
+        self.image = None
+        del self.image
+        b_rect = self._abs_rect
+        size = b_rect.pygame.size
+        scaled = pygame.transform.scale(self.progress, size)
+        surface.blit(scaled.subsurface((0, 0, int(size[0] * self.percentage / 100), size[1])), b_rect.topleft)

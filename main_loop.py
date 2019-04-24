@@ -58,6 +58,7 @@ class Main:
             self.level.set_screen(self._visible, self.zoom_offset)
         else:
             self.level = EmptyGameObject()
+        self.level.pregenerate()
 
     def load_gui(self, gui):
         self.gui = gui

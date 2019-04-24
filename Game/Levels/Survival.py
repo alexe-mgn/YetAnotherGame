@@ -1,7 +1,7 @@
 import pygame
 import pymunk
 
-from level import Level, EventSystem, Event
+from level import Level, Event
 from physics import PhysicsGroup
 from Game.GUI import LevelGUI
 from loading import load_image
@@ -10,15 +10,43 @@ from config import *
 from VFX.quantum_string import VideoEffect as SpawnCircle
 from Characters.Soldier import Character as Soldier
 from Characters.Zero import Character as Zero
+from level import EventSystem
+
+import random
 
 
 class SpawnEvent(Event):
 
     def __init__(self, es):
         super().__init__(es)
+        self.lu = 0
         self.characters = [
-            ()
+            [Soldier, .8, 0],
+            [Zero, .4, 0]
         ]
+
+    def update(self):
+        self.lu += self.step_time
+
+    def active_update(self):
+        spawn = self.spawn
+        step_time = self.step_time
+        for i in self.characters:
+            if random.random() <= 1 - (1 - i[1]) ** (i[2] / 1000):
+                i[2] = 0
+                spawn(i[0])
+            else:
+                i[2] += step_time
+
+    def spawn(self, char):
+        level = self.level
+        size = level.size
+        pos = [random.random() * size[0], random.random() * size[1]]
+        s = SpawnCircle()
+        s.add(level.phys_group)
+        s.pos = pos
+        e = char(level)
+        e.pos = pos
 
 
 class SurvivalEventSystem(EventSystem):
@@ -62,14 +90,17 @@ class Survival(Level):
         p_pos = [e / 2 for e in self.size]
         self.player.pos = p_pos
         s = SpawnCircle()
+        s.add(self.phys_group)
         s.pos = p_pos
-        self.camera.pos = p_pos
-        self.camera.instant_target()
-        print(self.camera.rect, self.camera.c_rect)
 
         self.gui = LevelGUI(main=self.main)
         self.event_system = SurvivalEventSystem(self)
         self.score = 0
+        self.camera.pos = p_pos
+        self.camera.instant_target()
+
+    def add_score(self, val):
+        self.score += val
 
     def end_game(self):
         self.gui.checkout_menu(self.gui.record)
@@ -82,12 +113,3 @@ class Survival(Level):
             (0, 0))
         super().draw(surface)
         # draw_debug(self.camera, surface, self.phys_group.sprites())
-        # for s in self.phys_group.sprites():
-        #     if hasattr(s, 'health') and s.rect.collidepoint(*self.mouse_absolute) and s.own_body():
-        #         c = self.camera.world_to_local(s.rect.center)
-        #         r = pygame.Rect(0, 0, 50, 10)
-        #         r.center = (c[0], c[1] - 20)
-        #         pygame.draw.rect(surface, (0, 0, 0), r, 0)
-        #         r.inflate_ip(-2, -2)
-        #         r.width = r.width * (s.health / s.max_health)
-        #         pygame.draw.rect(surface, (0, 255, 0), r, 0)

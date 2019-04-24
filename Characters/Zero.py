@@ -5,6 +5,7 @@ from Weapons.pulson import Weapon as DefaultW
 
 
 class Character(BaseEnemy, Creature):
+    score = 5
 
     def pregenerate(self):
         self.fire_delay = 3000

@@ -1,5 +1,6 @@
+import pygame
 import pymunk
-from geometry import Vec2d
+from geometry import Vec2d, FRect
 from physics import PhysObject
 from loading import GObject
 from config import *
@@ -237,9 +238,9 @@ class BaseCreature(DynamicObject):
             if i.role == ROLE.WEAPON and i.free():
                 return i
 
-    def shot(self):
+    def shot(self, **kwargs):
         for i in self.get_weapons():
-            i.shot()
+            i.shot(**kwargs)
 
     def get_engines(self):
         return [e.object for e in self.mounts if e.role == ROLE.ENGINE]
@@ -372,6 +373,13 @@ class BaseComponent(DynamicObject):
         self._i_body = body
         body.sprite = self
 
+    def preview(self, size):
+        i_img = self._image[0]
+        img_b_rect = i_img.get_bounding_rect()
+        img = i_img.subsurface(img_b_rect)
+        r = FRect(img_b_rect).fit(FRect(0, 0, *size))
+        return pygame.transform.scale(img, [int(e) for e in r.size])
+
     def update_local_placement(self):
         pos, ang = self.local_pos, self.local_angle
         i_shape = self._i_shape
@@ -432,10 +440,6 @@ class BaseComponent(DynamicObject):
 
     def world_to_local(self, pos):
         return self._body.world_to_local(pos) - self.local_pos
-
-    def apply_damping(self):
-        if self.own_body() and self.height <= 0 and self.damping:
-            self.velocity *= (1 - self.damping)
 
 
 class BaseEngine(BaseComponent):
@@ -532,17 +536,22 @@ class BaseWeapon(BaseComponent):
         if self.recharge > 0:
             self.recharge -= self.step_time
 
-    def shot(self):
+    def shot(self, **kwargs):
         if self.recharge <= 0:
-            self.force_fire()
+            self.force_fire(**kwargs)
             self.recharge = self.fire_delay
 
-    def force_fire(self):
+    def spawn_proj(self):
         proj = self.Projectile()
         proj.add(*self.groups())
         proj.parent = self
         proj.team = self.team
         proj.pos = self.local_to_world(self.fire_pos)
+        return proj
+
+    def force_fire(self, **kwargs):
+        self.play_sound('fire')
+        proj = self.spawn_proj()
         ang = self.angle
         rad = math.radians(ang)
         vel = self.proj_velocity

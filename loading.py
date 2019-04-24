@@ -5,6 +5,13 @@ import os
 from math import ceil
 
 
+def load_sound(path, volume=1, ext='ogg'):
+    fp = get_path(path + '.' + ext)
+    s = pygame.mixer.Sound(fp)
+    s.set_volume(volume)
+    return s
+
+
 def load_image(path, alpha=True):
     surface = pygame.image.load(get_path(path))
     return surface.convert_alpha() if alpha else surface.convert()

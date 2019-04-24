@@ -169,7 +169,6 @@ class Level:
         self.mouse_absolute_prev = Vec2d(0, 0)
         self.mouse_relative = Vec2d(0, 0)
         self.mouse_absolute = Vec2d(0, 0)
-        self.pregenerate()
 
     def pregenerate(self):
         pass
@@ -292,6 +291,8 @@ class Event:
         self._level = self.event_system.level
         es.add(self)
 
+        self.step_time = 1
+
     @property
     def level(self):
         return self._level
@@ -299,6 +300,9 @@ class Event:
     @level.setter
     def level(self, level):
         self._level = level
+
+    def start_step(self, upd_time):
+        self.step_time = upd_time
 
     def update(self):
         pass
@@ -338,6 +342,8 @@ class EventSystem:
 
     def start_step(self, upd_time):
         self.step_time = upd_time
+        for i in self.events:
+            i.start_step(upd_time)
 
     def update(self):
         for event in self.events:
@@ -346,3 +352,5 @@ class EventSystem:
     def active_update(self):
         for event in self.events:
             event.active_update()
+
+

@@ -1,6 +1,7 @@
 import pygame
 import operator
 import math
+from itertools import chain
 
 
 def between(p, a, b, eq=None):
@@ -103,9 +104,9 @@ class FRect:
 
     def clip_ip(self, rect):
         if not (self.x <= rect[0] + rect[2] and self.right >= rect[0]):
-            return FRect(0, 0, 0, 0)
+            return self.__class__(0, 0, 0, 0)
         if not (self.y <= rect[1] + rect[3] and self.bottom >= rect[1]):
-            return FRect(0, 0, 0, 0)
+            return self.__class__(0, 0, 0, 0)
 
         if self.x < rect[0]:
             self._x = rect[0]
@@ -120,6 +121,55 @@ class FRect:
     def clip(self, rect):
         new = self.copy()
         new.clip_ip(rect)
+
+    def fit_ip(self, rect):
+        ks = [rect[2] / self._w, rect[3] / self._h]
+        k = min(ks)
+        self._w, self._h = self._w * k, self._h * k
+        self.center = (rect[0] + rect[2] / 2, rect[1] + rect[3] / 2)
+
+    def fit(self, rect):
+        new = self.copy()
+        new.fit_ip(rect)
+        return new
+    
+    def union_ip(self, rect):
+        l = min(self._x, rect[0])
+        t = min(self._y, rect[1])
+        r = max(self._x + self._w, rect[0] + rect[2])
+        b = max(self._y + self._h, rect[1] + rect[3])
+        self._x, self._y = l, t
+        self._w, self._h = r - l, b - t
+    
+    def union(self, rect):
+        new = self.__class__()
+        l = min(self._x, rect[0])
+        t = min(self._y, rect[1])
+        r = max(self._x + self._w, rect[0] + rect[2])
+        b = max(self._y + self._h, rect[1] + rect[3])
+        new._x, new._y = l, t
+        new._w, new._h = r - l, b - t
+        return new
+
+    def unionall_ip(self, rects):
+        seq = tuple(rects) + (self,)
+        l = min(map(lambda e: e[0], seq))
+        t = min(map(lambda e: e[1], seq))
+        r = max(map(lambda e: e[0] + e[2], seq))
+        b = max(map(lambda e: e[1] + e[3], seq))
+        self._x, self._y = l, t
+        self._w, self._h = r - l, b - t
+    
+    def unionall(self, rects):
+        new = self.__class__()
+        seq = tuple(rects) + (self,)
+        l = min(map(lambda e: e[0], seq))
+        t = min(map(lambda e: e[1], seq))
+        r = max(map(lambda e: e[0] + e[2], seq))
+        b = max(map(lambda e: e[1] + e[3], seq))
+        new._x, new._y = l, t
+        new._w, new._h = r - l, b - t
+        return new
 
     def contains(self, rect):
         return rect[0] >= self.x and \
@@ -147,7 +197,7 @@ class FRect:
             self[n] = round(self[n], digs)
 
     def copy(self):
-        return FRect(self._x, self._y, self._w, self._h)
+        return self.__class__(self._x, self._y, self._w, self._h)
 
     def __getitem__(self, ind):
         return [self._x, self._y, self._w, self._h][ind]
@@ -159,7 +209,7 @@ class FRect:
         return repr(self)
 
     def __repr__(self):
-        return 'FRect(%s, %s, %s, %s)' % (self._x, self._y, self._w, self._h)
+        return '%s(%s, %s, %s, %s)' % (self.__class__.__name__, self._x, self._y, self._w, self._h)
 
     @property
     def size(self):

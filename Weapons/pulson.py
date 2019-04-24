@@ -1,8 +1,9 @@
 import pymunk
 from geometry import Vec2d
-from loading import load_model, cast_model
+from loading import load_model, cast_model, load_sound
 from game_class import BaseWeapon
 from config import *
+import math
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
@@ -11,9 +12,13 @@ CS = Vec2d(24, 30)
 
 
 class Weapon(BaseWeapon):
+    size_inc = 1
     max_health = 50
     fire_delay = 2000
-    proj_velocity = 1200
+    proj_velocity = 1100
+    sound = {
+        'fire': [load_sound('Weapons\\Models\\boing_x', ext='wav'), {'channel': CHANNEL.PULSON_WEAPON}]
+    }
 
     def __init__(self):
         super().__init__()
@@ -21,6 +26,23 @@ class Weapon(BaseWeapon):
         self.i_body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((48, 30)))
         self.shape.density = 1
+
+    def force_fire(self, **kwargs):
+        self.play_sound('fire')
+        proj = self.spawn_proj()
+        ang = self.angle
+        rad = math.radians(ang)
+        if 'target' in kwargs.keys():
+            dis = (proj.pos - kwargs['target']).length
+            dmp = self.Projectile.damping
+            vel = (2 * dis * dmp) / (math.e ** (-dmp * self.Projectile.lifetime) + 1)
+            if vel > self.proj_velocity:
+                vel = self.proj_velocity
+        else:
+            vel = self.proj_velocity
+        vec = Vec2d(vel * math.cos(rad), vel * math.sin(rad))
+        proj.velocity = vec
+        proj.angle = ang
 
     @classmethod
     def init_class(cls):

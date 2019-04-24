@@ -1,7 +1,8 @@
 import pymunk
 from geometry import Vec2d
-from loading import load_model, cast_model
+from loading import load_model, cast_model, load_sound
 from game_class import BaseWeapon
+from config import *
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
@@ -13,7 +14,10 @@ class Weapon(BaseWeapon):
     max_health = 40
     size_inc = 1.25
     proj_velocity = 1000
-    fire_delay = 200
+    fire_delay = 100
+    sound = {
+        'fire': [load_sound('Weapons\\Models\\explosion_dull'), {'channel': CHANNEL.PLASMA_WEAPON}]
+    }
 
     def __init__(self):
         super().__init__()

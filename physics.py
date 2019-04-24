@@ -5,6 +5,8 @@ from config import *
 from col_handlers import get_handler
 import math
 
+pygame.mixer.set_reserved(len(CHANNEL.values()))
+
 
 class CameraGroup(pygame.sprite.AbstractGroup):
 
@@ -12,6 +14,7 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         super().__init__()
         self.default_layer = 9
         self._offset = Vec2d(0, 0)
+        self.sounds = []
 
     def layer_sorted(self):
         return sorted(self.sprites(), key=lambda e: getattr(e, 'draw_layer', self.default_layer))
@@ -31,7 +34,27 @@ class CameraGroup(pygame.sprite.AbstractGroup):
                 # tl = [int((e[1] - e[2] / 2 - e[0]) * zoom) for e in zip(cam_tl, sprite.pos, s_size)]
                 self.spritedict[sprite] = blit(
                     pygame.transform.scale(s_img, (s_size * zoom).int()), tl + cam_offset)
+        cam_c = Vec2d(cam_rect.center)
+        cam_h = (CAMERA_SOUND_HEIGHT / zoom) ** 2
+        for snd in self.sounds:
+            sound = snd[0]
+            kwargs = snd[2]
+            c = kwargs.get('channel', None)
+            if c is not None:
+                c = pygame.mixer.Channel(c)
+                c.play(sound)
+            else:
+                c = sound.play(kwargs.get('loops', 0), kwargs.get('max_time', 0), kwargs.get('fade_ms', 0))
+            if c is not None:
+                to_s = snd[1].pos - cam_c
+                d = to_s.get_length_sqrd()
+                v = SOUND_COEF / (math.sqrt(d + cam_h) + 1)
+                c.set_volume(v)
+        self.sounds.clear()
         self.lostsprites = []
+
+    def que_sound(self, sound, sprite, **kwargs):
+        self.sounds.append([sound, sprite, kwargs])
 
     @property
     def draw_offset(self):
@@ -90,6 +113,7 @@ class PhysicsGroup(CameraGroup):
 
 class StaticImage(pygame.sprite.Sprite):
     draw_layer = DRAW_LAYER.VFX
+    sound = {}
 
     def __init__(self):
         """
@@ -108,6 +132,12 @@ class StaticImage(pygame.sprite.Sprite):
         self.height = 0
         self.step_time = 1
         super().__init__()
+        self.play_sound('creation')
+
+    def play_sound(self, key):
+        s = self.sound.get(key, [])
+        if s:
+            self.group.que_sound(s[0], self, **s[1])
 
     @property
     def space(self):
@@ -243,12 +273,24 @@ class StaticImage(pygame.sprite.Sprite):
     def damage(self, val):
         pass
 
+    @property
+    def group(self):
+        return self.groups()[0]
+
+    def kill(self):
+        for snd in self.sound.values():
+            if snd[0].get_num_channels() > 0:
+                snd[0].fadeout(1000)
+        super().kill()
+
     def __bool__(self):
         return True
 
 
 class PhysObject(pygame.sprite.Sprite):
     draw_layer = DRAW_LAYER.DEFAULT
+    damping = 0
+    sound = {}
 
     def __init__(self):
         """
@@ -262,10 +304,15 @@ class PhysObject(pygame.sprite.Sprite):
         self._body = None
         self._shape = None
 
-        self.damping = 0
         self.height = 0
         self.step_time = 1
         super().__init__()
+        self.play_sound('creation')
+
+    def play_sound(self, key):
+        s = self.sound.get(key, [])
+        if s:
+            self.group.que_sound(s[0], self, **s[1])
 
     @property
     def space(self):
@@ -406,8 +453,8 @@ class PhysObject(pygame.sprite.Sprite):
         self.apply_damping()
 
     def apply_damping(self):
-        if self.height <= 0 and self.damping:
-            self.velocity *= (1 - self.damping)
+        if self.own_body() and self.height <= 0 and self.damping:
+            self.velocity *= (1 - self.damping * (self.step_time / 1000))
 
     def _get_pos(self):
         return self._body.position
@@ -444,6 +491,9 @@ class PhysObject(pygame.sprite.Sprite):
             self._space = None
         # self._shape = None
         # self._body = None
+        for snd in self.sound.values():
+            if snd[0].get_num_channels() > 0:
+                snd[0].fadeout(1000)
         super().kill()
 
     def collideable(self, obj):
@@ -451,3 +501,7 @@ class PhysObject(pygame.sprite.Sprite):
 
     def damage(self, val):
         pass
+
+    @property
+    def group(self):
+        return self.groups()[0]

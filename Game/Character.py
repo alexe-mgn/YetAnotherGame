@@ -12,17 +12,18 @@ class WeaponInv:
         self._ind = 0
 
     def checkout(self, ind):
-        parent = self.parent
-        cw = self.weapons[self._ind]
-        for n, m in enumerate(parent.mounts):
-            obj = m.object
-            if obj is not None and obj in cw:
-                if parent.unmount(index=n):
-                    obj.remove(obj.groups())
-        for obj in self.weapons[ind]:
-            if parent.mount(obj):
-                obj.add(parent.groups())
-        self._ind = ind
+        if ind != self.index and 0 <= ind <= len(self):
+            parent = self.parent
+            cw = self.weapons[self._ind]
+            for n, m in enumerate(parent.mounts):
+                obj = m.object
+                if obj is not None and obj in cw:
+                    if parent.unmount(index=n):
+                        obj.remove(obj.groups())
+            for obj in self.weapons[ind]:
+                if parent.mount(obj):
+                    obj.add(parent.groups())
+            self._ind = ind
 
     def __len__(self):
         return len(self.weapons)
@@ -30,18 +31,21 @@ class WeaponInv:
     def __getitem__(self, ind):
         return self.weapons[ind]
 
+    def __iter__(self):
+        return iter(self.weapons)
+
     @property
     def index(self):
         return self._ind
 
     @index.setter
     def index(self, n):
-        if n != self.index and 0 <= n <= len(self):
-            self.checkout(n)
+        self.checkout(n)
 
 
 class BasePlayer(BaseCreature):
     team = TEAM.PLAYER
+    score = 0
 
     def __init__(self, level):
         super().__init__()
@@ -64,9 +68,10 @@ class BasePlayer(BaseCreature):
                 int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
             ))
             if pygame.mouse.get_pressed()[0]:
-                self.shot()
+                self.shot(target=self.level.mouse_absolute)
 
-    def update(self):
+    def start_step(self, upd_time):
+        super().start_step(upd_time)
         if not self.level.paused:
             self.angle = (self.level.mouse_absolute - self.pos).angle
 
@@ -77,6 +82,7 @@ class BasePlayer(BaseCreature):
 
 class BaseEnemy(BaseCreature):
     team = TEAM.ENEMY
+    score = 0
 
     def __init__(self, level):
         super().__init__()
@@ -103,7 +109,11 @@ class BaseEnemy(BaseCreature):
 
     def handle_fire(self):
         if self.fire_after <= 0:
-            self.shot()
+            self.shot(target=self.target.pos)
             self.fire_after = self.fire_delay
         else:
             self.fire_after -= self.step_time
+
+    def death(self):
+        super().death()
+        self.level.add_score(self.score)
