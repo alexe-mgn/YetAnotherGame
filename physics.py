@@ -404,12 +404,10 @@ class PhysObject(pygame.sprite.Sprite):
     def moment(self, m):
         self._body.moment = m
 
-    @property
-    def shape(self):
+    def _get_shape(self):
         return self._shape
 
-    @shape.setter
-    def shape(self, shape):
+    def _set_shape(self, shape):
         if shape.space:
             shape.space.remove(shape)
         if shape.body is not self._body:
@@ -419,6 +417,8 @@ class PhysObject(pygame.sprite.Sprite):
                 self._space.remove(self._shape)
             self._space.add(shape)
         self._shape = shape
+
+    shape = property(_get_shape, _set_shape)
 
     @property
     def shapes(self):

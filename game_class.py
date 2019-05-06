@@ -149,22 +149,14 @@ class BaseProjectile(DynamicObject):
         self.parent = None
         self.timeout = False
 
-    @property
-    def shape(self):
-        return self._shape
+    def _get_shape(self):
+        return super()._get_shape()
 
-    @shape.setter
-    def shape(self, shape):
-        if shape.space:
-            shape.space.remove(shape)
-        if shape.body is not self._body:
-            shape.body = self._body
-        if self._space is not None:
-            if self._shape is not None:
-                self._space.remove(self._shape)
-            self._space.add(shape)
-        self._shape = shape
+    def _set_shape(self, shape):
+        super()._set_shape(shape)
         shape.collision_type = COLLISION_TYPE.PROJECTILE
+
+    shape = property(_get_shape, _set_shape)
 
     # BODY SHAPES !!!
 
@@ -338,12 +330,10 @@ class BaseComponent(DynamicObject):
     def source_shape(self):
         return self._i_shape
 
-    @property
-    def shape(self):
-        return self._shape
+    def _get_shape(self):
+        return super()._get_shape()
 
-    @shape.setter
-    def shape(self, shape):
+    def _set_shape(self, shape):
         if shape.space:
             shape.space.remove(shape)
         shape.body = None
@@ -355,6 +345,8 @@ class BaseComponent(DynamicObject):
             self._space.add(shape)
         self._shape = shape
         self.update_local_placement()
+
+    shape = property(_get_shape, _set_shape)
 
     @property
     def shapes(self):
