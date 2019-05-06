@@ -57,10 +57,10 @@ class Camera:
 
     def get_rect(self):
         return self.c_rect
-        rect = pygame.Rect(0, 0, 0, 0)
-        rect.center = self.c_rect.center
-        rect.inflate_ip(self.c_rect.width // 2 * 2, self.c_rect.height // 2 * 2)
-        return rect
+        # rect = pygame.Rect(0, 0, 0, 0)
+        # rect.center = self.c_rect.center
+        # rect.inflate_ip(self.c_rect.width // 2 * 2, self.c_rect.height // 2 * 2)
+        # return rect
 
     def move(self, shift):
         self.rect.x += shift[0]
@@ -173,6 +173,12 @@ class Level:
     def pregenerate(self):
         pass
 
+    def add_internal(self, sprite):
+        sprite.add(self.phys_group)
+
+    def add(self, sprite):
+        self.add_internal(sprite)
+
     def send_event(self, event):
         if self.gui is not None:
             self.gui.send_event(event)
@@ -223,20 +229,7 @@ class Level:
 
     def handle_keys(self):
         pressed = self.pressed
-        if not self.paused:
-            # if pressed[pygame.K_RIGHT]:
-            #     self.camera.move_smooth([1, 0])
-            # if pressed[pygame.K_LEFT]:
-            #     self.camera.move_smooth([-1, 0])
-            # if pressed[pygame.K_UP]:
-            #     self.camera.move_smooth([0, -1])
-            # if pressed[pygame.K_DOWN]:
-            #     self.camera.move_smooth([0, 1])
-            if pressed[pygame.K_DOWN]:
-                self.space_time_coef = .1
-            else:
-                self.space_time_coef = 1
-            if self.player is not None:
+        if self.player is not None:
                 self.player.handle_keys()
 
     def start_step(self, upd_time, time_coef=1):
@@ -352,5 +345,3 @@ class EventSystem:
     def active_update(self):
         for event in self.events:
             event.active_update()
-
-

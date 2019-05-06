@@ -11,6 +11,7 @@ CS = Vec2d(13, 17)
 
 
 class Weapon(BaseWeapon):
+    name = NAME
     max_health = 40
     size_inc = 1.25
     proj_velocity = 1000

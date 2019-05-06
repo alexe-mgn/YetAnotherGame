@@ -26,7 +26,8 @@ class SpawnEvent(Event):
         ]
 
     def update(self):
-        self.lu += self.step_time
+        if not self.level.paused:
+            self.lu += self.step_time
 
     def active_update(self):
         spawn = self.spawn

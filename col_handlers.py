@@ -5,24 +5,13 @@ import math
 pymunk collision handlers
 """
 
-
-class HandlerTracked:
+"""
+class Handler:
 
     @staticmethod
     def begin(arbiter, space, data):
-        sha, shb = arbiter.shapes
-        ba, bb = sha.body, shb.body
-        sa, sb = getattr(ba, 'sprite', None), getattr(bb, 'sprite', None)
-        if sa is None or sb is None:
-            return True
-        col = sa.collideable(sb) and sb.collideable(sa)
-        if col:
-            sa.effect(sb, arbiter)
-            sb.effect(sa, arbiter, first=False)
-        return col
+        return True
 
-
-"""
     @staticmethod
     def pre_solve(arbiter, space, data):
         return True
@@ -37,7 +26,7 @@ class HandlerTracked:
 """
 
 
-class HandlerProjectile:
+class HandlerTracked:
 
     @staticmethod
     def begin(arbiter, space, data):
@@ -69,7 +58,7 @@ class HandlerProjectile:
 
 handlers = {
     COLLISION_TYPE.TRACKED: HandlerTracked,
-    COLLISION_TYPE.PROJECTILE: HandlerProjectile
+    COLLISION_TYPE.PROJECTILE: HandlerTracked
 }
 
 

@@ -45,6 +45,7 @@ class DynamicObject(ImageHandler):
     role = ROLE.OBJECT
     team = TEAM.DEFAULT
     mat = MAT_TYPE.MATERIAL
+    name = 'None'
     max_health = 100
 
     def __init__(self):
@@ -65,7 +66,7 @@ class DynamicObject(ImageHandler):
 
 class Mount:
     """
-    Mount point for components on pymunk.Body bounded sprite
+    Mount point for components on pymunk.Body bounded sprite (creature)
     """
 
     def __init__(self, parent, position=None, angle=0, allowed=None, top=True):

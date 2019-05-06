@@ -1,8 +1,8 @@
-import pygame
 from Game.Character import BasePlayer, WeaponInv
 from Creatures.MechZero import Creature as Body
 from Components.LegsZero import Engine as Legs
 from Weapons.plasma_repeater import Weapon as DefaultW
+from config import ROLE
 from Weapons.pulson import Weapon as Pulson
 
 
@@ -30,3 +30,7 @@ class Character(BasePlayer, Body):
         add = self.step_time * self.max_health * .001 / 1000
         if self.health + add <= self.max_health:
             self.health += add
+
+    def effect(self, obj, arbiter, first=True):
+        if obj.own_body() and obj.role == ROLE.WEAPON:
+            self.w_inv.add(obj)

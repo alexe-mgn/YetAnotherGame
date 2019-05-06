@@ -25,6 +25,28 @@ class WeaponInv:
                     obj.add(parent.groups())
             self._ind = ind
 
+    def slot_for(self, w):
+        free = None
+        for n, s in enumerate(self.weapons):
+            if s:
+                if s[0].name == w.name:
+                    if self.parent.free_weapon():
+                        return n
+                    else:
+                        return None
+            elif free is None:
+                free = n
+        return free
+
+    def add(self, w):
+        slot = self.slot_for(w)
+        if slot:
+            self.weapons[slot].append(w)
+            w.remove(w.groups())
+            if slot == self._ind:
+                if self.parent.mount(w):
+                    w.add(self.parent.groups())
+
     def __len__(self):
         return len(self.weapons)
 
@@ -50,8 +72,8 @@ class BasePlayer(BaseCreature):
     def __init__(self, level):
         super().__init__()
         self.level = level
-        if getattr(level, 'phys_group', None) is not None:
-            self.add(level.phys_group)
+        if getattr(level, 'add', None) is not None:
+            level.add(self)
         self.pregenerate()
 
     def pregenerate(self):
@@ -87,8 +109,8 @@ class BaseEnemy(BaseCreature):
     def __init__(self, level):
         super().__init__()
         self.level = level
-        if getattr(level, 'phys_group', None) is not None:
-            self.add(level.phys_group)
+        if getattr(level, 'add', None) is not None:
+            level.add(self)
         self.target = self.level.player
         self.fire_delay = 1000
         self.fire_after = self.fire_delay

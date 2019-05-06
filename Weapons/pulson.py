@@ -12,6 +12,7 @@ CS = Vec2d(24, 30)
 
 
 class Weapon(BaseWeapon):
+    name = NAME
     size_inc = 1
     max_health = 50
     fire_delay = 2000
