@@ -34,9 +34,9 @@ class Character(BasePlayer, Body):
         if obj.own_body() and obj.role == ROLE.WEAPON:
             self.w_inv.add(obj)
 
-    def handle_keys(self):
-        super().handle_keys()
-        if pygame.key.get_pressed()[pygame.K_j]:
+    def send_event(self, event):
+        super().send_event(event)
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_j:
             ind = self.w_inv.index
             for n in range(len(self.w_inv[ind])):
                 w = self.w_inv.drop(ind)
@@ -46,5 +46,5 @@ class Character(BasePlayer, Body):
                 vel = w.velocity_for_distance((self.level.mouse_absolute - self.pos).length)
                 if vel > mv:
                     vel = mv
-                w.pos += vector * 50
+                w.pos += vector * 75
                 w.velocity = vector * vel
