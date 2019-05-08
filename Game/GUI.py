@@ -299,9 +299,23 @@ class LevelGUI(Menu):
 
         class InventoryUI(Menu):
 
-            def __init__(self, inv, *args, **kwargs):
+            def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
+                self._inventory = []
+                self.slots = []
+                # mr = self.main.rect.size
+                # self.rect.size = (8 * 0, 8 * mr[0] / mr[1])
+
+            @property
+            def inventory(self):
+                return self._inventory
+
+            @inventory.setter
+            def inventory(self, inv):
+                self._inventory = inv
+                self.slots.clear()
                 ln = len(inv)
+                s_ind = inv.index
                 for n, i in enumerate(inv):
                     s = InvSlot(self)
                     s.rect.size = (100 / ln, 100)
@@ -312,19 +326,35 @@ class LevelGUI(Menu):
                         s.content = ws[0].preview(s.global_rect().size)
                     s.on_select = lambda w_inv=inv, ind=n: w_inv.checkout(ind)
                     s.select_off = lambda: None
-                self[0].select_on()
-                mr = self.main.rect.size
-                self.rect.size = (8 * ln, 8 * mr[0] / mr[1])
+                    self.slots.append(s)
+                self[s_ind].select_on()
+                # mr = self.main.rect.size
+                # self.rect.size = (8 * len(inv), 8 * mr[0] / mr[1])
+
+            def recalculate_icons(self):
+                for w, s in zip(self.inventory, self.slots):
+                    if w:
+                        s.content = w[0].preview(s.global_rect().size)
+                    else:
+                        s.content = None
 
         class PlayerHPBar(ProgressBar):
             progress = load_model('Res\\UI\\progress_fill_red')
 
-            def __init__(self, player, *args, **kwargs):
+            def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self.player = player
+                self.player = None
 
             def on_draw(self):
-                self.percentage = self.player.health / self.player.max_health * 100
+                self.percentage = self.player.health / self.player.max_health * 100 if self.player else 0
+
+            @property
+            def player(self):
+                return self._player
+
+            @player.setter
+            def player(self, player):
+                self._player = player
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -334,12 +364,14 @@ class LevelGUI(Menu):
             sl.rect.topright = (98, 2)
             sl.text_alignment = 'right'
 
-            inv = self.InventoryUI(self.main.level.player.w_inv, self)
+            inv = self.InventoryUI(self)
             self.inventory = inv
+            mr = self.main.rect.size
+            inv.rect.size = (40, 8 * mr[0] / mr[1])
             inv.rect.centerx = 50
             inv.rect.bottom = 100
 
-            hp = self.PlayerHPBar(self.main.level.player, self)
+            hp = self.PlayerHPBar(self)
             self.hp = hp
             hp.rect.size = (35, 4)
             hp.rect.topleft = (2, 2)
@@ -355,6 +387,16 @@ class LevelGUI(Menu):
                 elif 49 <= event.key <= 53:
                     kc = event.key - 49
                     self.inventory[kc].select_on()
+
+        @property
+        def player(self):
+            return self._player
+
+        @player.setter
+        def player(self, player):
+            self._player = player
+            self.inventory.inventory = player.w_inv
+            self.hp.player = player
 
     class RecordMenu(Menu):
 

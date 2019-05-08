@@ -328,9 +328,9 @@ class Division:
         self.selected = obj
 
     def select_on(self):
-        self.select = True
         if self._parent:
             self._parent.set_selected(self)
+        self.select = True
         self.on_select()
 
     def select_off(self):

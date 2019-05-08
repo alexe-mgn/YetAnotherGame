@@ -1,3 +1,6 @@
+import pygame
+import math
+from geometry import Vec2d
 from Game.Character import BasePlayer, WeaponInv
 from Creatures.MechZero import Creature as Body
 from Components.LegsZero import Engine as Legs
@@ -11,7 +14,7 @@ class Character(BasePlayer, Body):
     def pregenerate(self):
         self.max_health = 500
         self.health = self.max_health
-        self.w_inv = WeaponInv(self)
+        self.w_inv = WeaponInv(self, gui=self.gui.inventory if self.gui else None)
         l = Legs()
         l.max_vel = 400
         l.add(*self.groups())
@@ -21,10 +24,6 @@ class Character(BasePlayer, Body):
             w.add(self.level.phys_group)
             self.mount(w)
             self.w_inv[self.w_inv.index].append(w)
-        for _ in range(2):
-            w = Pulson()
-            w.inaccuracy = .2
-            self.w_inv[4].append(w)
 
     def update(self):
         add = self.step_time * self.max_health * .001 / 1000
@@ -34,3 +33,18 @@ class Character(BasePlayer, Body):
     def effect(self, obj, arbiter, first=True):
         if obj.own_body() and obj.role == ROLE.WEAPON:
             self.w_inv.add(obj)
+
+    def handle_keys(self):
+        super().handle_keys()
+        if pygame.key.get_pressed()[pygame.K_j]:
+            ind = self.w_inv.index
+            for n in range(len(self.w_inv[ind])):
+                w = self.w_inv.drop(ind)
+                ang = math.radians(self.angle)
+                vector = Vec2d(math.cos(ang), math.sin(ang))
+                mv = 1000000 / w.mass
+                vel = w.velocity_for_distance((self.level.mouse_absolute - self.pos).length)
+                if vel > mv:
+                    vel = mv
+                w.pos += vector * 50
+                w.velocity = vector * vel

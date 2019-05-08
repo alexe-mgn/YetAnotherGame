@@ -35,8 +35,7 @@ class Weapon(BaseWeapon):
         rad = math.radians(ang)
         if 'target' in kwargs.keys():
             dis = (proj.pos - kwargs['target']).length
-            dmp = self.Projectile.damping
-            vel = (2 * dis * dmp) / (math.e ** (-dmp * self.Projectile.lifetime) + 1)
+            vel = proj.velocity_for_distance(dis, proj.life_left)
             if vel > self.proj_velocity:
                 vel = self.proj_velocity
         else:

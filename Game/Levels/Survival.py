@@ -87,18 +87,21 @@ class Survival(Level):
             s = Soldier(self)
             s.pos = (200, 200)
 
-        self.player = Player(self)
+        self.gui = LevelGUI(main=self.main)
+        self.event_system = SurvivalEventSystem(self)
+        self.score = 0
+
         p_pos = [e / 2 for e in self.size]
+        self.camera.pos = p_pos
+        self.camera.instant_target()
+
+        self.player = Player(self, gui=self.gui.ingame)
         self.player.pos = p_pos
         s = SpawnCircle()
         s.add(self.phys_group)
         s.pos = p_pos
 
-        self.gui = LevelGUI(main=self.main)
-        self.event_system = SurvivalEventSystem(self)
-        self.score = 0
-        self.camera.pos = p_pos
-        self.camera.instant_target()
+        self.gui.ingame.player = self.player
 
     def add_score(self, val):
         self.score += val

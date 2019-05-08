@@ -535,3 +535,10 @@ class PhysObject(pygame.sprite.Sprite):
     @property
     def group(self):
         return self.groups()[0]
+
+    def velocity_for_distance(self, dist, time=1000):
+        dmp = self.damping
+        if dmp:
+            return (2 * dist * dmp) / (math.exp(-dmp * time) + 1)
+        else:
+            return dist / time * 1000

@@ -52,6 +52,15 @@ class DynamicObject(ImageHandler):
         super().__init__()
         self.health = self.max_health
 
+    def _get_shape(self):
+        return super()._get_shape()
+
+    def _set_shape(self, shape):
+        super()._set_shape(shape)
+        shape.collision_type = COLLISION_TYPE.TRACKED
+
+    shape = property(_get_shape, _set_shape)
+
     def damage(self, val):
         self.health -= val
         if self.health <= 0:
@@ -185,14 +194,19 @@ class BaseCreature(DynamicObject):
     def __init__(self):
         super().__init__()
 
+        self.mounts_num = 0
         self.mounts = []
         self.mounts_names = {}
 
-    def get_mount(self, index=None, key=None):
+    def get_mount(self, index=None, key=None, obj=None):
         if index is not None:
             return self.mounts[index]
         elif key is not None:
             return self.mounts[self.mounts_names[key]]
+        elif obj is not None:
+            for m in self.mounts:
+                if m.object is obj:
+                    return m
 
     def mount(self, obj, index=None, key=None):
         m = self.get_mount(index, key)
@@ -212,8 +226,8 @@ class BaseCreature(DynamicObject):
                         return s
         return False
 
-    def unmount(self, index=None, key=None):
-        m = self.get_mount(index, key)
+    def unmount(self, index=None, key=None, obj=None):
+        m = self.get_mount(index, key, obj)
         if m is not None:
             o = m.object
             s = m.unmount()
@@ -235,6 +249,7 @@ class BaseCreature(DynamicObject):
             else:
                 v = i
             self.mounts.append(v)
+        self.mounts_num = len(self.mounts)
 
     def get_weapons(self):
         return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
@@ -344,6 +359,7 @@ class BaseComponent(DynamicObject):
                 self._space.remove(self._shape)
             self._space.add(shape)
         self._shape = shape
+        shape.collision_type = COLLISION_TYPE.TRACKED
         self.update_local_placement()
 
     shape = property(_get_shape, _set_shape)
@@ -556,12 +572,13 @@ class BaseWeapon(BaseComponent):
             self.recharge = self.fire_delay
 
     def spawn_proj(self):
-        proj = self.Projectile()
-        proj.add(*self.groups())
-        proj.parent = self
-        proj.team = self.team
-        proj.pos = self.local_to_world(self.fire_pos)
-        return proj
+        if hasattr(self, 'Projectile'):
+            proj = self.Projectile()
+            proj.add(*self.groups())
+            proj.parent = self
+            proj.team = self.team
+            proj.pos = self.local_to_world(self.fire_pos)
+            return proj
 
     def miss_angle(self):
         return self.angle + 360 * (random.random() - .5) * self.inaccuracy

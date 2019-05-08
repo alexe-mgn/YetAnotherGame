@@ -40,11 +40,14 @@ class HandlerTracked:
             data['sprite_a'], data['sprite_b'] = sa, sb
 
             def f(*args):
-                sa.effect(sb, arbiter)
+                sa.effect(sb, arbiter, first=True)
                 sb.effect(sa, arbiter, first=False)
 
             space.add_post_step_callback(f, id(f))
         return col
+
+
+class HandlerProjectile(HandlerTracked):
 
     @staticmethod
     def separate(arbiter, space, data):
@@ -58,7 +61,7 @@ class HandlerTracked:
 
 handlers = {
     COLLISION_TYPE.TRACKED: HandlerTracked,
-    COLLISION_TYPE.PROJECTILE: HandlerTracked
+    COLLISION_TYPE.PROJECTILE: HandlerProjectile
 }
 
 

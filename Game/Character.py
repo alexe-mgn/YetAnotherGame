@@ -6,8 +6,9 @@ from config import *
 
 class WeaponInv:
 
-    def __init__(self, parent):
+    def __init__(self, parent, gui=None):
         self.parent = parent
+        self.gui = gui
         self.weapons = [[], [], [], [], []]
         self._ind = 0
 
@@ -27,10 +28,14 @@ class WeaponInv:
 
     def slot_for(self, w):
         free = None
+        mn = 0
+        for m in self.parent.mounts:
+            if m.mountable(w):
+                mn += 1
         for n, s in enumerate(self.weapons):
             if s:
                 if s[0].name == w.name:
-                    if self.parent.free_weapon():
+                    if len(s) < mn:
                         return n
                     else:
                         return None
@@ -40,12 +45,23 @@ class WeaponInv:
 
     def add(self, w):
         slot = self.slot_for(w)
-        if slot:
+        if slot is not None and w not in self.weapons[slot]:
             self.weapons[slot].append(w)
             w.remove(w.groups())
             if slot == self._ind:
                 if self.parent.mount(w):
                     w.add(self.parent.groups())
+            if self.gui:
+                self.gui.recalculate_icons()
+
+    def drop(self, ind, w_ind=-1):
+        w = self.weapons[ind].pop(w_ind)
+        if ind == self._ind:
+            self.parent.unmount(obj=w)
+        w.add(self.parent.groups())
+        if self.gui:
+            self.gui.recalculate_icons()
+        return w
 
     def __len__(self):
         return len(self.weapons)
@@ -69,9 +85,10 @@ class BasePlayer(BaseCreature):
     team = TEAM.PLAYER
     score = 0
 
-    def __init__(self, level):
+    def __init__(self, level, gui=None):
         super().__init__()
         self.level = level
+        self.gui = gui
         if getattr(level, 'add', None) is not None:
             level.add(self)
         self.pregenerate()
@@ -83,14 +100,13 @@ class BasePlayer(BaseCreature):
         pass
 
     def handle_keys(self):
-        if not self.level.paused:
-            pressed = pygame.key.get_pressed()
-            self.walk((
-                int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
-                int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
-            ))
-            if pygame.mouse.get_pressed()[0]:
-                self.shot(target=self.level.mouse_absolute)
+        pressed = pygame.key.get_pressed()
+        self.walk((
+            int(pressed[pygame.K_d]) - int(pressed[pygame.K_a]),
+            int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
+        ))
+        if pygame.mouse.get_pressed()[0]:
+            self.shot(target=self.level.mouse_absolute)
 
     def start_step(self, upd_time):
         super().start_step(upd_time)

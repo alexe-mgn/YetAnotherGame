@@ -72,7 +72,7 @@ class CHANNEL(NS):
 
 class COLLISION_TYPE(NS):
     TRACKED = 5
-    PROJECTILE = 5
+    PROJECTILE = 6
 
 
 # Material type for collisions

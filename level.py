@@ -229,8 +229,8 @@ class Level:
 
     def handle_keys(self):
         pressed = self.pressed
-        if self.player is not None:
-                self.player.handle_keys()
+        if self.player is not None and not self.paused:
+            self.player.handle_keys()
 
     def start_step(self, upd_time, time_coef=1):
         self.step_time = upd_time * time_coef
