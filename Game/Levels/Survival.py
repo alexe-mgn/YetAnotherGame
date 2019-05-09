@@ -22,7 +22,7 @@ class SpawnEvent(Event):
         self.lu = 0
         self.characters = [
             [Soldier, .8, 0],
-            [Zero, .4, 0]
+            [Zero, .35, 0]
         ]
 
     def update(self):
@@ -57,6 +57,14 @@ class SurvivalEventSystem(EventSystem):
         SpawnEvent(self)
 
 
+class SurvivalPhysGroup(PhysicsGroup):
+
+    def add_internal(self, sprite):
+        super().add_internal(sprite)
+        if sprite.damping is None:
+            sprite.damping = 1
+
+
 class Survival(Level):
 
     def __init__(self, *args, **kwargs):
@@ -68,7 +76,7 @@ class Survival(Level):
         space = pymunk.Space()
         space.damping = 1
         space.gravity = [0, 0]
-        group = PhysicsGroup(space)
+        group = SurvivalPhysGroup(space)
         self.phys_group = group
 
         level_rect = self.get_rect()

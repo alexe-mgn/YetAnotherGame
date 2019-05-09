@@ -42,17 +42,24 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         cam_rect = camera.get_rect()
         cam_bb = pymunk.BB(cam_rect.left, cam_rect.top, cam_rect.right, cam_rect.bottom)
         cam_tl = Vec2d(cam_rect.topleft)
-        cam_offset = self.draw_offset
+        cam_offset = Vec2d(self.draw_offset)
         zoom = camera.get_current_zoom()
+
         blit = surface.blit
+        sprite_dict = self.spritedict
 
         for sprite in self.layer_sorted():
             if sprite.bb.intersects(cam_bb):
                 s_img = sprite.read_image()
-                s_size = Vec2d(s_img.get_size())
-                tl = ((-s_size / 2 - cam_tl + sprite.pos) * zoom).int()
-                self.spritedict[sprite] = blit(
-                    pygame.transform.scale(s_img, (s_size * zoom).int()), tl + cam_offset)
+                img = pygame.transform.rotozoom(s_img, -sprite.angle, zoom)
+
+                img_size = img.get_size()
+                s_pos = sprite.pos
+                sc = (
+                    int(cam_offset[0] + (s_pos[0] - cam_tl[0]) * zoom - img_size[0] / 2),
+                    int(cam_offset[1] + (s_pos[1] - cam_tl[1]) * zoom - img_size[1] / 2)
+                )
+                sprite_dict[sprite] = blit(img, sc)
 
         cam_c = Vec2d(cam_rect.center)
         cam_h = (CAMERA_SOUND_HEIGHT / zoom) ** 2
@@ -156,7 +163,6 @@ class StaticImage(pygame.sprite.Sprite):
         self._image = None
 
         self.damping = 0
-        self.height = 0
         self.step_time = 1
         super().__init__()
         self.play_sound('creation')
@@ -249,7 +255,7 @@ class StaticImage(pygame.sprite.Sprite):
 
     # THIS MUST be used for drawing, not .image
     def read_image(self):
-        return pygame.transform.rotate(self.image, -self.angle)
+        return self.image
 
     @image.setter
     def image(self, surf):
@@ -319,7 +325,7 @@ class PhysObject(pygame.sprite.Sprite):
     Sprite bounded to single pymunk.Body and one MAIN shape
     """
     draw_layer = DRAW_LAYER.DEFAULT
-    damping = 0
+    damping = None
     sound = {}
 
     def __init__(self):
@@ -334,7 +340,6 @@ class PhysObject(pygame.sprite.Sprite):
         self._body = None
         self._shape = None
 
-        self.height = 0
         self.step_time = 1
         super().__init__()
         self.play_sound('creation')
@@ -461,7 +466,7 @@ class PhysObject(pygame.sprite.Sprite):
 
     # THIS MUST be used for drawing, not .image
     def read_image(self):
-        return pygame.transform.rotate(self.image, -self.angle)
+        return self.image
 
     @image.setter
     def image(self, surf):
@@ -486,8 +491,11 @@ class PhysObject(pygame.sprite.Sprite):
         self.apply_damping()
 
     def apply_damping(self):
-        if self.own_body() and self.height <= 0 and self.damping:
-            self.velocity *= (1 - self.damping * (self.step_time / 1000))
+        if self.damping and self.own_body():
+            self.damp_velocity(self.damping)
+
+    def damp_velocity(self, coef):
+        self.velocity *= (1 - coef * (self.step_time / 1000))
 
     def _get_pos(self):
         return self._body.position

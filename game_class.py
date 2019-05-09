@@ -485,6 +485,8 @@ class BaseEngine(BaseComponent):
     engine_force = 100
     max_vel = 100
     max_fps = 10
+    damping = None
+    default_damping = None
 
     def __init__(self):
         super().__init__()
@@ -524,13 +526,16 @@ class BaseEngine(BaseComponent):
     def mount(self, parent):
         s = super().mount(parent)
         if s:
+            self.default_damping = self.damping
             self.parent_default_damping = parent.damping
+            self.damping = 0
             parent.damping = 0
 
     def unmount(self):
         p = self._parent
         s = super().unmount()
         if s:
+            self.damping = self.default_damping
             p.damping = self.parent_default_damping
             self.parent_default_damping = 0
 

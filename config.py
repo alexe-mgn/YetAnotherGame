@@ -47,7 +47,7 @@ class EVENT(NS):
 
 class EVENT_TIMER(NS):
     FPS_COUNTER = 250
-    EVENT_SYSTEM = 500
+    EVENT_SYSTEM = 1000
 
 
 class DRAW_LAYER:

@@ -14,6 +14,7 @@ CS = Vec2d(76.5, 28.5)
 class Projectile(BaseProjectile):
     mat = MAT_TYPE.ENERGY
     size_inc = 1
+    damping = 0
     lifetime = 1500
     hit_damage = 15
 
