@@ -22,7 +22,7 @@ class SpawnEvent(Event):
         self.lu = 0
         self.characters = [
             [Soldier, .8, 0],
-            [Zero, .35, 0]
+            [Zero, .3, 0]
         ]
 
     def update(self):

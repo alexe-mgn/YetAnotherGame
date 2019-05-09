@@ -2,8 +2,8 @@ import pygame
 import math
 from geometry import Vec2d
 from Game.Character import BasePlayer, WeaponInv
-from Creatures.MechZero import Creature as Body
-from Components.LegsZero import Engine as Legs
+from Creatures.MechPlayer import Creature as Body
+from Components.LegsPlayer import Engine as Legs
 from Weapons.plasma_repeater import Weapon as DefaultW
 from config import ROLE
 from Weapons.pulson import Weapon as Pulson
@@ -21,6 +21,8 @@ class Character(BasePlayer, Body):
         self.mount(l, key='engine')
         for _ in range(2):
             self.w_inv.add(DefaultW())
+        for _ in range(2):
+            self.w_inv.add(Pulson())
 
     def update(self):
         add = self.step_time * self.max_health * .001 / 1000
