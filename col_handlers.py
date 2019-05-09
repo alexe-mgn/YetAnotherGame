@@ -38,14 +38,14 @@ class HandlerTracked:
         col = sa.collideable(sb) and sb.collideable(sa)
         if col:
             data['sprite_a'], data['sprite_b'] = sa, sb
-            # sa.effect(sb, arbiter, first=True)
-            # sb.effect(sa, arbiter, first=False)
 
             def f(*args):
                 sa.effect(sb, arbiter, first=True)
                 sb.effect(sa, arbiter, first=False)
+                sa.post_effect(sb, arbiter, first=True)
+                sb.post_effect(sa, arbiter, first=False)
 
-            space.add_post_step_callback(f, id(f))
+            space.add_post_step_callback(f, frozenset((id(sa), id(sb))))
         return col
 
 

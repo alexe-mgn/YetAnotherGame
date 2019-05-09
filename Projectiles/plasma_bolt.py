@@ -15,7 +15,7 @@ class Projectile(BaseProjectile):
     mat = MAT_TYPE.ENERGY
     size_inc = 1
     lifetime = 1500
-    hit_damage = 10
+    hit_damage = 15
 
     def __init__(self):
         super().__init__()

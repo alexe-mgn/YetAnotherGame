@@ -12,7 +12,7 @@ CS = Vec2d(170, 170)
 
 class Projectile(BaseProjectile):
     size_inc = 2.25
-    hit_damage = 175
+    hit_damage = 350
     damping = .5
     sound = {
         'explode': [load_sound('Projectiles\\Models\\flagdrop', ext='wav'), {'channel': CHANNEL.PULSON_EXPLOSION}]
