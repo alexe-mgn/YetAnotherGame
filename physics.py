@@ -470,6 +470,9 @@ class PhysObject(pygame.sprite.Sprite):
     def effect(self, obj, arbiter, first=True):
         pass
 
+    def post_effect(self, obj, arbiter, first=True):
+        pass
+
     def pre_update(self):
         pass
 
@@ -512,6 +515,22 @@ class PhysObject(pygame.sprite.Sprite):
     vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
 
     def kill(self):
+        self.remove_pymunk()
+        # self._shape = None
+        # self._body = None
+        self.stop_sounds()
+        self.remove_pygame()
+
+    def add_post_step_callback(self, f, fid=None):
+        if self._space is not None and self._space:
+            self._space.add_post_step_callback(f, fid if fid is not None else id(f))
+        else:
+            f()
+
+    def remove_pygame(self):
+        super().kill()
+
+    def remove_pymunk(self):
         space = self._space
         if space is not None:
             if self.shapes:
@@ -519,12 +538,11 @@ class PhysObject(pygame.sprite.Sprite):
             if self._body is not None:
                 space.remove(self._body)
             self._space = None
-        # self._shape = None
-        # self._body = None
+
+    def stop_sounds(self):
         for snd in self.sound.values():
             if snd[0].get_num_channels() > 0:
                 snd[0].fadeout(1000)
-        super().kill()
 
     def collideable(self, obj):
         return True

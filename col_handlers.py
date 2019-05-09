@@ -38,6 +38,8 @@ class HandlerTracked:
         col = sa.collideable(sb) and sb.collideable(sa)
         if col:
             data['sprite_a'], data['sprite_b'] = sa, sb
+            # sa.effect(sb, arbiter, first=True)
+            # sb.effect(sa, arbiter, first=False)
 
             def f(*args):
                 sa.effect(sb, arbiter, first=True)

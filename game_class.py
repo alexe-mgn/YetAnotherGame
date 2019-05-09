@@ -172,6 +172,10 @@ class BaseProjectile(DynamicObject):
     def collideable(self, obj):
         return obj is not self.parent and collide_case(self, obj)
 
+    def effect(self, obj, arbiter, first=True):
+        obj.damage(self.hit_damage)
+        self.death()
+
     def end_step(self):
         super().end_step()
         self.life_left -= self.step_time
@@ -237,6 +241,10 @@ class BaseCreature(DynamicObject):
             return s
         return False
 
+    def unmount_all(self):
+        for n in range(len(self.mounts)):
+            self.unmount(index=n)
+
     def mounted_objects(self):
         return [e.object for e in self.mounts if e.object is not None]
 
@@ -272,8 +280,7 @@ class BaseCreature(DynamicObject):
             engine.object.walk(vec)
 
     def kill(self):
-        for n in range(len(self.mounts)):
-            self.unmount(index=n)
+        self.unmount_all()
         super().kill()
 
 

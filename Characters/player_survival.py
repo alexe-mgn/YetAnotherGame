@@ -20,10 +20,7 @@ class Character(BasePlayer, Body):
         l.add(*self.groups())
         self.mount(l, key='engine')
         for _ in range(2):
-            w = DefaultW()
-            w.add(self.level.phys_group)
-            self.mount(w)
-            self.w_inv[self.w_inv.index].append(w)
+            self.w_inv.add(DefaultW())
 
     def update(self):
         add = self.step_time * self.max_health * .001 / 1000
