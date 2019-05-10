@@ -1,4 +1,4 @@
-from Creatures.MechSoldier import Creature
+from Objects.MechSoldier import Creature
 from Game.Character import BaseEnemy
 from Components.LegsSoldier import Engine as Legs
 from Weapons.plasma_repeater import Weapon as DefaultW

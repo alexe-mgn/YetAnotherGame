@@ -5,14 +5,14 @@ from game_class import BaseCreature, Mount
 from config import *
 
 NAME = __name__.split('.')[-1]
-MODEL = load_model('Creatures\\Models\\%s' % (NAME,))
+MODEL = load_model('Objects\\Models\\%s' % (NAME,))
 
-CS = Vec2d(42, 77)
+CS = Vec2d(28, 38)
 
 
 class Creature(BaseCreature):
     size_inc = 1
-    max_health = 300
+    max_health = 100
 
     def __init__(self):
         super().__init__()
@@ -23,9 +23,7 @@ class Creature(BaseCreature):
 
         self.init_mounts((Mount(self, allowed=[ROLE.ENGINE], top=False), 'engine'),
                          (Mount(self, allowed=[ROLE.WEAPON], top=False,
-                                position=self.image_to_local((43, 11))), 'weapon_left'),
-                         (Mount(self, allowed=[ROLE.WEAPON], top=False,
-                                position=self.image_to_local((43, 143))), 'weapon_right'))
+                                position=self.image_to_local((18, 38))), 'weapon_center'))
 
     @classmethod
     def init_class(cls):
@@ -35,7 +33,7 @@ class Creature(BaseCreature):
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 50
+        radius = 26
 
         cls.RADIUS = radius * cls.size_inc
 

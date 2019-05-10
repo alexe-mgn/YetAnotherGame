@@ -1,4 +1,4 @@
-from Creatures.MechZero import Creature
+from Objects.MechZero import Creature
 from Game.Character import BaseEnemy
 from Components.LegsZero import Engine as Legs
 from Weapons.pulson import Weapon as DefaultW

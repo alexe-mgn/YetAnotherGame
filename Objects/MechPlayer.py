@@ -5,7 +5,7 @@ from game_class import BaseCreature, Mount
 from config import *
 
 NAME = __name__.split('.')[-1]
-MODEL = load_model('Creatures\\Models\\%s' % (NAME,))
+MODEL = load_model('Objects\\Models\\%s' % (NAME,))
 
 CS = Vec2d(42, 77)
 

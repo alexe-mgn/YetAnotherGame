@@ -2,7 +2,7 @@ import pygame
 import math
 from geometry import Vec2d
 from Game.Character import BasePlayer, WeaponInv
-from Creatures.MechPlayer import Creature as Body
+from Objects.MechPlayer import Creature as Body
 from Components.LegsPlayer import Engine as Legs
 from Weapons.plasma_repeater import Weapon as DefaultW
 from config import ROLE

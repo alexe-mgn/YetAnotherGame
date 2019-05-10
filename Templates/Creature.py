@@ -4,7 +4,7 @@ from loading import load_model, cast_model
 from game_class import BaseCreature, Mount
 
 NAME = __name__.split('.')[1]
-MODEL = load_model('Creatures\\Models\\%s' % (NAME,))
+MODEL = load_model('Objects\\Models\\%s' % (NAME,))
 
 CS = Vec2d(0, 0)
 

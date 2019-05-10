@@ -25,7 +25,7 @@ class TestLevel(Level):
         w = Weapon()
         w.add(group)
         w.pos = (300, 300)
-        from Creatures.MechZero import Creature
+        from Objects.MechZero import Creature
         from Components.LegsZero import Engine
         mc = Creature()
         mc.add(group)

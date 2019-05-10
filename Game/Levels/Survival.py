@@ -10,6 +10,7 @@ from config import *
 from VFX.quantum_string import VideoEffect as SpawnCircle
 from Characters.Soldier import Character as Soldier
 from Characters.Zero import Character as Zero
+from Objects.Medkit import Object as Medkit
 from level import EventSystem
 
 import random
@@ -20,9 +21,10 @@ class SpawnEvent(Event):
     def __init__(self, es):
         super().__init__(es)
         self.lu = 0
-        self.characters = [
+        self.objects = [
             [Soldier, .5, 0],
-            [Zero, .1, 0]
+            [Zero, .1, 0],
+            [Medkit, .005, 0]
         ]
 
     def update(self):
@@ -32,7 +34,7 @@ class SpawnEvent(Event):
     def active_update(self):
         spawn = self.spawn
         step_time = self.step_time
-        for i in self.characters:
+        for i in self.objects:
             if random.random() <= 1 - (1 - i[1]) ** (i[2] / 1000):
                 i[2] = 0
                 spawn(i[0])
