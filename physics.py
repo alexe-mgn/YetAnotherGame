@@ -106,11 +106,11 @@ class PhysicsGroup(CameraGroup):
         sprites = self.sprites()
         for s in sprites:
             s.start_step(upd_time)
-            s.pre_update()
+            s.update()
         self._space.step(upd_time / 1000)
         for s in sprites:
             if s:
-                s.update()
+                s.post_update()
                 s.end_step()
 
     def remove_internal(self, sprite):
@@ -264,7 +264,7 @@ class StaticImage(pygame.sprite.Sprite):
     def effect(self, obj, arbiter, first=True):
         pass
 
-    def pre_update(self):
+    def post_update(self):
         pass
 
     def update(self):
@@ -479,7 +479,7 @@ class PhysObject(pygame.sprite.Sprite):
     def post_effect(self, obj, arbiter, first=True):
         pass
 
-    def pre_update(self):
+    def post_update(self):
         pass
 
     def update(self):

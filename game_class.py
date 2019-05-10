@@ -158,20 +158,14 @@ class BaseProjectile(DynamicObject):
         self.parent = None
         self.timeout = False
 
-    def _get_shape(self):
-        return super()._get_shape()
-
-    def _set_shape(self, shape):
-        super()._set_shape(shape)
-        shape.collision_type = COLLISION_TYPE.PROJECTILE
-
-    shape = property(_get_shape, _set_shape)
-
     # BODY SHAPES !!!
 
     def set_parent(self, parent):
         self.parent = parent
         self.team = parent.team
+
+    def death(self):
+        self.kill()
 
     def collideable(self, obj):
         return obj is not self.parent and collide_case(self, obj)

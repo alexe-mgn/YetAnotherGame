@@ -24,6 +24,7 @@ class Projectile(BaseProjectile):
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
         self.shape.density = 1
+        self.shape.collision_type = COLLISION_TYPE.PROJECTILE
         self._image.fps = 10
 
     def damage(self, val):

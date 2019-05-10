@@ -8,6 +8,7 @@ from Weapons.plasma_repeater import Weapon as DefaultW
 from config import ROLE
 from Weapons.pulson import Weapon as Pulson
 from Weapons.net_cannon import Weapon as Net
+from Weapons.mini_launcher import Weapon as Launcher
 
 
 class Character(BasePlayer, Body):
@@ -25,6 +26,7 @@ class Character(BasePlayer, Body):
         for _ in range(2):
             self.w_inv.add(Pulson())
         self.w_inv.add(Net())
+        self.w_inv.add(Launcher())
 
     def update(self):
         add = self.step_time * self.max_health * .001 / 1000

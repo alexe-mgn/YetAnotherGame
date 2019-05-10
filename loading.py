@@ -231,8 +231,14 @@ def cast_model(source, cs=None, sis=1):
         ln = len(source)
         if cs is None or hasattr(cs[0], '__int__'):
             cs = [cs] * ln
+        else:
+            while len(cs) < ln:
+                cs.append(None)
         if hasattr(sis, '__int__'):
             sis = [sis] * ln
+        else:
+            while len(sis) < ln:
+                sis.append(sis[-1])
         return cast_frames(source, cs, sis)
     else:
         return cast_image(source, cs, sis)
