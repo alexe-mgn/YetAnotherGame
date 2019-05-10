@@ -169,12 +169,15 @@ class BaseProjectile(DynamicObject):
 
     # BODY SHAPES !!!
 
+    def set_parent(self, parent):
+        self.parent = parent
+        self.team = parent.team
+
     def collideable(self, obj):
         return obj is not self.parent and collide_case(self, obj)
 
     def effect(self, obj, arbiter, first=True):
         obj.damage(self.hit_damage)
-        self.death()
 
     def end_step(self):
         super().end_step()
@@ -485,7 +488,6 @@ class BaseEngine(BaseComponent):
     engine_force = 100
     max_vel = 100
     max_fps = 10
-    damping = None
     default_damping = None
 
     def __init__(self):
@@ -583,13 +585,16 @@ class BaseWeapon(BaseComponent):
             self.force_fire(**kwargs)
             self.recharge = self.fire_delay
 
+    def spawn(self, cls):
+        obj = cls()
+        obj.add(*self.groups())
+        obj.pos = self.local_to_world(self.fire_pos)
+        return obj
+
     def spawn_proj(self):
         if hasattr(self, 'Projectile'):
-            proj = self.Projectile()
-            proj.add(*self.groups())
-            proj.parent = self
-            proj.team = self.team
-            proj.pos = self.local_to_world(self.fire_pos)
+            proj = self.spawn(self.Projectile)
+            proj.set_parent(self)
             return proj
 
     def miss_angle(self):

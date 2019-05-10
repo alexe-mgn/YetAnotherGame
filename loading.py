@@ -226,7 +226,7 @@ def load_model(path):
         return load_frames(fp)
 
 
-def cast_model(source, cs, sis):
+def cast_model(source, cs=None, sis=1):
     if not isinstance(source, pygame.Surface):
         ln = len(source)
         if cs is None or hasattr(cs[0], '__int__'):

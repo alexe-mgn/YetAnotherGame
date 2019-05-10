@@ -341,6 +341,7 @@ class PhysObject(pygame.sprite.Sprite):
         self._shape = None
 
         self.step_time = 1
+        self.age = 0
         super().__init__()
         self.play_sound('creation')
 
@@ -488,6 +489,7 @@ class PhysObject(pygame.sprite.Sprite):
         self.step_time = upd_time
 
     def end_step(self):
+        self.age += self.step_time
         self.apply_damping()
 
     def apply_damping(self):
@@ -544,7 +546,7 @@ class PhysObject(pygame.sprite.Sprite):
             if self.shapes:
                 space.remove(*self.shapes)
             if self._body is not None:
-                space.remove(self._body)
+                space.remove(self._body, *self._body.constraints)
             self._space = None
 
     def stop_sounds(self):
