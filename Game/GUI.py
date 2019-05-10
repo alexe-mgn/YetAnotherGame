@@ -54,6 +54,21 @@ class InvSlot(Button):
             surface.blit(pygame.transform.scale(self.content, r.pygame.size), r.topleft)
 
 
+class TutorialMenu(Menu):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tutorial = Element(self)
+        self.tutorial.image = load_model('Res\\Tutorial')
+        self.tutorial.rect = (10, 10, 80, 80)
+
+        self.back = BtnSmall(self)
+        self.back.rect.size = (15, 8)
+        self.back.rect.topleft = (5, 5)
+        self.back.text = 'Back'
+        self.back.on_click = lambda: self.parent.checkout_menu(self.parent.home)
+
+
 class CreditsMenu(Menu):
 
     def __init__(self, parent):
@@ -202,10 +217,11 @@ class MainMenu(Menu):
             dy = 10
             st_y = 35
 
-            b_start = DisCBtn(self)
-            self.b_start = b_start
-            b_start.rect.center = (50, st_y)
-            b_start.text = ''
+            b_tutorial = CBtn(self)
+            self.b_tutorial = b_tutorial
+            b_tutorial.rect.center = (50, st_y)
+            b_tutorial.text = 'Tutorial'
+            b_tutorial.on_click = lambda: self.parent.checkout_menu(self.parent.tutorial)
 
             b_survival = CBtn(self)
             self.b_survival = b_survival
@@ -239,6 +255,7 @@ class MainMenu(Menu):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.home = self.HomeMenu(self)
+        self.tutorial = TutorialMenu(self)
         self.credits = CreditsMenu(self)
         self.leaderboards = LeadersMenu(self)
         self.checkout(self.home)

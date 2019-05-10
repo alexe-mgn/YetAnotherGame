@@ -21,8 +21,8 @@ class SpawnEvent(Event):
         super().__init__(es)
         self.lu = 0
         self.characters = [
-            [Soldier, .8, 0],
-            [Zero, .3, 0]
+            [Soldier, .5, 0],
+            [Zero, .1, 0]
         ]
 
     def update(self):

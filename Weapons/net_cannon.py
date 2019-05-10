@@ -4,7 +4,6 @@ from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
 from game_class import BaseWeapon, BaseProjectile
 from config import *
-import math
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
@@ -25,10 +24,10 @@ class Pivot(pymunk.PivotJoint):
 
 
 class Segment(BaseProjectile):
-    RADIUS = 4
+    RADIUS = 12
     LENGTH = 100
     max_health = 150
-    lifetime = 15000
+    lifetime = 10000
     hit_damage = 1
 
     def __init__(self):
@@ -38,14 +37,27 @@ class Segment(BaseProjectile):
                                     (-self.LENGTH / 2 + self.RADIUS, 0),
                                     (self.LENGTH / 2 - self.RADIUS, 0),
                                     self.RADIUS)
-        self.shape.density = 3
+        self.shape.density = 1
         self.shape.collision_type = COLLISION_TYPE.TRACKED
 
     @classmethod
     def init_class(cls):
         segment_image = pygame.Surface((cls.LENGTH, cls.RADIUS * 2)).convert_alpha()
-        segment_image.fill((0, 255, 255))
-        pygame.draw.circle(segment_image, (255, 0, 0), (cls.RADIUS, cls.RADIUS), cls.RADIUS)
+        segment_image.fill((0, 0, 0, 0))
+
+        pygame.draw.line(segment_image, (0, 0, 0),
+                         (cls.RADIUS, cls.RADIUS),
+                         (cls.LENGTH - cls.RADIUS, cls.RADIUS),
+                         cls.RADIUS * 2)
+        pygame.draw.line(segment_image, (0, 255, 255),
+                         (cls.RADIUS, cls.RADIUS),
+                         (cls.LENGTH - cls.RADIUS, cls.RADIUS),
+                         cls.RADIUS * 2 - 4)
+
+        pygame.draw.circle(segment_image, (0, 255, 255), (cls.RADIUS, cls.RADIUS), cls.RADIUS)
+        pygame.draw.circle(segment_image, (0, 255, 255),
+                           (cls.LENGTH - cls.RADIUS, cls.RADIUS),
+                           cls.RADIUS)
         cls._frames = segment_image
 
     def collideable(self, obj):
@@ -92,10 +104,10 @@ class Weapon(BaseWeapon):
     name = NAME
     size_inc = .5
     max_health = 60
-    fire_delay = 1000
-    proj_velocity = 2000
+    fire_delay = 2500
+    proj_velocity = 2500
     inaccuracy = .25
-    fragmentation = 12
+    fragmentation = 14
     sound = {
         'fire': [load_sound('Weapons\\Models\\undetach', ext='wav'), {'channel': CHANNEL.NET_WEAPON}]
     }
@@ -130,19 +142,21 @@ class Weapon(BaseWeapon):
         b_a.pair = b_b
         b_b.pair = b_a
 
+        w = (self.Projectile.LENGTH - self.Projectile.RADIUS) / 2
+
         for n in range(frag):
             proj = self.spawn_proj()
 
             if segments:
-                Pivot(proj.body, segments[-1].body, (-50, 0), (50, 0))
+                Pivot(proj.body, segments[-1].body, (-w, 0), (w, 0))
 
             segments.append(proj)
             ang = sa + da * (n / frag)
             proj.ang = ang - 90
             proj.vel = Vec2d.from_anglen(ang, vel * .8)
 
-        Pivot(b_a.body, segments[0].body, (0, 0), (-50, 0))
-        Pivot(b_b.body, segments[-1].body, (0, 0), (50, 0))
+        Pivot(b_a.body, segments[0].body, (0, 0), (-w, 0))
+        Pivot(b_b.body, segments[-1].body, (0, 0), (w, 0))
 
     @classmethod
     def init_class(cls):

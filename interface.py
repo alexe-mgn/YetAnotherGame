@@ -34,6 +34,7 @@ def draw_text(font_path, surface, text, rect, color=(255, 255, 255), alignment='
 
 class Division:
     _draw_debug = False
+    image = None
 
     def __init__(self, parent=None, main=None):
         self._parent = parent
@@ -53,7 +54,6 @@ class Division:
 
         self.in_step = False
 
-        self.image = None
         self.elements = []
         self.disabled = []
         self.step_time = 1

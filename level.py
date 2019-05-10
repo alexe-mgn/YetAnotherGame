@@ -80,10 +80,10 @@ class Camera:
         if zoom <= 0:
             return
         center = self.rect.center
-        if self.zoom_con[0] is not None and zoom < self.zoom_con[0]:
-            zoom = self.zoom_con[0]
-        if self.zoom_con[1] is not None and zoom > self.zoom_con[1]:
-            zoom = self.zoom_con[1]
+        if self.zoom_con[0] is not None and zoom < self.zoom_con[0] / self.zoom_offset:
+            zoom = self.zoom_con[0] / self.zoom_offset
+        if self.zoom_con[1] is not None and zoom > self.zoom_con[1] / self.zoom_offset:
+            zoom = self.zoom_con[1] / self.zoom_offset
         premade = [e / zoom for e in self.i_size]
         if premade[0] > self._constraint.size[0] or premade[1] > self._constraint.size[1]:
             m_ind = min((0, 1), key=lambda e: self._constraint.size[e] - premade[e])
