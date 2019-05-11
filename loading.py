@@ -1,6 +1,7 @@
 import pygame
 from geometry import Vec2d
 from main_settings import get_path
+from config import DEBUG
 import os
 from math import ceil
 
@@ -39,7 +40,11 @@ def cast_image(source, center, size_inc):
     img.fill((255, 255, 255, 0))
     img.blit(pygame.transform.scale(bs, b_size),
              tl)
-    # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
+    if DEBUG.DRAW:
+        r = img.get_rect()
+        r.w -= 2
+        r.h -= 2
+        pygame.draw.rect(img, (255, 0, 0), r, 2)
     return img, -img_center
 
 
@@ -102,7 +107,11 @@ def cast_frames(source, centers, size_incs):
         img.fill((255, 255, 255, 0))
         img.blit(pygame.transform.scale(bs, b_size),
                  tl)
-        # pygame.draw.rect(img, (255, 0, 0), img.get_rect(), 2)
+        if DEBUG.DRAW:
+            r = img.get_rect()
+            r.w -= 2
+            r.h -= 2
+            pygame.draw.rect(img, (255, 0, 0), r, 2)
         frames.append(img)
     return frames, c0
 

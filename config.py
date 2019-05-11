@@ -69,6 +69,7 @@ class CHANNEL(NS):
     PULSON_WEAPON = 1
     PULSON_EXPLOSION = 2
     NET_WEAPON = 3
+    MINI_LAUNCH = 4
 
 
 class COLLISION_TYPE(NS):
@@ -96,6 +97,11 @@ class TEAM(NS):
     PLAYER = 1
     ENEMY = 2
     NEUTRAL = 3
+
+
+class DEBUG:
+    DRAW = False
+    COLLISION = False
 
 
 class EmptyGameObject:

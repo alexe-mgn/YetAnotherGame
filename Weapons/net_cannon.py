@@ -28,7 +28,7 @@ class Segment(BaseProjectile):
     LENGTH = 100
     max_health = 150
     lifetime = 10000
-    hit_damage = 1
+    hit_damage = 2.5
 
     def __init__(self):
         super().__init__()
@@ -74,6 +74,7 @@ Segment.init_class()
 class Ballast(Segment):
     max_health = 300
     size_inc = .5
+    hit_damage = 10
 
     def __init__(self):
         super().__init__()

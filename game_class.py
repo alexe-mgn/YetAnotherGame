@@ -450,7 +450,7 @@ class BaseComponent(DynamicObject):
         if not self.mounted():
             self._body.position = p
 
-    pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+    pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
     def _get_angle(self):
         return math.degrees(self._body.angle) + self._ang

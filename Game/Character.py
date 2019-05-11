@@ -106,7 +106,8 @@ class BasePlayer(BaseCreature):
             int(pressed[pygame.K_s]) - int(pressed[pygame.K_w])
         ))
         if pygame.mouse.get_pressed()[0]:
-            self.shot(target=self.level.mouse_absolute)
+            self.shot(target=self.level.mouse_absolute,
+                      target_function=lambda level=self.level: level.mouse_absolute)
 
     def start_step(self, upd_time):
         super().start_step(upd_time)

@@ -93,6 +93,33 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         self._offset = Vec2d(vec)
 
 
+if DEBUG.COLLISION:
+    import functools
+    import types
+    from debug_draw import draw_debug
+
+
+    def copy_func(f):
+        """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
+        g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__,
+                               argdefs=f.__defaults__,
+                               closure=f.__closure__)
+        g = functools.update_wrapper(g, f)
+        g.__kwdefaults__ = f.__kwdefaults__
+        return g
+
+
+    old = copy_func(CameraGroup.draw)
+
+
+    def draw(self, surface, camera):
+        old(self, surface, camera)
+        draw_debug(surface, camera, self.sprites())
+
+
+    CameraGroup.draw = draw
+
+
 class PhysicsGroup(CameraGroup):
     """
     Sprite group handling pymunk objects.
@@ -505,7 +532,7 @@ class PhysObject(pygame.sprite.Sprite):
     def _set_pos(self, p):
         self.body.position = p
 
-    pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+    pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
     def _get_angle(self):
         return math.degrees(self.body.angle)

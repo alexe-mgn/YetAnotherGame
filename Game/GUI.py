@@ -121,10 +121,14 @@ class CreditsMenu(Menu):
         c.text = 'Iwan Gabovitch'
 
         c = CText(self)
-        c.rect.topleft = (50 - sx, st_y + dy * 5)
+        c.rect.topleft = (50, st_y + dy * 5)
+        c.text = 'Michael Kurinnoy'
+
+        c = CText(self)
+        c.rect.topleft = (50 - sx, st_y + dy * 6)
         c.text = '      (Published by)'
         c = CText(self)
-        c.rect.topleft = (50, st_y + dy * 5)
+        c.rect.topleft = (50, st_y + dy * 6)
         c.text = 'opengameart.org/users/qubodup'
 
         b = BtnLarge(self)

@@ -4,9 +4,9 @@ from geometry import Vec2d
 from Game.Character import BasePlayer, WeaponInv
 from Objects.MechPlayer import Creature as Body
 from Components.LegsPlayer import Engine as Legs
-from Weapons.plasma_repeater import Weapon as DefaultW
 from config import ROLE
-from Weapons.pulson import Weapon as Pulson
+# from Weapons.plasma_repeater import Weapon as DefaultW
+# from Weapons.pulson import Weapon as Pulson
 from Weapons.net_cannon import Weapon as Net
 from Weapons.mini_launcher import Weapon as Launcher
 
@@ -21,10 +21,10 @@ class Character(BasePlayer, Body):
         l.max_vel = 400
         l.add(*self.groups())
         self.mount(l, key='engine')
-        for _ in range(2):
-            self.w_inv.add(DefaultW())
-        for _ in range(2):
-            self.w_inv.add(Pulson())
+        # for _ in range(2):
+        #     self.w_inv.add(DefaultW())
+        # for _ in range(2):
+        #     self.w_inv.add(Pulson())
         self.w_inv.add(Net())
         self.w_inv.add(Launcher())
 

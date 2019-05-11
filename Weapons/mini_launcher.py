@@ -14,7 +14,7 @@ CS = Vec2d(14, 30)
 class Projectile(Missile):
 
     def post_update(self):
-        if self.age > 500:
+        if not self.boost and self.age > 500 and self.alive():
             self.launch()
 
 
@@ -24,10 +24,10 @@ class Weapon(BaseWeapon):
     size_inc = 1
     proj_velocity = 250
     inaccuracy = .3
-    fire_delay = 200
-    sound = {
-        'fire': [load_sound('Weapons\\Models\\explosion_dull'), {'channel': CHANNEL.PLASMA_WEAPON}]
-    }
+    fire_delay = 333
+    # sound = {
+    #     'fire': [load_sound('Weapons\\Models\\explosion_dull'), {'channel': CHANNEL.PLASMA_WEAPON}]
+    # }
 
     def __init__(self):
         super().__init__()
@@ -52,7 +52,7 @@ class Weapon(BaseWeapon):
         proj = self.spawn_proj()
         proj.velocity = Vec2d.from_anglen(ang, self.proj_velocity)
         proj.angle = self.angle
-        proj.target = kwargs.get('target', None)
+        proj.target = kwargs.get('target_function', kwargs.get('target', None))
 
         self.fire_n = (self.fire_n + 1) % 3
 
