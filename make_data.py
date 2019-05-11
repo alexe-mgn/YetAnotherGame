@@ -2,7 +2,7 @@ import os
 import pymunk
 
 exclude = ['c_test', 'Resources', 'Templates', 'dist']
-exclude_ext = ['.spec', '.txt', '.json', '.py']
+exclude_ext = ['.spec', '.txt', '.json', '.py', '.mp4', '.ppt', '.doc', '.bat']
 
 
 def filter(path):

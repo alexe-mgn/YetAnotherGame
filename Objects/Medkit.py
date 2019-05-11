@@ -11,8 +11,8 @@ CS = Vec2d(47, 53)
 
 
 class Object(DynamicObject):
-    size_inc = .75
-    max_health = 100
+    size_inc = 1
+    max_health = 120
 
     def __init__(self, level):
         super().__init__()

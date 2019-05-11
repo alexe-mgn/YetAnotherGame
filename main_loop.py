@@ -9,7 +9,7 @@ sys.excepthook = except_hook
 
 pygame.init()
 pygame.display.set_mode((300, 300))
-# Need display initialized
+# Need display to be initialized at this moment
 
 from Game.GUI import MainMenu
 from Game.Levels.Survival import Survival
@@ -55,10 +55,10 @@ class Main:
         self.level = level
         self.load_gui(None)
         if level is not None:
+            self.level.pregenerate()
             self.level.set_screen(self._visible, self.zoom_offset)
         else:
             self.level = EmptyGameObject()
-        self.level.pregenerate()
 
     def load_gui(self, gui):
         self.gui = gui

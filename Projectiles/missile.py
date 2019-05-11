@@ -62,7 +62,8 @@ class Projectile(BaseProjectile):
     lifetime = 3000
     hit_damage = 15
     sound = {
-        'launch': [load_sound('Projectiles\\Models\\mini_launch', ext='wav'), {'channel': CHANNEL.MINI_LAUNCH}]
+        'launch': [load_sound('Projectiles\\Models\\mini_launch', ext='wav', volume=.5),
+                   {'channel': CHANNEL.MINI_LAUNCH}]
     }
 
     def __init__(self):

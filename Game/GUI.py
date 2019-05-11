@@ -278,17 +278,27 @@ class LevelGUI(Menu):
                 def update(self):
                     self.text_size = self.abs_rect.size[0] / 8
 
+            class DisCBtn(Disabled, CBtn):
+                pass
+
             super().__init__(parent)
             self.title = Title(self)
             dy = 10
             st_y = 35
 
-            b_start = CBtn(self)
-            self.b_start = b_start
-            b_start.rect.center = (50, st_y)
-            b_start.text = ''
+            b_cont = CBtn(self)
+            self.b_continue = b_cont
+            b_cont.rect.center = (50, st_y)
+            b_cont.text = 'Continue'
+            b_cont.on_click = lambda: self.parent.unpause()
 
-            b_options = CBtn(self)
+            b_tutorial = CBtn(self)
+            self.b_tutorial = b_tutorial
+            b_tutorial.rect.center = (50, st_y + dy)
+            b_tutorial.text = 'Tutorial'
+            b_tutorial.on_click = lambda: self.parent.checkout_menu(self.parent.tutorial)
+
+            b_options = DisCBtn(self)
             self.b_options = b_options
             b_options.rect.center = (50, st_y + dy * 2)
             b_options.text = 'Options'
@@ -477,6 +487,7 @@ class LevelGUI(Menu):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.home = self.HomeMenu(self)
+        self.tutorial = TutorialMenu(self)
         self.ingame = self.IngameMenu(self)
         self.record = self.RecordMenu(self)
         self.leaderboards = LeadersMenu(self)
