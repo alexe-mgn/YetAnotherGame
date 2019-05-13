@@ -1,7 +1,7 @@
 """
 Development variables
 """
-APP_NAME = r'Game'
+APP_NAME = r'Yet Another Game'
 EXCEPTION_FILE = '%s_traceback.txt' % (APP_NAME,)
 RECORDS_FILE = 'Game\\storage\\game_results.json'
 
