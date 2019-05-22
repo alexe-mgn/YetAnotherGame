@@ -527,7 +527,7 @@ if __name__ == '__main__':
             self.mass = 1
             self.inertia = self.mass
             self.bounce_coef = 200
-            self.lose_coef = .998
+            self.lose_coef = .999
 
         def handle_borders(self):
             d = 10
@@ -572,12 +572,13 @@ if __name__ == '__main__':
             self.sprites = PhysicsGroup()
             self.upd = True
 
-            for i in range(100):
+            for i in range(10):
                 sprite = TestObject(self.sprites)
                 sprite.pos = (random.randrange(self.size[0]), random.randrange(self.size[1]))
             sprite = TestObject(self.sprites)
             shape = Polygon(FRect(0, 0, 200, 10))
             sprite.shape = shape
+            sprite.inertia *= .8
             sprite.f_rect = FRect(sprite.shape.maximum_bounding(return_pygame=True))
             sprite.image = pygame.Surface(sprite.f_rect.size).convert_alpha()
             sprite.image.fill((255, 255, 255, 0))

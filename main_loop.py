@@ -10,8 +10,8 @@ sys.excepthook = except_hook
 class Main:
 
     def __init__(self):
-        self.size = [900, 600]
         self.winflag = pygame.RESIZABLE
+        self.size = [900, 600]
         self.screen = pygame.display.set_mode(self.size, self.winflag)
         self.level, self.clock, self.running = None, None, False
 
