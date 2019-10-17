@@ -37,6 +37,9 @@ class InvSlot(Button):
     )
     content = None
 
+    def get_state_image(self):
+        return self.images[1 if self.select or self.press and self.hover else (2 if self.hover else 0)]
+
     def draw(self, surface):
         super().draw(surface)
         b_rect = self._abs_rect
