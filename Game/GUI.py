@@ -1,7 +1,8 @@
 import pygame
 from config import *
+from geometry import FRect
 from main_settings import get_write_path
-from interface import *
+from Game.GUI_Elements import *
 import json
 import os
 
@@ -36,16 +37,9 @@ class InvSlot(Button):
     )
     content = None
 
-    def draw_image(self, surface):
-        b_rect = self._abs_rect.copy()
-        if self.select:
-            n = 1
-        elif self.hover:
-            n = 2
-        else:
-            n = 0
-        if self.images[n]:
-            surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+    def draw(self, surface):
+        super().draw(surface)
+        b_rect = self._abs_rect
         if self.content:
             ir = FRect(0, 0, b_rect.w * .8, b_rect.h * .8)
             ir.center = b_rect.center
@@ -369,7 +363,7 @@ class LevelGUI(Menu):
                     else:
                         s.content = None
 
-        class PlayerHPBar(ProgressBar):
+        class PlayerHPBar(StyledProgressBar):
             progress = load_model('Res\\UI\\progress_fill_red')
 
             def __init__(self, *args, **kwargs):
@@ -445,7 +439,7 @@ class LevelGUI(Menu):
             h.rect.center = (50, 51)
             h.text = 'Enter your name'
 
-            inp = InputBox(self)
+            inp = StyledInputBox(self)
             self.input = inp
             inp.rect.size = (50, 10)
             inp.rect.center = (50, 60)

@@ -386,16 +386,20 @@ class Division:
 
     def draw(self, surface):
         self.on_draw()
-        if self.image is not None:
-            self.draw_image(surface)
+        image = self.get_state_image()
+        if image is not None:
+            self.draw_image(surface, image)
         for i in self._elements:
             i.draw(surface)
         if self._draw_debug:
             self.draw_debug(surface)
 
-    def draw_image(self, surface):
+    def get_state_image(self):
+        return self.image
+
+    def draw_image(self, surface, image):
         r = self.global_rect.pygame
-        surface.blit(pygame.transform.scale(self.image, r.size), r.topleft)
+        surface.blit(pygame.transform.scale(image, r.size), r.topleft)
 
     def draw_debug(self, surface):
         if self.press:
@@ -544,7 +548,6 @@ class Element(Division):
     Элемент, который может содержать текст.
     """
     font = FONT.default
-    image = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -573,18 +576,12 @@ class Disabled(Element):
     Перечёркнутый элемент.
     Для использование проведите двойное наследование от этого класса и другого.
     """
+
     def draw(self, surface):
         super().draw(surface)
         b_rect = self._abs_rect
         pygame.draw.line(surface, (255, 0, 0), b_rect.topleft, b_rect.bottomright, 2)
         pygame.draw.line(surface, (255, 0, 0), b_rect.topright, b_rect.bottomleft, 2)
-
-
-class TextField(Element):
-    """
-    Element с другим шрифтом
-    """
-    font = get_path('Res\\potra.ttf')
 
 
 class Button(Element):
@@ -593,26 +590,12 @@ class Button(Element):
     Может хранить 3 изображения в self.images для каждого из своих состояний.
     (ничего, зажата, мышь наведена)
     """
-    image = None
     images = (
         None, None, None
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.image = None
-        del self.image
-
-    def draw_image(self, surface):
-        b_rect = self._abs_rect
-        if self.press:
-            n = 1
-        elif self.hover:
-            n = 2
-        else:
-            n = 0
-        if self.images[n]:
-            surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+    def get_state_image(self):
+        return self.images[1 if self.press else (2 if self.hover else 0)]
 
     def on_event_hit(self, event):
         """
@@ -623,49 +606,18 @@ class Button(Element):
             event.ignore = True
 
 
-class BtnLarge(Button):
-    font = FONT.potra
-    image = True
-    images = (
-        load_model('Res\\UI\\btn_large'),
-        load_model('Res\\UI\\btn_large_click'),
-        load_model('Res\\UI\\btn_large_hover')
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.text_color = (255, 255, 255)
-
-
-class BtnSmall(Button):
-    font = FONT.potra
-    image = True
-    images = (
-        load_model('Res\\UI\\btn_small'),
-        load_model('Res\\UI\\btn_small_click'),
-        load_model('Res\\UI\\btn_small_hover')
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.text_color = (255, 255, 255)
-
-
 class InputBox(Element):
     """
-    Текстовое поле.
+    Поле ввода текста.
     В self.images - 2 изображения для нормального и выделенного состояния.
     """
-    image = True
     images = (
-        load_model('Res\\UI\\input_normal'),
-        load_model('Res\\UI\\input_select')
+        None,
+        None
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.image = None
-        del self.image
         self.text = u''
         self.max_text_length = 50
         self.text_color = (255, 255, 255)
@@ -681,13 +633,8 @@ class InputBox(Element):
                 self.display_caret = not self.display_caret
                 self.timer = 0
 
-    def draw_image(self, surface):
-        b_rect = self._abs_rect
-        if self.select:
-            n = 1
-        else:
-            n = 0
-        surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
+    def get_state_image(self):
+        return self.images[int(self.select)]
 
     def draw_text(self, surface):
         if self.text or self.display_caret:
@@ -747,18 +694,19 @@ class ProgressBar(Element):
     "Полоса прогрузки" как это иногда называют.
     image, progress хранят изображения фона и заполнителя.
     """
-    image = load_model('Res\\UI\\progress_overlay')
-    progress = load_model('Res\\UI\\progress_fill_blue')
+    image = None
+    progress = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.image = None
+        del self.image
         self.percentage = 100
 
     def draw(self, surface):
         super().draw(surface)
-        self.image = None
-        del self.image
-        b_rect = self._abs_rect
-        size = b_rect.pygame.size
-        scaled = pygame.transform.scale(self.progress, size)
-        surface.blit(scaled.subsurface((0, 0, int(size[0] * self.percentage / 100), size[1])), b_rect.topleft)
+        if self.progress is not None:
+            b_rect = self._abs_rect
+            size = b_rect.pygame.size
+            scaled = pygame.transform.scale(self.progress, size)
+            surface.blit(scaled.subsurface((0, 0, int(size[0] * self.percentage / 100), size[1])), b_rect.topleft)

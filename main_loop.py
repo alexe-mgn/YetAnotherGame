@@ -112,7 +112,6 @@ class Main:
         # Создаём таймеры для игровых событий
         for k, v in EVENT.dict().items():
             pygame.time.set_timer(v, t[k])
-        # Загружаем GUI и уровень
         if not self._level:
             self.home()
         self.clock = pygame.time.Clock()

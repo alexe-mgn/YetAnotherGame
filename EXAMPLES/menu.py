@@ -7,7 +7,7 @@ from interface import *
 import json
 import os
 
-ABS_RECORDS_FILE = get_write_path('EXAMPLES\\records.json')
+ABS_RECORDS_FILE = get_write_path('records.json')
 
 
 def preload_records():
