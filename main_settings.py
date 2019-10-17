@@ -8,21 +8,28 @@ File path handling, exception output, +
 """
 
 cwd = os.getcwd()
-PATH = ('.' if LOAD_RELATIVE else
-        (getattr(sys, '_MEIPASS', '.')
+PATH_RELATIVE = '.'
+PATH_MEIPASS = getattr(sys, '_MEIPASS', '.')
+PATH_FILE = os.path.dirname(os.path.abspath(__file__))
+PATH = (PATH_RELATIVE if LOAD_RELATIVE else
+        (PATH_MEIPASS
          if LOAD_MEIPASS and getattr(sys, 'frozen', False)
-         else os.path.dirname(os.path.abspath(__file__))))
+         else PATH_FILE)
+        )
 WRITE_PATH = cwd
 
 
+# Получить правильный путь к файлу относительно папки игры
 def get_path(path):
     return os.path.join(PATH, path)
 
 
+# Если файл будет использоваться для вывода
 def get_write_path(path):
     return os.path.join(WRITE_PATH, path)
 
 
+# Вывод ошибок
 def except_hook(cls, exception, c_traceback):
     if not getattr(sys, 'frozen', False):
         sys.__excepthook__(cls, exception, c_traceback)

@@ -4,8 +4,17 @@ from config import *
 
 
 class Camera:
-
+    """
+    Класс камеры. Содержит набор методов для выбора отображаемой области уровня, масштабирования.
+    """
     def __init__(self, center, screen_rect, constraint, zoom_con=None, zoom_offset=1):
+        """
+        :param center: Начальная позиция камеры
+        :param screen_rect:
+        :param constraint: Область, в которую камере разрешено заходить [x1, y1, x2, y2]
+        :param zoom_con: Ограничения масштабирования. [min, max]
+        :param zoom_offset:
+        """
         self._constraint = pygame.Rect(constraint)
         self.i_size = list(screen_rect.size)
 
@@ -233,31 +242,33 @@ class Level:
             self.player.handle_keys()
 
     def start_step(self, upd_time, time_coef=1):
-        self.step_time = upd_time * time_coef
-        self.pressed = pygame.key.get_pressed()
-        self.mouse_relative_prev = self.mouse_relative
-        self.mouse_absolute_prev = self.mouse_absolute
-        self.mouse_relative = Vec2d(pygame.mouse.get_pos())
-        self.mouse_absolute = self.get_mouse()
-        if self.event_system:
-            self.event_system.start_step(upd_time)
+        if not self.paused:
+            self.step_time = upd_time * time_coef
+            self.pressed = pygame.key.get_pressed()
+            self.mouse_relative_prev = self.mouse_relative
+            self.mouse_absolute_prev = self.mouse_absolute
+            self.mouse_relative = Vec2d(pygame.mouse.get_pos())
+            self.mouse_absolute = self.get_mouse()
+            if self.event_system:
+                self.event_system.start_step(upd_time)
+            if self.player is not None:
+                tp = self.mouse_relative - self.screen.center
+                self.camera.center = self.player.pos + tp
         if self.gui is not None:
             self.gui.start_step(upd_time)
-        if self.player is not None:
-            tp = self.mouse_relative - self.screen.center
-            self.camera.center = self.player.pos + tp
 
     def end_step(self):
         if self.gui is not None:
             self.gui.end_step()
 
     def update(self):
-        self.camera.update(self.step_time)
-        self.visible = self.camera.get_rect()
-        if self.event_system:
-            self.event_system.update()
-        if self.phys_group is not None:
-            self.phys_group.update(self.step_time * self.space_time_coef)
+        if not self.paused:
+            self.camera.update(self.step_time)
+            self.visible = self.camera.get_rect()
+            if self.event_system:
+                self.event_system.update()
+            if self.phys_group is not None:
+                self.phys_group.update(self.step_time * self.space_time_coef)
         if self.gui is not None:
             self.gui.update()
 

@@ -10,7 +10,7 @@ pygame.mixer.set_reserved(len(CHANNEL.values()))
 
 def collide_case(a, b):
     """
-    Standard "check collideable" function for two sprites.
+    Стандартная функция проверки колизии двух спрайтов.
     """
     ta, tb = getattr(a, 'team', TEAM.DEFAULT), getattr(b, 'team', TEAM.DEFAULT)
     ma, mb = getattr(a, 'mat', MAT_TYPE.MATERIAL), getattr(b, 'mat', MAT_TYPE.MATERIAL)

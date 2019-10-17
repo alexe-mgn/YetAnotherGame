@@ -1,11 +1,13 @@
+import random
 import pygame
 from config import *
+from main_loop import Main
 from main_settings import get_write_path
 from interface import *
 import json
 import os
 
-ABS_RECORDS_FILE = get_write_path(RECORDS_FILE)
+ABS_RECORDS_FILE = get_write_path('EXAMPLES\\records.json')
 
 
 def preload_records():
@@ -25,33 +27,6 @@ class Title(TextField):
         self.rect.size = (90, 20)
         self.rect.center = (50, 12.5)
         self.text = APP_NAME
-
-
-class InvSlot(Button):
-    image = True
-    images = (
-        load_model('Res\\UI\\inv_slot'),
-        load_model('Res\\UI\\inv_slot_selected'),
-        load_model('Res\\UI\\inv_slot_hover')
-    )
-    content = None
-
-    def draw_image(self, surface):
-        b_rect = self._abs_rect.copy()
-        if self.select:
-            n = 1
-        elif self.hover:
-            n = 2
-        else:
-            n = 0
-        if self.images[n]:
-            surface.blit(pygame.transform.scale(self.images[n], b_rect.pygame.size), b_rect.topleft)
-        if self.content:
-            ir = FRect(0, 0, b_rect.w * .8, b_rect.h * .8)
-            ir.center = b_rect.center
-            r = FRect(self.content.get_rect())
-            r.fit_ip(ir)
-            surface.blit(pygame.transform.scale(self.content, r.pygame.size), r.topleft)
 
 
 class TutorialMenu(Menu):
@@ -265,7 +240,7 @@ class MainMenu(Menu):
         self.checkout(self.home)
 
 
-class LevelGUI(Menu):
+class GUI(Menu):
     class HomeMenu(Menu):
 
         def __init__(self, parent):
@@ -326,109 +301,6 @@ class LevelGUI(Menu):
                 self.parent.unpause()
                 event.ignore = True
 
-    class IngameMenu(Menu):
-
-        class InventoryUI(Menu):
-
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self._inventory = []
-                self.slots = []
-                # mr = self.main.rect.size
-                # self.rect.size = (8 * 0, 8 * mr[0] / mr[1])
-
-            @property
-            def inventory(self):
-                return self._inventory
-
-            @inventory.setter
-            def inventory(self, inv):
-                self._inventory = inv
-                self.slots.clear()
-                ln = len(inv)
-                s_ind = inv.index
-                for n, i in enumerate(inv):
-                    s = InvSlot(self)
-                    s.rect.size = (100 / ln, 100)
-                    s.rect.left = (100 / ln * n)
-                    s.rect.top = 0
-                    ws = inv[n]
-                    if ws:
-                        s.content = ws[0].preview(s.calculate_global_rect().size)
-                    s.on_select = lambda w_inv=inv, ind=n: w_inv.checkout(ind)
-                    s.select_off = lambda: None
-                    self.slots.append(s)
-                self[s_ind].select_on()
-                # mr = self.main.rect.size
-                # self.rect.size = (8 * len(inv), 8 * mr[0] / mr[1])
-
-            def recalculate_icons(self):
-                for w, s in zip(self.inventory, self.slots):
-                    if w:
-                        s.content = w[0].preview(s.calculate_global_rect().size)
-                    else:
-                        s.content = None
-
-        class PlayerHPBar(ProgressBar):
-            progress = load_model('Res\\UI\\progress_fill_red')
-
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.player = None
-
-            def on_draw(self):
-                self.percentage = self.player.health / self.player.max_health * 100 if self.player else 0
-
-            @property
-            def player(self):
-                return self._player
-
-            @player.setter
-            def player(self, player):
-                self._player = player
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            sl = TextField(self)
-            self.score_label = sl
-            sl.rect.size = (20, 8)
-            sl.rect.topright = (98, 2)
-            sl.text_alignment = 'right'
-
-            inv = self.InventoryUI(self)
-            self.inventory = inv
-            mr = self.main.get_visible_rect().size
-            inv.rect.size = (40, 8 * mr[0] / mr[1])
-            inv.rect.centerx = 50
-            inv.rect.bottom = 100
-
-            hp = self.PlayerHPBar(self)
-            self.hp = hp
-            hp.rect.size = (35, 4)
-            hp.rect.topleft = (2, 2)
-
-        def on_draw(self):
-            self.score_label.text = str(self.main.level.score)
-
-        def post_handle(self, event):
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.parent.pause()
-                    event.ignore = True
-                elif 49 <= event.key <= 53:
-                    kc = event.key - 49
-                    self.inventory[kc].select_on()
-
-        @property
-        def player(self):
-            return self._player
-
-        @player.setter
-        def player(self, player):
-            self._player = player
-            self.inventory.inventory = player.w_inv
-            self.hp.player = player
-
     class RecordMenu(Menu):
 
         def __init__(self, *args, **kwargs):
@@ -466,7 +338,7 @@ class LevelGUI(Menu):
                 d = data_file.read()
                 data = json.loads(d)
             name = self.input.text
-            score = self.main.level.score
+            score = random.randint(1, 100)
             if name in data.keys():
                 if score > data[name]:
                     data[name] = score
@@ -476,19 +348,28 @@ class LevelGUI(Menu):
                 data_file.write(json.dumps(data))
             self.main.home()
 
-    def pause(self):
-        self.main.level.pause()
-        self.checkout_menu(self.home)
-
-    def unpause(self):
-        self.main.level.unpause()
-        self.checkout_menu(self.ingame)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.home = self.HomeMenu(self)
         self.tutorial = TutorialMenu(self)
-        self.ingame = self.IngameMenu(self)
         self.record = self.RecordMenu(self)
         self.leaderboards = LeadersMenu(self)
-        self.checkout_menu(self.ingame)
+        self.checkout_menu(self.home)
+
+
+class ExampleMain(Main):
+
+    def home(self):
+        self.set_gui(GUI(main=self))
+
+
+if __name__ == '__main__':
+    import sys
+    import os
+    from main_settings import *
+    print(PATH_RELATIVE)
+    print(PATH_MEIPASS)
+    print(PATH_FILE)
+    print(PATH)
+    main = ExampleMain()
+    main.start()

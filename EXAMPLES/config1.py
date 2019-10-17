@@ -5,7 +5,6 @@ APP_NAME = r'PyMunk based physics engine'
 EXCEPTION_FILE = '%s_traceback.txt' % (APP_NAME,)
 RECORDS_FILE = 'Game\\storage\\game_results.json'
 
-BASE_PATH = '.'
 LOAD_MEIPASS = True
 LOAD_RELATIVE = True
 
