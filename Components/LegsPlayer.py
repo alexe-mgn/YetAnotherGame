@@ -1,6 +1,6 @@
 import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model
 from game_class import BaseEngine
 
 NAME = __name__.split('.')[-1]

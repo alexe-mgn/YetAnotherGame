@@ -1,9 +1,11 @@
-import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model
-from physics import BaseProjectile
 from VFX.dissipation import VideoEffect
-from config import *
+
+from Engine.config import MAT_TYPE, COLLISION_TYPE
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model
+from Engine.physics import BaseProjectile
+
+import pymunk
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))

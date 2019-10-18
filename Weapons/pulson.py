@@ -1,8 +1,11 @@
-import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model, load_sound
 from game_class import YTGBaseWeapon
-from config import *
+
+from Engine.config import CHANNEL
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model, load_sound
+
+import pymunk
+
 import math
 
 NAME = __name__.split('.')[-1]

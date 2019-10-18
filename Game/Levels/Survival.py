@@ -1,17 +1,16 @@
 import pygame
 import pymunk
 
-from level import Level, Event
-from physics import PhysicsGroup
+from Engine.level import Level, Event
+from Engine.physics import PhysicsGroup
 from Game.GUI import LevelGUI
-from loading import load_image
-from config import *
+from Engine.loading import load_image
 
 from VFX.quantum_string import VideoEffect as SpawnCircle
 from Characters.Soldier import Character as Soldier
 from Characters.Zero import Character as Zero
 from Objects.Medkit import Object as Medkit
-from level import EventSystem
+from Engine.level import EventSystem
 
 import random
 

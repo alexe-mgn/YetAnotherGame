@@ -1,7 +1,8 @@
-import pygame
-from geometry import Vec2d
+from Engine.config import TEAM
+from Engine.geometry import Vec2d
 from game_class import YTGBaseCreature
-from config import *
+
+import pygame
 
 
 class WeaponInv:

@@ -1,9 +1,9 @@
 import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model
+from Engine.config import ROLE
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model
 from game_class import YTGBaseCreature
-from physics import Mount
-from config import *
+from Engine.physics import Mount
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Objects\\Models\\%s' % (NAME,))

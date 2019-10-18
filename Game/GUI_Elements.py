@@ -1,7 +1,6 @@
-from config import *
-from config import get_path
-from loading import load_model
-from interface import FONT, Element, Menu, Disabled, Button, InputBox, ProgressBar
+from Engine.interface import *
+from Engine.loading import load_model
+from Engine.config import *
 
 
 class TextField(Element):

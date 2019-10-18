@@ -1,9 +1,11 @@
-import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model, load_sound
 from game_class import YTGBaseWeapon
-from config import *
 from Projectiles.missile import Projectile as Missile
+
+from Engine.config import COLLISION_TYPE
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model
+
+import pymunk
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))

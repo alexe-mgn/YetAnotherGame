@@ -1,25 +1,23 @@
 import pymunk
+from Engine.geometry import Vec2d
 from Engine.loading import load_model, cast_model
-from game_class import BaseEngine
+from game_class import YTGBaseComponent
 
-NAME = __name__.split('.')[-1]
+NAME = __name__.split('.')[1]
 MODEL = load_model('Components\\Models\\%s' % (NAME,))
 
-CS = None
+CS = Vec2d(0, 0)
 
 
-class Engine(BaseEngine):
-    max_health = 30
+class Component(YTGBaseComponent):
     size_inc = 1
-    engine_force = 5000000
-    max_vel = 250
-    max_fps = 18
+    max_health = 50
 
     def __init__(self):
         super().__init__()
 
-        self.i_body = pymunk.Body()
-        self.shape = pymunk.Circle(self.body, self.RADIUS)
+        self.i_body = self.body
+        self.shape = pymunk.Poly(self.body, self.POLY_SHAPE)
         self.shape.density = 1
 
     @classmethod
@@ -30,7 +28,7 @@ class Engine(BaseEngine):
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 18
+        radius = 10
 
         cls.RADIUS = radius * cls.size_inc
 
@@ -42,4 +40,4 @@ class Engine(BaseEngine):
         cls.POLY_SHAPE = [(e[0] * cls.size_inc, e[1] * cls.size_inc) for e in poly_left + poly_right]
 
 
-Engine.init_class()
+Component.init_class()

@@ -1,8 +1,9 @@
+from Engine.config import COLLISION_TYPE, CHANNEL
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model, load_sound
+from Engine.physics import BaseProjectile
+
 import pymunk
-from geometry import Vec2d
-from loading import load_model, cast_model, load_sound
-from physics import BaseProjectile
-from config import *
 
 NAME = __name__.split('.')[-1]
 MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))

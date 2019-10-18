@@ -1,12 +1,13 @@
+from Projectiles.pulson import Projectile
+
+from Engine.config import TEAM
+from Engine.level import Level
+from Engine.physics import PhysicsGroup
+
 import pygame
 import pymunk
-from level import Level
-from physics import PhysicsGroup
-from config import *
 
 drag_sprite = None
-import random
-from Projectiles.pulson import Projectile
 
 
 class TestLevel(Level):

@@ -1,10 +1,10 @@
 import pygame
 import math
-from geometry import Vec2d
+from Engine.geometry import Vec2d
 from Game.Character import BasePlayer, WeaponInv
 from Objects.MechPlayer import Creature as Body
 from Components.LegsPlayer import Engine as Legs
-from config import ROLE
+from Engine.config import ROLE
 # from Weapons.plasma_repeater import Weapon as DefaultW
 # from Weapons.pulson import Weapon as Pulson
 from Weapons.net_cannon import Weapon as Net

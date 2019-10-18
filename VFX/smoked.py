@@ -1,6 +1,6 @@
-from geometry import Vec2d, FRect
-from loading import load_model, cast_model, GObject
-from physics import StaticImage
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model, GObject
+from Engine.physics import StaticImage
 
 NAME = __name__.split('.')[1]
 MODEL = load_model('VFX\\Models\\%s' % (NAME,))

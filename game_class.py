@@ -1,6 +1,6 @@
-from geometry import Vec2d
-from physics import DynamicObject, BaseCreature, BaseComponent, BaseWeapon
-from config import *
+from Engine.config import *
+from Engine.geometry import Vec2d
+from Engine.physics import DynamicObject, BaseCreature, BaseComponent, BaseWeapon
 import math
 
 from VFX.smoked import VideoEffect

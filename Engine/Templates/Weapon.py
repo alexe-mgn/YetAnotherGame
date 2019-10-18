@@ -1,32 +1,26 @@
+import pymunk
+from Engine.geometry import Vec2d
+from Engine.loading import load_model, cast_model
 from game_class import YTGBaseWeapon
 
-from Engine.config import CHANNEL
-from Engine.geometry import Vec2d
-from Engine.loading import load_model, cast_model, load_sound
-
-import pymunk
-
-NAME = __name__.split('.')[-1]
+NAME = __name__.split('.')[1]
 MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 
-CS = Vec2d(13, 17)
+CS = Vec2d(0, 0)
 
 
 class Weapon(YTGBaseWeapon):
-    name = NAME
-    max_health = 40
-    size_inc = 1.25
+    size_inc = 1
+    max_health = 50
     proj_velocity = 1000
-    fire_delay = 100
-    sound = {
-        'fire': [load_sound('Weapons\\Models\\explosion_dull'), {'channel': CHANNEL.PLASMA_WEAPON}]
-    }
+    fire_delay = 1000
+    fire_pos = Vec2d(0, 0)
 
     def __init__(self):
         super().__init__()
 
         self.i_body = pymunk.Body()
-        self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((26, 17)))
+        self.shape = pymunk.Poly(self.body, self.POLY_SHAPE)
         self.shape.density = 1
 
     @classmethod
@@ -34,13 +28,10 @@ class Weapon(YTGBaseWeapon):
         cls._frames, cls.IMAGE_SHIFT = cast_model(MODEL, CS, cls.size_inc)
         cls.precalculate_shape()
         cls.calculate_poly_shape()
-        from Projectiles.plasma_bolt import Projectile
-        cls.Projectile = Projectile
-        cls.fire_pos = cls.image_to_local((65, 17))
 
     @classmethod
     def precalculate_shape(cls):
-        radius = 22
+        radius = 10
 
         cls.RADIUS = radius * cls.size_inc
 
