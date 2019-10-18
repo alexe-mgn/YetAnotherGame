@@ -27,6 +27,10 @@ class Main:
 
     def __init__(self):
         self.winflag = pygame.RESIZABLE | pygame.DOUBLEBUF
+        self.screen = None
+        self._size = None
+        self.zoom_offset = None
+        self._visible = None
         self._gui, self._level, self.clock, self.running = None, None, None, False
         self.set_gui(None)
         self.set_level(None)

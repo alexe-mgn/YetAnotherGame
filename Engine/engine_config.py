@@ -1,29 +1,28 @@
-"""
-Development variables
-"""
 import os
 import sys
 import traceback
 import time
 from Engine.utils import *
 
+"""App settings"""
+
 APP_NAME = r'PyMunk based physics engine'
 CODE_APP_NAME = transform_name(APP_NAME)
 EXCEPTION_FILE = '%s_traceback.txt' % (CODE_APP_NAME,)
 
 LOAD_MEIPASS = True
-LOAD_RELATIVE = True
+LOAD_RELATIVE = False
 
 VISION_SIZE = (1200, 1200)
 VIDEO_FIT = False
 
-CAMERA_SOUND_HEIGHT = 300
-SOUND_QUARTER_DISTANCE = 1000
-SOUND_COEF = .25 * (SOUND_QUARTER_DISTANCE + 1)
 
-MOUSE_EVENTS = (5, 6)
-KEY_EVENTS = (2, 3)
-CONTROL_EVENTS = (2, 3, 5, 6)
+class DEBUG(NameSpace):
+    DRAW = False
+    COLLISION = False
+
+
+"""Routing"""
 
 
 class PATH(NameSpace):
@@ -62,6 +61,13 @@ def except_hook(cls, exception, c_traceback):
         error_file.write(''.join(traceback.format_tb(c_traceback)) + '\n')
 
 
+"""Events"""
+
+MOUSE_EVENTS = (5, 6)
+KEY_EVENTS = (2, 3)
+CONTROL_EVENTS = (2, 3, 5, 6)
+
+
 class EVENT(NameSpace):
     FPS_COUNTER = 29
     EVENT_SYSTEM = 30
@@ -85,9 +91,19 @@ class DRAW_LAYER(NameSpace):
     VFX = 30
 
 
+"""Sound"""
+
+CAMERA_SOUND_HEIGHT = 300
+SOUND_QUARTER_DISTANCE = 1000
+SOUND_COEF = .25 * (SOUND_QUARTER_DISTANCE + 1)
+
+
 # Reserved sound channels
 class CHANNEL(NameSpace):
     pass
+
+
+"""Physics"""
 
 
 class COLLISION_TYPE(NameSpace):
@@ -115,8 +131,3 @@ class TEAM(NameSpace):
     PLAYER = 1
     ENEMY = 2
     NEUTRAL = 3
-
-
-class DEBUG(NameSpace):
-    DRAW = False
-    COLLISION = False

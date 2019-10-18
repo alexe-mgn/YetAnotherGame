@@ -1,8 +1,7 @@
+from Game.GUI_Elements import *
+
 from Engine.geometry import FRect
 from Engine.config import *
-
-
-from Game.GUI_Elements import *
 
 import pygame
 
