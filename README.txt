@@ -2,6 +2,7 @@
 # run_default.py is also allowed
 # run_pyx.py is a version with on-the-fly Cython compilation
 # Required:
+#   pygame (pip install pygame)
 #   pymunk (pip install pymunk)
 #
 # Compiled contains previous version.
