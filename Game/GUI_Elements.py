@@ -1,5 +1,5 @@
 from config import *
-from main_settings import get_path
+from config import get_path
 from loading import load_model
 from interface import FONT, Element, Menu, Disabled, Button, InputBox, ProgressBar
 

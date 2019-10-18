@@ -1,6 +1,6 @@
 import pygame
 from geometry import Vec2d
-from main_settings import get_path
+from config import get_path
 from config import DEBUG
 import os
 from math import ceil

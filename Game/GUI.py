@@ -1,7 +1,7 @@
 import pygame
 from config import *
 from geometry import FRect
-from main_settings import get_write_path
+from config import get_write_path
 from Game.GUI_Elements import *
 import json
 import os

@@ -1,9 +1,8 @@
 import pygame
-import sys
-import os
-from main_settings import except_hook
+from config import except_hook
 from config import *
 from loading import get_path, load_image
+from utils import EmptyGameObject
 
 sys.excepthook = except_hook
 
@@ -108,9 +107,9 @@ class Main:
         """
         Запуск основного цилка.
         """
-        t = EVENT_TIMER.dict()
+        t = EVENT_TIMER.as_dict()
         # Создаём таймеры для игровых событий
-        for k, v in EVENT.dict().items():
+        for k, v in EVENT.as_dict().items():
             pygame.time.set_timer(v, t[k])
         if not self._level:
             self.home()
@@ -175,27 +174,3 @@ class Main:
         Закрыть приложение.
         """
         self.running = False
-
-
-if __name__ == '__main__':
-    class TestMain(Main):
-
-        def home(self):
-            """
-            Выйти в главное меню. Ну или как захотите.
-            """
-            self.set_level(None)
-            from Game.GUI import MainMenu
-            self.set_gui(MainMenu(main=self))
-
-        def load_survival(self):
-            """
-            ABOUT TO BE DELETED
-            Загрузка тестового уровня.
-            """
-            from Game.Levels.Survival import Survival
-            self.set_level(Survival(self))
-            self.set_gui(None)
-
-    main = TestMain()
-    main.start()

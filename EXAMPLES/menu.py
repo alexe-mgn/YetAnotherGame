@@ -1,8 +1,8 @@
 import random
 import pygame
 from config import *
-from main_loop import Main
-from main_settings import get_write_path
+from main import Main
+from config import get_write_path
 from interface import *
 import json
 import os
@@ -366,6 +366,6 @@ class ExampleMain(Main):
 if __name__ == '__main__':
     import sys
     import os
-    from main_settings import *
+    from config import *
     main = ExampleMain()
     main.start()
