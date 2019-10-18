@@ -7,26 +7,28 @@ from config import LOAD_RELATIVE, LOAD_MEIPASS, EXCEPTION_FILE
 File path handling, exception output, +
 """
 
-cwd = os.getcwd()
-PATH_RELATIVE = '.'
-PATH_MEIPASS = getattr(sys, '_MEIPASS', '.')
-PATH_FILE = os.path.dirname(os.path.abspath(__file__))
-PATH = (PATH_RELATIVE if LOAD_RELATIVE else
-        (PATH_MEIPASS
-         if LOAD_MEIPASS and getattr(sys, 'frozen', False)
-         else PATH_FILE)
-        )
-WRITE_PATH = cwd
+
+class PATH:
+    EXECUTABLE = os.getcwd()
+    RELATIVE = '.'
+    MEIPASS = getattr(sys, '_MEIPASS', EXECUTABLE)
+    ENGINE = os.path.dirname(os.path.abspath(__file__))
+    WRITE = EXECUTABLE
+    LOAD = RELATIVE if LOAD_RELATIVE else (MEIPASS if LOAD_MEIPASS and getattr(sys, 'frozen', False) else EXECUTABLE)
 
 
 # Получить правильный путь к файлу относительно папки игры
 def get_path(path):
-    return os.path.join(PATH, path)
+    return os.path.join(PATH.LOAD, path)
+
+
+def get_engine_path(path):
+    return os.path.join(PATH.ENGINE)
 
 
 # Если файл будет использоваться для вывода
 def get_write_path(path):
-    return os.path.join(WRITE_PATH, path)
+    return os.path.join(PATH.WRITE, path)
 
 
 # Вывод ошибок

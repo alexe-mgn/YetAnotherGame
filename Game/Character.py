@@ -1,6 +1,6 @@
 import pygame
 from geometry import Vec2d
-from game_class import BaseCreature
+from game_class import YTGBaseCreature
 from config import *
 
 
@@ -81,7 +81,7 @@ class WeaponInv:
         self.checkout(n)
 
 
-class BasePlayer(BaseCreature):
+class BasePlayer(YTGBaseCreature):
     team = TEAM.PLAYER
     score = 0
 
@@ -119,7 +119,7 @@ class BasePlayer(BaseCreature):
         self.level.end_game()
 
 
-class BaseEnemy(BaseCreature):
+class BaseEnemy(YTGBaseCreature):
     team = TEAM.ENEMY
     score = 0
 

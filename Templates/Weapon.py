@@ -1,7 +1,8 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseWeapon, BaseProjectile
+from game_class import YTGBaseWeapon
+from physics import BaseProjectile
 from config import *
 
 NAME = __name__.split('.')[1]
@@ -10,7 +11,7 @@ MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 CS = Vec2d(0, 0)
 
 
-class Weapon(BaseWeapon):
+class Weapon(YTGBaseWeapon):
     size_inc = 1
     max_health = 50
     proj_velocity = 1000

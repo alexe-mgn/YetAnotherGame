@@ -367,9 +367,5 @@ if __name__ == '__main__':
     import sys
     import os
     from main_settings import *
-    print(PATH_RELATIVE)
-    print(PATH_MEIPASS)
-    print(PATH_FILE)
-    print(PATH)
     main = ExampleMain()
     main.start()

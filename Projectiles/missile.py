@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
-from game_class import BaseProjectile
+from physics import BaseProjectile
 from VFX.smoked import VideoEffect
 from config import *
 
@@ -65,6 +65,7 @@ class Projectile(BaseProjectile):
         'launch': [load_sound('Projectiles\\Models\\mini_launch', ext='wav', volume=.5),
                    {'channel': CHANNEL.MINI_LAUNCH}]
     }
+    death_effect = VideoEffect
 
     def __init__(self):
         super().__init__()
@@ -83,9 +84,7 @@ class Projectile(BaseProjectile):
 
     def death(self):
         if self.health > 0 and not self.boost:
-            v = VideoEffect()
-            v.add(*self.groups())
-            v.pos = self.pos
+            self.emit_death_effect()
         else:
             v = Explosion()
             v.add(*self.groups())

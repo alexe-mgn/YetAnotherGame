@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseProjectile
+from physics import BaseProjectile
 
 NAME = __name__.split('.')[1]
 MODEL = load_model('Projectiles\\Models\\%s' % (NAME,))

@@ -1,7 +1,8 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseCreature, Mount
+from game_class import YTGBaseCreature
+from physics import Mount
 
 NAME = __name__.split('.')[1]
 MODEL = load_model('Objects\\Models\\%s' % (NAME,))
@@ -9,7 +10,7 @@ MODEL = load_model('Objects\\Models\\%s' % (NAME,))
 CS = Vec2d(0, 0)
 
 
-class Creature(BaseCreature):
+class Creature(YTGBaseCreature):
     size_inc = 1
     max_health = 100
 

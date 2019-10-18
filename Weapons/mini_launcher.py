@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
-from game_class import BaseWeapon
+from game_class import YTGBaseWeapon
 from config import *
 from Projectiles.missile import Projectile as Missile
 
@@ -18,7 +18,7 @@ class Projectile(Missile):
             self.launch()
 
 
-class Weapon(BaseWeapon):
+class Weapon(YTGBaseWeapon):
     name = NAME
     max_health = 40
     size_inc = 1

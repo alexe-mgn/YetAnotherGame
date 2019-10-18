@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import BaseProjectile
+from physics import BaseProjectile
 from VFX.dissipation import VideoEffect
 from config import *
 
@@ -17,6 +17,7 @@ class Projectile(BaseProjectile):
     damping = 0
     lifetime = 1500
     hit_damage = 15
+    death_effect = VideoEffect
 
     def __init__(self):
         super().__init__()
@@ -33,12 +34,6 @@ class Projectile(BaseProjectile):
     def effect(self, obj, arbiter, first=True):
         obj.damage(self.hit_damage)
         self.death()
-
-    def death(self):
-        v = VideoEffect()
-        v.add(self.groups())
-        v.pos = self.pos
-        self.kill()
 
     @classmethod
     def init_class(cls):

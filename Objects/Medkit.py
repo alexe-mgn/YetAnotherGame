@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model
-from game_class import DynamicObject
+from game_class import YTGDynamicObject
 from config import *
 
 NAME = __name__.split('.')[-1]
@@ -10,7 +10,7 @@ MODEL = load_model('Objects\\Models\\%s' % (NAME,))
 CS = Vec2d(47, 53)
 
 
-class Object(DynamicObject):
+class Object(YTGDynamicObject):
     size_inc = 1
     max_health = 120
 

@@ -2,7 +2,8 @@ import pygame
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
-from game_class import BaseWeapon, BaseProjectile
+from game_class import YTGBaseWeapon
+from physics import BaseProjectile
 from config import *
 
 NAME = __name__.split('.')[-1]
@@ -101,7 +102,7 @@ class Ballast(Segment):
 Ballast.init_class()
 
 
-class Weapon(BaseWeapon):
+class Weapon(YTGBaseWeapon):
     name = NAME
     size_inc = .5
     max_health = 60

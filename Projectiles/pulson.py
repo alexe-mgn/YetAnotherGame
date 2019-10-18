@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
-from game_class import BaseProjectile
+from physics import BaseProjectile
 from config import *
 
 NAME = __name__.split('.')[-1]

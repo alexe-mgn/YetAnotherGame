@@ -1,7 +1,7 @@
 import pymunk
 from geometry import Vec2d
 from loading import load_model, cast_model, load_sound
-from game_class import BaseWeapon
+from game_class import YTGBaseWeapon
 from config import *
 
 NAME = __name__.split('.')[-1]
@@ -10,7 +10,7 @@ MODEL = load_model('Weapons\\Models\\%s' % (NAME,))
 CS = Vec2d(13, 17)
 
 
-class Weapon(BaseWeapon):
+class Weapon(YTGBaseWeapon):
     name = NAME
     max_health = 40
     size_inc = 1.25
