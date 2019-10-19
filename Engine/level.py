@@ -11,24 +11,25 @@ class Camera:
     def __init__(self, center, screen_rect, constraint, zoom_con=None, zoom_offset=1):
         """
         :param center: Начальная позиция камеры
-        :param screen_rect:
+        :param screen_rect: Прямоугольник отображаемой области c масштабированием 1, важен лишь размер
         :param constraint: Область, в которую камере разрешено заходить [x1, y1, x2, y2]
         :param zoom_con: Ограничения масштабирования. [min, max]
         :param zoom_offset:
         """
         self._constraint = pygame.Rect(constraint)
         self.i_size = list(screen_rect.size)
+        self.screen_shift = list(screen_rect.topleft)
 
         if zoom_con is None:
             self.zoom_con = [None, None]
         else:
             self.zoom_con = zoom_con
         self.zoom_offset = zoom_offset
-        self._zoom = 1 / zoom_offset
-        if self.zoom_con[0] is not None and self._zoom < self.zoom_con[0]:
-            self._zoom = self.zoom_con[0]
-        if self.zoom_con[1] is not None and self._zoom > self.zoom_con[1]:
-            self._zoom = self.zoom_con[1]
+        self._target_zoom = 1 / zoom_offset
+        if self.zoom_con[0] is not None and self._target_zoom < self.zoom_con[0]:
+            self._target_zoom = self.zoom_con[0]
+        if self.zoom_con[1] is not None and self._target_zoom > self.zoom_con[1]:
+            self._target_zoom = self.zoom_con[1]
 
         self.move_speed = 6
         self.zoom_speed = 2
@@ -43,6 +44,7 @@ class Camera:
     def update(self, upd_time):
         tc, cc = self.rect.center, self.c_rect.center
         ts, cs = self.rect.size, self.c_rect.size
+        # print(cs, self.zoom, self.zoom_offset, self.zoom / self.zoom_offset)
         dis_x, dis_y = tc[0] - cc[0], tc[1] - cc[1]
         ds_x, ds_y = ts[0] - cs[0], ts[1] - cs[1]
 
@@ -66,6 +68,10 @@ class Camera:
         self.c_rect.clamp_ip(self._constraint)
 
     def get_rect(self):
+        """
+        Прямоугольник в системе координат уровня, который камера освещает на данный момент..
+        :return: Rect()
+        """
         return self.c_rect
         # rect = pygame.Rect(0, 0, 0, 0)
         # rect.center = self.c_rect.center
@@ -73,19 +79,37 @@ class Camera:
         # return rect
 
     def move(self, shift):
+        """
+        Сдвинуть камеру на вектор.
+        :param shift: (x, y)
+        """
         self.rect.x += shift[0]
         self.rect.y += shift[1]
         self.rect.clamp_ip(self._constraint)
 
     def move_smooth(self, coef):
+        """
+        Сдвиг камеры на процент текущего размера области отображения.
+        :param coef: (x (%), y (%))
+        :return:
+        """
         self.rect.x += self.c_rect.width * coef[0] / 100
         self.rect.y += self.c_rect.height * coef[1] / 100
         self.rect.clamp_ip(self._constraint)
 
     def get_zoom(self):
-        return self._zoom * self.zoom_offset
+        """
+        Целевое масштабирование камеры.
+        :return: int
+        """
+        return self._target_zoom * self.zoom_offset
 
     def set_zoom(self, zoom):
+        """
+        Установить целевое масштабирование камеры.
+        :param zoom: int
+        """
+        # absolute zoom
         zoom = zoom / self.zoom_offset
         if zoom <= 0:
             return
@@ -102,27 +126,42 @@ class Camera:
         self.rect.size = premade
         self.rect.center = center
         self.rect.clamp_ip(self._constraint)
-        self._zoom = zoom
+        self._target_zoom = zoom
+
+    def reload_zoom(self, old_offset=1):
+        self.set_zoom(self.get_zoom() * old_offset)
 
     zoom = property(get_zoom, set_zoom)
 
     def get_current_zoom(self):
+        """
+        Масштабирование камеры в данный момент.
+        :return: int
+        """
         return self.i_size[0] / self.c_rect.width
 
-    @property
-    def center(self):
+    def get_center(self):
+        """
+        Целевая позиция камеры
+        :return: (x, y)
+        """
         return self.rect.center
 
-    @center.setter
-    def center(self, pos):
+    def set_center(self, pos):
+        """
+        Установка целевой позиции камеры.
+        :param pos: (x, y)
+        """
         self.rect.center = pos
+
+    center = property(get_center, set_center)
 
     def get_constraint(self):
         return self._constraint
 
     def set_constraint(self, rect):
         self._constraint = pygame.Rect(rect)
-        self.set_zoom(self.get_zoom())
+        self.reload_zoom()
 
     constraint = property(get_constraint, set_constraint)
 
@@ -135,11 +174,20 @@ class Camera:
 
     def set_size(self, size):
         self.i_size = size
-        self.set_zoom(self.get_zoom())
+        self.reload_zoom()
 
     size = property(get_size, set_size)
 
+    def instant_move(self):
+        self.c_rect.center = self.rect.center
+
+    def instant_zoom(self):
+        self.c_rect.size = self.rect.size
+
     def instant_target(self):
+        """
+        Мнгновенно установить камеру в целевую позицию
+        """
         self.c_rect = self.rect.copy()
 
     def world_to_local(self, pos):
@@ -156,6 +204,13 @@ class Camera:
 
 
 class Level:
+    """
+    Класс игрового мира.
+    Имеет свой собственный GUI, независимый от Main.gui
+    За миром закреплена 1 собственная камера. class Camera
+    Максимум 1 группа объектов. (physics.ObjectGroup)
+    1 Система событий. (EventSystem)
+    """
 
     def __init__(self, main, size=None, screen=None, zoom_offset=1, zoom_constraint=None):
         self.main = main
@@ -164,7 +219,7 @@ class Level:
         self.update_rect = pygame.Rect(0, 0, *self.size)
         z_const = zoom_constraint if zoom_constraint else [None, 4]
 
-        self.camera = Camera((0, 0), self.screen, self.get_rect(), z_const, zoom_offset=zoom_offset)
+        self.camera = Camera((0, 0), self.screen, self.get_world_rect(), z_const, zoom_offset=zoom_offset)
         self.visible = self.camera.get_rect()
 
         self.player = None
@@ -175,18 +230,25 @@ class Level:
         self.gui = None
         self.pressed = []
         self.paused = False
-        self.mouse_relative_prev = Vec2d(0, 0)
-        self.mouse_absolute_prev = Vec2d(0, 0)
-        self.mouse_relative = Vec2d(0, 0)
-        self.mouse_absolute = Vec2d(0, 0)
+        self.mouse_window_prev = Vec2d(0, 0)
+        self.mouse_world_prev = Vec2d(0, 0)
+        self.mouse_window = Vec2d(0, 0)
+        self.mouse_world = Vec2d(0, 0)
 
     def pregenerate(self):
+        """
+        Переопределяемый.
+        Вызывается классом Main для подготовки уровня к запуску (Создание игровых объектов и т.д)
+        """
         pass
 
     def add_internal(self, sprite):
         sprite.add(self.phys_group)
 
     def add(self, sprite):
+        """
+        Добавление спрайта.
+        """
         self.add_internal(sprite)
 
     def send_event(self, event):
@@ -218,13 +280,23 @@ class Level:
         self.main.home()
 
     def set_screen(self, rect, offset=1):
+        """
+        Устанавливает прямоугольник отрисовки.
+        :param rect:
+        :param offset: Коэффициент масштабирования
+        """
         rect = pygame.Rect(rect)
         self.screen = rect
         self.camera.zoom_offset = offset
         self.camera.size = rect.size
+        self.camera.reload_zoom(offset)
+        self.camera.instant_target()
         self.update_group_draw()
 
     def update_group_draw(self):
+        """
+        Обновляет позиции отрисовки объектов и интерфейса вследствие изменения прямоугольника экрана.
+        """
         if self.phys_group is not None:
             self.phys_group.draw_offset = self.screen.topleft
         if self.gui is not None:
@@ -232,10 +304,22 @@ class Level:
             self.gui.absolute = False
 
     def world_to_local(self, pos):
-        return self.camera.world_to_local(pos)
+        """
+        Конвертирует координаты уровня в координаты камеры.
+        См. Camera.world_to_local
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
+        return self.camera.world_to_local(pos) + self.screen.topleft
 
     def local_to_world(self, pos):
-        return self.camera.local_to_world(pos)
+        """
+        Конвертирует координаты камеры в координаты уровня.
+        См. Camera.local_to_world
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
+        return self.camera.local_to_world([pos[n] - self.screen.topleft[n] for n in range(2)])
 
     def handle_keys(self):
         pressed = self.pressed
@@ -246,14 +330,14 @@ class Level:
         if not self.paused:
             self.step_time = upd_time * time_coef
             self.pressed = pygame.key.get_pressed()
-            self.mouse_relative_prev = self.mouse_relative
-            self.mouse_absolute_prev = self.mouse_absolute
-            self.mouse_relative = Vec2d(pygame.mouse.get_pos())
-            self.mouse_absolute = self.get_mouse()
+            self.mouse_window_prev = self.mouse_window
+            self.mouse_world_prev = self.mouse_world
+            self.mouse_window = Vec2d(pygame.mouse.get_pos())
+            self.mouse_world = self.calculate_mouse_world()
             if self.event_system:
                 self.event_system.start_step(upd_time)
             if self.player is not None:
-                tp = self.mouse_relative - self.screen.center
+                tp = self.mouse_window - self.screen.center
                 self.camera.center = self.player.pos + tp
         if self.gui is not None:
             self.gui.start_step(upd_time)
@@ -279,10 +363,19 @@ class Level:
         if self.gui is not None:
             self.gui.draw(surface)
 
-    def get_rect(self):
+    def get_world_rect(self):
+        """
+        Возвращает прямоугольник, описывающий границы уровня.
+        :return: Rect(topleft=(0, 0))
+        """
         return pygame.Rect(0, 0, *self.size)
 
-    def get_mouse(self):
+    def calculate_mouse_world(self):
+        """
+        Не рекомендуется к использованию - функция перерасчёта.
+        Её результат записывается в Level.mouse_world
+        :return: Vec2d(x, y)
+        """
         ms = pygame.mouse.get_pos()
         sc, vs = self.screen.size, self.visible.size
         zoom = max((sc[0] / vs[0], sc[1] / vs[1]))
@@ -290,11 +383,22 @@ class Level:
 
 
 class Event:
+    """
+    Никак не связано с pygame.event.
+    Прикрепляется к уровню,
+    также как и все объекты имеет start_step, update_ end_step, но с фиксированным временем между итерациями.
+    """
 
-    def __init__(self, es):
+    def __init__(self, es=None):
+        """
+        :param es: class EventSystem - если указано, событие само добавляется в список системы событий.
+        """
         self.event_system = es
-        self._level = self.event_system.level
-        es.add(self)
+        if es:
+            self._level = self.event_system.level
+            es.add(self)
+        else:
+            self._level = None
 
         self.step_time = 1
 
@@ -310,16 +414,33 @@ class Event:
         self.step_time = upd_time
 
     def update(self):
+        """
+        Переопределяемый.
+        Вызывается каждый игровой тик.
+        """
         pass
 
     def active_update(self):
+        """
+        Переопределяемый.
+        Вызывается через фиксированное время.
+        """
         pass
 
     def act(self):
+        """
+        Переопределяемый.
+        Действия события.
+        По-умолчанию не вызывается.
+        """
         pass
 
 
 class EventSystem:
+    """
+    Система событий уровня.
+    Хранит список событий и вызывает их обновления.
+    """
 
     def __init__(self, level):
         self._level = level
@@ -340,6 +461,7 @@ class EventSystem:
     def add(self, event):
         if event not in self.events:
             self.events.append(event)
+            event.level = self._level
 
     def send_event(self, event):
         if event.type == EVENT.EVENT_SYSTEM:

@@ -13,6 +13,7 @@ EXCEPTION_FILE = '%s_traceback.txt' % (CODE_APP_NAME,)
 LOAD_MEIPASS = True
 LOAD_RELATIVE = False
 
+WINDOW_SIZE = (800, 600)
 VISION_SIZE = (1200, 1200)
 VIDEO_FIT = False
 
@@ -59,6 +60,10 @@ def except_hook(cls, exception, c_traceback):
         error_file.write(str(cls) + '\n')
         error_file.write(str(exception) + '\n')
         error_file.write(''.join(traceback.format_tb(c_traceback)) + '\n')
+
+
+def debug_print(v):
+    print(v)
 
 
 """Events"""

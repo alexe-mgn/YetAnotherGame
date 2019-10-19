@@ -51,7 +51,7 @@ class TestLevel(Level):
 
     def get_mouse_sprite(self):
         for s in self.phys_group.layer_sorted()[::-1]:
-            if s.shape.point_query(self.mouse_absolute)[0] <= 0:
+            if s.shape.point_query(self.mouse_world)[0] <= 0:
                 return s
         return None
 
@@ -62,7 +62,7 @@ class TestLevel(Level):
             s = self.get_mouse_sprite()
             if event.button == 1:
                 if drag_sprite is not None:
-                    drag_sprite.vel = (self.mouse_absolute - self.mouse_absolute_prev) / self.step_time * 1000
+                    drag_sprite.vel = (self.mouse_world - self.mouse_world_prev) / self.step_time * 1000
                     drag_sprite = None
                 elif s is not None:
                     if drag_sprite is None:
@@ -74,7 +74,7 @@ class TestLevel(Level):
             if event.key == pygame.K_f:
                 proj = Projectile()
                 proj.add(self.phys_group)
-                proj.fire(self.mouse_absolute.angle, 1000)
+                proj.fire(self.mouse_world.angle, 1000)
             elif event.key == pygame.K_g:
                 self.w.fire()
             elif event.key == pygame.K_l:
@@ -86,7 +86,7 @@ class TestLevel(Level):
         # print(drag_sprite, self.mouse_absolute)
         if drag_sprite is not None:
             if drag_sprite.space:
-                drag_sprite.pos = self.mouse_absolute
+                drag_sprite.pos = self.mouse_world
                 drag_sprite.vel = [0, 0]
             else:
                 drag_sprite = None

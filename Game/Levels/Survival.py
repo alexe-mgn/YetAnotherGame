@@ -17,8 +17,8 @@ import random
 
 class SpawnEvent(Event):
 
-    def __init__(self, es):
-        super().__init__(es)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.lu = 0
         self.objects = [
             [Soldier, .5, 0],
@@ -55,7 +55,7 @@ class SurvivalEventSystem(EventSystem):
 
     def __init__(self, level):
         super().__init__(level)
-        SpawnEvent(self)
+        self.add(SpawnEvent())
 
 
 class SurvivalPhysGroup(PhysicsGroup):
@@ -80,7 +80,7 @@ class Survival(Level):
         group = SurvivalPhysGroup(space)
         self.phys_group = group
 
-        level_rect = self.get_rect()
+        level_rect = self.get_world_rect()
         ps = [level_rect.topleft,
               level_rect.topright,
               level_rect.bottomright,
@@ -102,7 +102,7 @@ class Survival(Level):
 
         p_pos = [e / 2 for e in self.size]
         self.camera.pos = p_pos
-        self.camera.instant_target()
+        self.camera.instant_move()
 
         self.player = Player(self, gui=self.gui.ingame)
         self.player.pos = p_pos
@@ -119,10 +119,12 @@ class Survival(Level):
         self.gui.checkout_menu(self.gui.record)
 
     def draw(self, surface):
+        from Engine.geometry import Vec2d
         surface.blit(
             pygame.transform.scale(
                 self.background.subsurface(self.camera.get_rect().pygame),
                 self.screen.size),
-            (0, 0))
+            self.screen.topleft)
+        # print(self.player.angle, (self.mouse_world - self.player.pos).angle)
         super().draw(surface)
         # draw_debug(self.camera, surface, self.phys_group.sprites())

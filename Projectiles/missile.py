@@ -1,7 +1,7 @@
 from VFX.smoked import VideoEffect
 
 from Engine.config import MAT_TYPE, CHANNEL
-from Engine.geometry import Vec2d
+from Engine.geometry import Vec2d, angular_distance
 from Engine.loading import load_model, cast_model, load_sound
 from Engine.physics import BaseProjectile
 
@@ -102,7 +102,7 @@ class Projectile(BaseProjectile):
                     tp = self.target()
                 else:
                     tp = list(self.target)
-                da = (Vec2d(tp) - self.pos).angle - self.angle
+                da = angular_distance(self.angle, (Vec2d(tp) - self.pos).angle)
                 self.angle += da * .1
 
     def launch(self):

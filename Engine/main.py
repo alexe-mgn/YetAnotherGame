@@ -34,26 +34,27 @@ class Main:
         self._gui, self._level, self.clock, self.running = None, None, None, False
         self.set_gui(None)
         self.set_level(None)
-        self.set_screen_size([800, 600])
+        self.set_screen_size(WINDOW_SIZE)
         pygame.display.set_caption(APP_NAME)
         if os.path.isfile(get_path('icon.ico')):
             pygame.display.set_icon(load_image('icon.ico'))
 
-    def calculate_visible(self, c):
+    def calculate_visible(self, window_size):
         """
-        Рассчёт коэффициента пропорциональности и.
-        Не помню что это...
-        :param c: (x, y)
-        :return: int(coef), Rect()
+        Рассчёт смещения коэффициента масштабирования и прямоугольника отображаемой области относителньо окна.
+        :param window_size: (x, y)
+        :return: int(zoom_offset), Rect()
         """
         tg = VISION_SIZE
-        k = (max if VIDEO_FIT else min)([tg[n] / c[n] for n in range(2)])
+        k = (max if VIDEO_FIT else min)([tg[n] / window_size[n] for n in range(2)])
         if VIDEO_FIT:
             visible = [tg[n] / k for n in range(2)]
-            tl = (c[0] - visible[0]) // 2, (c[1] - visible[1]) // 2
+            tl = (window_size[0] - visible[0]) // 2, (window_size[1] - visible[1]) // 2
             return k, pygame.Rect(*tl, *visible)
         else:
             return k, pygame.Rect(0, 0, *self.get_screen_size())
+        # zoom_offset - world_dL / screen_dL
+        # zoom - initial / current
 
     def get_screen_size(self):
         """

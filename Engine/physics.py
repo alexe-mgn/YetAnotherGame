@@ -28,16 +28,16 @@ def collide_case(a, b):
         return False
 
 
-class CameraGroup(pygame.sprite.AbstractGroup):
-    """
-    Layered sprite group with camera-handling draw method.
-    """
+class ObjectGroup(pygame.sprite.AbstractGroup):
 
     def __init__(self):
         super().__init__()
         self.default_layer = 9
         self._offset = Vec2d(0, 0)
         self.sounds = []
+
+
+class CameraGroup(ObjectGroup):
 
     def layer_sorted(self):
         return sorted(self.sprites(), key=lambda e: getattr(e, 'draw_layer', self.default_layer))
@@ -86,6 +86,12 @@ class CameraGroup(pygame.sprite.AbstractGroup):
         self.lostsprites = []
 
     def que_sound(self, sound, sprite, **kwargs):
+        """
+        Воспроизвести звук
+        :param sound: pygame.mixer.Sound
+        :param sprite:
+        :param kwargs: channel, loops, max_time, fade_ms
+        """
         self.sounds.append([sound, sprite, kwargs])
 
     @property
@@ -129,9 +135,9 @@ class PhysicsGroup(CameraGroup):
     Sprite group handling pymunk objects.
     """
 
-    def __init__(self, space):
+    def __init__(self, space=None):
         super().__init__()
-        self.space = space
+        self.space = space if space else pymunk.Space()
 
     def update(self, upd_time):
         sprites = self.sprites()
@@ -377,6 +383,12 @@ class PhysObject(pygame.sprite.Sprite):
         self.play_sound('creation')
 
     def play_sound(self, key):
+        """
+        Звуки хранятся в аттрибуте Sprite.sounds
+        sounds = {'sound_key': [pygame.mixer.Sound, sound params {'channel', 'loops', 'max_time', 'fade_ms'}]}
+        Параметры звука необязательны, можно оставить пустой словарь.
+        :param key: sound key
+        """
         s = self.sound.get(key, [])
         if s:
             self.group.que_sound(s[0], self, **s[1])
@@ -534,7 +546,7 @@ class PhysObject(pygame.sprite.Sprite):
         return self._body.position
 
     def _set_pos(self, p):
-        self.body.position = p
+        self._body.position = p
 
     pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
@@ -546,6 +558,23 @@ class PhysObject(pygame.sprite.Sprite):
         b.angle = math.radians(ang)
 
     ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
+
+    def rotate_for(self, ang, speed):
+        """
+        WIP
+        :param ang:
+        :param speed:
+        :return:
+        """
+        pass
+
+    def _get_ang_vel(self):
+        return math.degrees(self._body.angular_velocity)
+
+    def _set_ang_vel(self, angular_velocity):
+        self._body.angular_velocity = math.radians(angular_velocity)
+
+    ang_vel, angular_velocity = property(_get_ang_vel, _set_ang_vel), property(_get_ang_vel, _set_ang_vel)
 
     def _get_velocity(self):
         return self._body.velocity

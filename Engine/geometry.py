@@ -45,6 +45,15 @@ def normalized_angle(ang):
     return ang
 
 
+def angular_distance(a, b):
+    d = b - a
+    if not -360 <= d <= 360:
+        d %= 360
+    if d > 180:
+        d -= 360
+    return d
+
+
 class FRect:
     """
     Float precision version of pygame.Rect class
