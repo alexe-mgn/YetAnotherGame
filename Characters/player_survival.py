@@ -34,7 +34,7 @@ class Character(BasePlayer, Body):
             self.health += add
 
     def effect(self, obj, arbiter, first=True):
-        if obj.own_body() and obj.role == ROLE.WEAPON:
+        if obj.is_own_body() and obj.role == ROLE.WEAPON:
             self.w_inv.add(obj)
 
     def send_event(self, event):

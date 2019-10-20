@@ -217,7 +217,7 @@ class StaticImage(pygame.sprite.Sprite):
     def space(self, space):
         pass
 
-    def own_body(self):
+    def is_own_body(self):
         return True
 
     @property
@@ -395,10 +395,17 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def space(self):
+        """
+        :return: pymunk.Space
+        """
         return self._space
 
     @space.setter
     def space(self, space):
+        """
+        Установить пространство объектов pymunk.Space для self.body и всех его pymunk.Shape
+        :param space: pymunk.Space
+        """
         shapes = self.shapes
         if self._space is not None:
             if shapes:
@@ -412,15 +419,28 @@ class PhysObject(pygame.sprite.Sprite):
             if shapes:
                 space.add(shapes)
 
-    def own_body(self):
+    def is_own_body(self):
+        """
+        Переопределяется объектами классов Component.
+        Для обычного спрайта True
+        :return: bool
+        """
         return True
 
     @property
     def body(self):
+        """
+        "Тело" объекта. К нему привязываются pymunk.Shape частично определяющие массу, размеры, форму и т.д
+        :return: pymunk.Body
+        """
         return self._body
 
     @body.setter
     def body(self, body):
+        """
+        Установить тело объекта, на данный момент все его pymunk.Shape не учитываются в процессе переноса.
+        :param body: pymunk.Body
+        """
         # shapes !!!
         if self._space is not None:
             if self._body is not None:
@@ -432,9 +452,21 @@ class PhysObject(pygame.sprite.Sprite):
             body.sprite = self
 
     def local_to_world(self, pos):
+        """
+        Конвертация из локальной системы координат в уровневую.
+        Положение точки в локальной системе не зависит от углов наклона тела к глобальным осям.
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
         return self._body.local_to_world(pos)
 
     def world_to_local(self, pos):
+        """
+        Конвертация в локальную систему координат.
+        Положение точки в локальной системе не зависит от углов наклона тела к глобальным осям.
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
         return self._body.world_to_local(pos)
 
     @property
@@ -447,16 +479,34 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def moment(self):
+        """
+        Момент инерции тела.
+        Единицы измерения не проверены!
+        :return: float
+        """
         return self._body.moment
 
     @moment.setter
     def moment(self, m):
+        """
+        Установить момент инерции.
+        Единицы измерения не проверены!
+        :param m: float
+        """
         self._body.moment = m
 
     def _get_shape(self):
+        """
+        Главный (!) shape объекта
+        :return: pymunk.Shape
+        """
         return self._shape
 
     def _set_shape(self, shape):
+        """
+        Главный (!) shape объекта
+        :param shape: pymunk.Shape
+        """
         if shape.space:
             shape.space.remove(shape)
         if shape.body is not self._body:
@@ -475,6 +525,9 @@ class PhysObject(pygame.sprite.Sprite):
         return body.shapes if body is not None else []
 
     def add_shape(self, shape):
+        """
+        :param shape: pymunk.Shape
+        """
         if shape.space:
             shape.space.remove(shape)
         if shape.body is not self._body:
@@ -483,6 +536,9 @@ class PhysObject(pygame.sprite.Sprite):
             self._space.add(shape)
 
     def remove_shape(self, shape):
+        """
+        :param shape:
+        """
         if self._space is not None:
             self._space.remove(shape)
         if shape is self._shape:
@@ -491,6 +547,11 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def rect(self):
+        """
+        Прямоугольник, описанный около объекта.
+        Создаётся из pymunk.bb главного shape.
+        :return:
+        """
         bb = self.bb
         r = FRect(bb.left, bb.bottom, bb.right - bb.left, bb.top - bb.bottom)
         return r
@@ -502,6 +563,10 @@ class PhysObject(pygame.sprite.Sprite):
 
     @property
     def bb(self):
+        """
+        BoundingBox главного shape.
+        :return: pymunk.BB
+        """
         return self._shape.bb
 
     @property
@@ -509,6 +574,7 @@ class PhysObject(pygame.sprite.Sprite):
         return self._image
 
     # THIS MUST be used for drawing, not .image
+    # (Уже не точно, ведь теперь вращение изображения производится в update группы)
     def read_image(self):
         return self.image
 
@@ -517,9 +583,24 @@ class PhysObject(pygame.sprite.Sprite):
         self._image = surf
 
     def effect(self, obj, arbiter, first=True):
+        """
+        Переопределяемый.
+        "Оказывает воздействие" на другой объект при столкновение.
+        Пример - нанесение урона пулей.
+        :param obj: PhysObject
+        :param arbiter: pymunk.Arbiter
+        :param first: bool - устанавливается при вызове и описывает положение объекта в arbiter (первый или второй)
+        """
         pass
 
     def post_effect(self, obj, arbiter, first=True):
+        """
+        См. self.effect.
+        Отличие в том, что выполняется сразу после вызова .effect обоих объектов (опять же, для обоих объектов)
+        :param obj: PhysObject
+        :param arbiter: pymunk.Arbiter
+        :param first: bool
+        """
         pass
 
     def post_update(self):
@@ -536,10 +617,18 @@ class PhysObject(pygame.sprite.Sprite):
         self.apply_damping()
 
     def apply_damping(self):
-        if self.damping and self.own_body():
+        """
+        Имитирует трение с учётом self.damping и self.is_own_body
+        """
+        if self.damping and self.is_own_body():
             self.damp_velocity(self.damping)
 
     def damp_velocity(self, coef):
+        """
+        Имитирует трение умножением скорости.
+        velocity = velocity * (1 - coef * time)
+        :param coef: float
+        """
         self.velocity *= (1 - coef * (self.step_time / 1000))
 
     def _get_pos(self):
@@ -551,9 +640,15 @@ class PhysObject(pygame.sprite.Sprite):
     pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
     def _get_angle(self):
+        """
+        :return: float (degrees)
+        """
         return math.degrees(self.body.angle)
 
     def _set_angle(self, ang):
+        """
+        :param ang: float (degrees)
+        """
         b = self._body
         b.angle = math.radians(ang)
 
@@ -569,6 +664,10 @@ class PhysObject(pygame.sprite.Sprite):
         pass
 
     def _get_ang_vel(self):
+        """
+        Угловая скорость объекта
+        :return: float (degrees / second)
+        """
         return math.degrees(self._body.angular_velocity)
 
     def _set_ang_vel(self, angular_velocity):
@@ -585,6 +684,10 @@ class PhysObject(pygame.sprite.Sprite):
     vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
 
     def kill(self):
+        """
+        Полностью уничтожает спрайт.
+        Останавливает все издаваемые звуки (в течение секунды)
+        """
         self.remove_pymunk()
         # self._shape = None
         # self._body = None
@@ -592,15 +695,28 @@ class PhysObject(pygame.sprite.Sprite):
         self.remove_pygame()
 
     def add_post_step_callback(self, f, fid=None):
+        """
+        Единоразово выполняет функцию после завершения игровой итерации pymunk.Space.step.
+        Если пространство для объекта не определено, то выполняется немедленно.
+        :param f:
+        :param fid: уникальный id ( default=id(f) ), необходим для pymunk.space.add_post_step_callback
+        """
         if self._space is not None and self._space:
             self._space.add_post_step_callback(f, fid if fid is not None else id(f))
         else:
             f()
 
     def remove_pygame(self):
+        """
+        Выполняет удаление спрайта по правилам pygame.
+        """
         super().kill()
 
     def remove_pymunk(self):
+        """
+        Удаляет объект, его pymunk.Body и все pymunk.Shape
+        :return:
+        """
         space = self._space
         if space is not None:
             if self.shapes:
@@ -609,22 +725,49 @@ class PhysObject(pygame.sprite.Sprite):
                 space.remove(self._body, *self._body.constraints)
             self._space = None
 
-    def stop_sounds(self):
+    def stop_sounds(self, fadeout=1000):
+        """
+        Останавливает все издаваемые звуки с постепенным затуханием.
+        :param fadeout: int (ms) ( default=1000 )
+        """
         for snd in self.sound.values():
             if snd[0].get_num_channels() > 0:
-                snd[0].fadeout(1000)
+                snd[0].fadeout(fadeout)
 
     def collideable(self, obj):
+        """
+        Переопределяемый.
+        Проверка столкновения с объектом.
+        Возвращение False хотя бы одним приведёт к прохождению друг через друга
+        :param obj: PhysObject
+        :return: bool
+        """
         return True
 
     def damage(self, val):
+        """
+        Переопределяемый.
+        Нанести урон объекту.
+        :param val:
+        """
         pass
 
     @property
     def group(self):
+        """
+        Группа объектов, содержащая данный.
+        :return: PhysGroup
+        """
         return self.groups()[0]
 
     def velocity_for_distance(self, dist, time=1000):
+        """
+        Рассчитывает скорость,
+        необходимую чтобы при текущем значении коэффициента "трения" пройти дистанцию за определённое время.
+        :param dist: float - distance
+        :param time: int ( ms )
+        :return:
+        """
         dmp = self.damping
         if dmp:
             return (2 * dist * dmp) / (math.exp(-dmp * time) + 1)
@@ -690,6 +833,9 @@ class DynamicObject(ImageHandler):
             self.death()
 
     def emit_death_effect(self):
+        """
+        Воспроизвести видео эффект смерти.
+        """
         v = self.death_effect
         if v:
             v = v()
@@ -697,6 +843,10 @@ class DynamicObject(ImageHandler):
             v.pos = self.pos
 
     def death(self):
+        """
+        Уничтожает объект с воспроизведением эффекта смерти.
+        ( self.emit_death_effect() + self.kill() )
+        """
         self.emit_death_effect()
         self.kill()
 
@@ -744,11 +894,18 @@ class Mount:
     Mount point for components on pymunk.Body bounded sprite (creature)
     """
 
-    def __init__(self, parent, position=None, angle=0, allowed=None, top=True):
+    def __init__(self, parent, position=None, angle=0, allowed=True, top=True):
+        """
+        :param parent: PhysObject
+        :param position: (x, y) in local coords
+        :param angle: float (degrees) angle in local coords.
+        :param allowed: [config.ROLE, ...] | None | True
+        :param top: bool - is object above creature or not.
+        """
         self.parent = parent
         self._pos = Vec2d(0, 0) if position is None else Vec2d(position)
         self._ang = angle
-        self.allowed = [] if allowed is None else list(allowed)
+        self.allowed = True if allowed is True else ([] if allowed is None else list(allowed))
         self.object = None
         self.role = None
         self.top = top
@@ -797,15 +954,33 @@ class Mount:
             return False
 
     def mountable(self, obj):
+        """
+        Проверить, возможно ли теоретически установить объект.
+        :param obj: Component
+        :return: bool
+        """
         return self.allowed is True or obj.role in self.allowed
 
     def mount_ready(self, obj):
+        """
+        Возможно ли прямо сейчас установить объект.
+        ( self.free() * self.mountable(obj) )
+        :param obj: Component
+        :return: bool
+        """
         return self.object is None and (self.allowed is True or obj.role in self.allowed)
 
     def free(self):
+        """
+        Проверить, свободна ли позиция.
+        :return:
+        """
         return self.object is None
 
     def __bool__(self):
+        """
+        :return: True if mounted else None
+        """
         return self.object is not None
 
     def __repr__(self):
@@ -813,6 +988,9 @@ class Mount:
 
 
 class BaseCreature(DynamicObject):
+    """
+    Объект с системой крепления компонентов и перемещения
+    """
     draw_layer = DRAW_LAYER.CREATURE
     role = ROLE.CREATURE
     max_health = 100
@@ -825,6 +1003,15 @@ class BaseCreature(DynamicObject):
         self.mounts_names = {}
 
     def get_mount(self, index=None, key=None, obj=None):
+        """
+        Получить Mount (принадлежащий объекту) по индексу, ключу или прикреплённому к нему компоненту.
+        :param index: int
+        OR
+        :param key: str
+        OR
+        :param obj: Component
+        :return:
+        """
         if index is not None:
             return self.mounts[index]
         elif key is not None:
@@ -835,6 +1022,14 @@ class BaseCreature(DynamicObject):
                     return m
 
     def mount(self, obj, index=None, key=None):
+        """
+        Установить компонент.
+        :param obj: Component
+        :param index: int
+        OR
+        :param key: str
+        :return: bool
+        """
         m = self.get_mount(index, key)
         if m is not None:
             s = m.mount(obj)
@@ -853,6 +1048,15 @@ class BaseCreature(DynamicObject):
         return False
 
     def unmount(self, index=None, key=None, obj=None):
+        """
+        Отсоединить объект.
+        :param index: int
+        OR
+        :param key: str
+        OR
+        :param obj: Component
+        :return: bool
+        """
         m = self.get_mount(index, key, obj)
         if m is not None:
             o = m.object
@@ -864,13 +1068,24 @@ class BaseCreature(DynamicObject):
         return False
 
     def unmount_all(self):
+        """
+        Отсоединить все компоненты.
+        """
         for n in range(len(self.mounts)):
             self.unmount(index=n)
 
     def mounted_objects(self):
-        return [e.object for e in self.mounts if e.object is not None]
+        """
+        :return: [Component, ...]
+        """
+        return [e.object for e in self.mounts if e]
 
     def init_mounts(self, *mounts):
+        """
+        Инициализирует систему крепления компонентов
+        :param mounts: [Mount, mount_name] | Mount, ...
+        :return:
+        """
         shift = len(self.mounts)
         for n, i in enumerate(mounts):
             if hasattr(i, '__iter__'):
@@ -882,14 +1097,26 @@ class BaseCreature(DynamicObject):
         self.mounts_num = len(self.mounts)
 
     def get_weapons(self):
+        """
+        Получить все установленные объекты с role == config.ROLE.WEAPON
+        :return: [BaseWeapon, ...]
+        """
         return [e.object for e in self.mounts if e.role == ROLE.WEAPON]
 
     def free_weapon(self):
+        """
+        Возвращает пустой Mount для оружия.
+        :return:
+        """
         for i in self.mounts:
             if i.role == ROLE.WEAPON and i.free():
                 return i
 
     def shot(self, **kwargs):
+        """
+        Выстрел из всех оружий.
+        :param kwargs:
+        """
         for i in self.get_weapons():
             i.shot(**kwargs)
 
@@ -900,7 +1127,9 @@ class BaseCreature(DynamicObject):
 
 class BaseComponent(DynamicObject):
     """
-    Mountable physical object
+    Объект с возможностью установки на Mount.
+    Дополнительно преобретает аттрибут self.i_body,
+    который характеризуют его в отсоединённом от Mount состояния.
     """
     draw_layer = DRAW_LAYER.COMPONENT
     role = ROLE.COMPONENT
@@ -964,6 +1193,10 @@ class BaseComponent(DynamicObject):
 
     @property
     def source_shape(self):
+        """
+        Начальная форма объекта. Текущая обычно развёрнута с учётом наклона Mount.
+        :return:
+        """
         return self._i_shape
 
     def _get_shape(self):
@@ -990,11 +1223,16 @@ class BaseComponent(DynamicObject):
         shape = self.shape
         return [shape] if shape is not None else []
 
-    def own_body(self):
+    def is_own_body(self):
         return self.body is self.i_body
 
     @property
     def body(self):
+        """
+        Тело компонента. Может оказаться как собственным так и не собственным.
+        См. self.i_body
+        :return: pymunk.Body
+        """
         return self._body
 
     @body.setter
@@ -1008,11 +1246,15 @@ class BaseComponent(DynamicObject):
 
     @property
     def i_body(self):
+        """
+        Собственное тело компонента. Когда установлен оно уничтожается, а при отсоединении создаётся.
+        :return: pymunk.Body
+        """
         return self._i_body
 
     @i_body.setter
     def i_body(self, body):
-        if self.own_body():
+        if self.is_own_body():
             self.body = body
         if self._i_body is not None:
             self._i_body.sprite = None
@@ -1020,6 +1262,11 @@ class BaseComponent(DynamicObject):
         body.sprite = self
 
     def preview(self, size):
+        """
+        Возвращает preview для инвентаря.
+        :param size: (width, height)
+        :return: pygame.Surface
+        """
         i_img = self._image[0]
         img_b_rect = i_img.get_bounding_rect()
         img = i_img.subsurface(img_b_rect)
@@ -1027,6 +1274,10 @@ class BaseComponent(DynamicObject):
         return pygame.transform.scale(img, [int(e) for e in r.size])
 
     def update_local_placement(self):
+        """
+        Устанавливает форму объекта в соответсвтие с локальным положением
+        :return:
+        """
         pos, ang = self.local_pos, self.local_angle
         i_shape = self._i_shape
         shape = self._shape

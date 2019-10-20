@@ -19,7 +19,7 @@ class Weapon(YTGBaseWeapon):
     size_inc = 1
     max_health = 50
     fire_delay = 2000
-    proj_velocity = 1100
+    proj_velocity = 1400
     sound = {
         'fire': [load_sound('Weapons\\Models\\boing_x', ext='wav'), {'channel': CHANNEL.PULSON_WEAPON}]
     }
