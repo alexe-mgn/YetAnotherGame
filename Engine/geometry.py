@@ -38,16 +38,18 @@ def normalized_angle(ang):
     """
     Return equivalent of given ang, but inside [0, 360)
     """
-    if ang < 0:
-        ang = 360 - abs(ang) % 360
-    if ang >= 360:
+    # if ang < 0:
+    #     ang = 360 - abs(ang) % 360
+    # if ang >= 360:
+    #     ang %= 360
+    if not 0 <= ang < 360:
         ang %= 360
     return ang
 
 
 def angular_distance(a, b):
     d = b - a
-    if not 0 <= d <= 360:
+    if not 0 <= d < 360:
         d %= 360
     if d > 180:
         d -= 360
