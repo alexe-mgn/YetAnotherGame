@@ -182,6 +182,7 @@ class PhysicsGroup(CameraGroup):
 class BaseSprite(pygame.sprite.Sprite):
     draw_layer = DRAW_LAYER.DEFAULT
     sound = {}
+    damping = None
 
     def __init__(self):
         """
@@ -189,19 +190,25 @@ class BaseSprite(pygame.sprite.Sprite):
            - rect
            - image
         """
+        super().__init__()
+        self._image = None
+
         self._pos = Vec2d(0, 0)
         self._size = Vec2d(0, 0)
         self._angle = 0
 
-        self._image = None
-
-        self.damping = 0
         self.step_time = 1
         self.age = 0
-        super().__init__()
+
         self.play_sound('creation')
 
     def play_sound(self, key):
+        """
+        Звуки хранятся в аттрибуте Sprite.sounds
+        sounds = {'sound_key': [pygame.mixer.Sound, sound params {'channel', 'loops', 'max_time', 'fade_ms'}]}
+        Параметры звука необязательны, можно оставить пустой словарь.
+        :param key: sound key
+        """
         s = self.sound.get(key, [])
         if s:
             self.group.que_sound(s[0], self, **s[1])
@@ -343,6 +350,24 @@ class BaseSprite(pygame.sprite.Sprite):
         self._set_image(surface)
 
     def effect(self, obj, arbiter, first=True):
+        """
+        Переопределяемый.
+        "Оказывает воздействие" на другой объект при столкновение.
+        Пример - нанесение урона пулей.
+        :param obj: PhysObject
+        :param arbiter: pymunk.Arbiter
+        :param first: bool - устанавливается при вызове и описывает положение объекта в arbiter (первый или второй)
+        """
+        pass
+
+    def post_effect(self, obj, arbiter, first=True):
+        """
+        См. self.effect.
+        Отличие в том, что выполняется сразу после вызова .effect обоих объектов (опять же, для обоих объектов)
+        :param obj: PhysObject
+        :param arbiter: pymunk.Arbiter
+        :param first: bool
+        """
         pass
 
     def post_update(self):
@@ -399,10 +424,40 @@ class BaseSprite(pygame.sprite.Sprite):
     def velocity(self, vel):
         self._set_velocity(vel)
 
+    def _get_angular_velocity(self):
+        """
+        Угловая скорость объекта
+        :return: float (degrees / second)
+        """
+        return 0
+
+    def _set_angular_velocity(self, ang_vel):
+        pass
+
+    @property
+    def angular_velocity(self):
+        return self._get_angular_velocity()
+
+    @angular_velocity.setter
+    def angular_velocity(self, ang_vel):
+        self._set_angular_velocity(ang_vel)
+
     def collideable(self, obj):
-        return False
+        """
+        Переопределяемый.
+        Проверка столкновения с объектом.
+        Возвращение False хотя бы одним приведёт к прохождению друг через друга
+        :param obj: PhysObject
+        :return: bool
+        """
+        return True
 
     def damage(self, val):
+        """
+        Переопределяемый.
+        Нанести урон объекту.
+        :param val:
+        """
         pass
 
     def _get_group(self):
@@ -412,10 +467,36 @@ class BaseSprite(pygame.sprite.Sprite):
     def group(self):
         return self._get_group()
 
-    def kill(self):
+    def stop_sounds(self, fadeout=1000):
+        """
+        Останавливает все издаваемые звуки с постепенным затуханием.
+        :param fadeout: int (ms) ( default=1000 )
+        """
         for snd in self.sound.values():
             if snd[0].get_num_channels() > 0:
-                snd[0].fadeout(1000)
+                snd[0].fadeout(fadeout)
+
+    def kill(self):
+        """
+        Полностью уничтожает спрайт.
+        Останавливает все издаваемые звуки (в течение секунды)
+        """
+        self.stop_sounds()
+        self.remove_pygame()
+
+    def add_post_step_callback(self, f, fid=None):
+        """
+        Единоразово выполняет функцию после завершения игровой итерации pymunk.Space.step.
+        Если пространство для объекта не определено, то выполняется немедленно.
+        :param f:
+        :param fid: уникальный id ( default=id(f) ), необходим для pymunk.space.add_post_step_callback
+        """
+        f()
+
+    def remove_pygame(self):
+        """
+        Выполняет удаление спрайта по правилам pygame.
+        """
         super().kill()
 
     def __bool__(self):
@@ -425,35 +506,15 @@ class BaseSprite(pygame.sprite.Sprite):
 class StaticImage(BaseSprite):
     draw_layer = DRAW_LAYER.VFX
 
-    def __init__(self):
-        """
-        Necessary assignment
-           - rect
-           - image
-        """
-        self._pos = Vec2d(0, 0)
-        self._size = Vec2d(0, 0)
-        self._angle = 0
-
-        self._image = None
-
-        self.damping = 0
-        self.step_time = 1
-        super().__init__()
-        self.play_sound('creation')
-
     def end_step(self):
         super().end_step()
         self._image.update(self.step_time)
 
 
-class PhysObject(pygame.sprite.Sprite):
+class PhysObject(BaseSprite):
     """
     Sprite bounded to single pymunk.Body and one MAIN shape
     """
-    draw_layer = DRAW_LAYER.DEFAULT
-    damping = None
-    sound = {}
 
     def __init__(self):
         """
@@ -462,26 +523,10 @@ class PhysObject(pygame.sprite.Sprite):
            - image
            - shape
         """
-        self._image = None
+        super().__init__()
         self._space = None
         self._body = None
         self._shape = None
-
-        self.step_time = 1
-        self.age = 0
-        super().__init__()
-        self.play_sound('creation')
-
-    def play_sound(self, key):
-        """
-        Звуки хранятся в аттрибуте Sprite.sounds
-        sounds = {'sound_key': [pygame.mixer.Sound, sound params {'channel', 'loops', 'max_time', 'fade_ms'}]}
-        Параметры звука необязательны, можно оставить пустой словарь.
-        :param key: sound key
-        """
-        s = self.sound.get(key, [])
-        if s:
-            self.group.que_sound(s[0], self, **s[1])
 
     def _get_space(self):
         """
@@ -506,14 +551,6 @@ class PhysObject(pygame.sprite.Sprite):
                 space.add(self._body)
             if shapes:
                 space.add(shapes)
-
-    @property
-    def space(self):
-        return self._get_space()
-
-    @space.setter
-    def space(self, space):
-        self._set_space(space)
 
     def is_own_body(self):
         """
@@ -545,14 +582,6 @@ class PhysObject(pygame.sprite.Sprite):
         if body is not None:
             body.sprite = self
 
-    @property
-    def body(self):
-        return self._get_body()
-
-    @body.setter
-    def body(self, body):
-        self._set_body(body)
-
     def local_to_world(self, pos):
         """
         Конвертация из локальной системы координат в уровневую.
@@ -577,14 +606,6 @@ class PhysObject(pygame.sprite.Sprite):
     def _set_mass(self, mass):
         self._body.mass = mass
 
-    @property
-    def mass(self):
-        return self._get_mass()
-
-    @mass.setter
-    def mass(self, mass):
-        self._set_mass(mass)
-
     def _get_moment(self):
         """
         Момент инерции тела.
@@ -600,14 +621,6 @@ class PhysObject(pygame.sprite.Sprite):
         :param m: float
         """
         self._body.moment = m
-
-    @property
-    def moment(self):
-        return self._get_moment()
-
-    @moment.setter
-    def moment(self, moment):
-        self._set_moment(moment)
 
     def _get_shape(self):
         """
@@ -631,21 +644,9 @@ class PhysObject(pygame.sprite.Sprite):
             self._space.add(shape)
         self._shape = shape
 
-    @property
-    def shape(self):
-        return self._get_shape()
-
-    @shape.setter
-    def shape(self, shape):
-        self._set_shape(shape)
-
     def _get_shapes(self):
         body = self._body
         return body.shapes if body is not None else []
-
-    @property
-    def shapes(self):
-        return self._get_shapes()
 
     def add_shape(self, shape):
         """
@@ -682,14 +683,6 @@ class PhysObject(pygame.sprite.Sprite):
         if self._body is not None:
             self._body.position = FRect(rect).center
 
-    @property
-    def rect(self):
-        return self._get_rect()
-
-    @rect.setter
-    def rect(self, rect):
-        self._set_rect(rect)
-
     def _get_bb(self):
         """
         BoundingBox главного shape.
@@ -697,56 +690,14 @@ class PhysObject(pygame.sprite.Sprite):
         """
         return self._shape.bb
 
-    @property
-    def bb(self):
-        return self._get_bb()
-
     def _get_image(self):
         return self._image
 
     def _set_image(self, surface):
         self._image = surface
 
-    @property
-    def image(self):
-        return self._get_image()
-
-    @image.setter
-    def image(self, surface):
-        self._set_image(surface)
-
-    def effect(self, obj, arbiter, first=True):
-        """
-        Переопределяемый.
-        "Оказывает воздействие" на другой объект при столкновение.
-        Пример - нанесение урона пулей.
-        :param obj: PhysObject
-        :param arbiter: pymunk.Arbiter
-        :param first: bool - устанавливается при вызове и описывает положение объекта в arbiter (первый или второй)
-        """
-        pass
-
-    def post_effect(self, obj, arbiter, first=True):
-        """
-        См. self.effect.
-        Отличие в том, что выполняется сразу после вызова .effect обоих объектов (опять же, для обоих объектов)
-        :param obj: PhysObject
-        :param arbiter: pymunk.Arbiter
-        :param first: bool
-        """
-        pass
-
-    def post_update(self):
-        pass
-
-    def update(self):
-        pass
-
-    def start_step(self, upd_time):
-        self.step_time = upd_time
-
     def end_step(self):
-        self.age += self.step_time
+        super().end_step()
         self.apply_damping()
 
     def apply_damping(self):
@@ -765,19 +716,10 @@ class PhysObject(pygame.sprite.Sprite):
         self.velocity *= (1 - coef * (self.step_time / 1000))
 
     def _get_position(self):
-        # COMPONENT POSITION !!!
         return self._body.position
 
     def _set_position(self, p):
         self._body.position = p
-
-    @property
-    def position(self):
-        return self._get_position()
-
-    @position.setter
-    def position(self, pos):
-        self._set_position(pos)
 
     def _get_angle(self):
         """
@@ -786,20 +728,11 @@ class PhysObject(pygame.sprite.Sprite):
         return math.degrees(self.body.angle)
 
     def _set_angle(self, ang):
-        # COMPONENT AND ENGINE ANGLE!!!
         """
         :param ang: float (degrees)
         """
         b = self._body
         b.angle = math.radians(ang)
-
-    @property
-    def angle(self):
-        return self._get_angle()
-
-    @angle.setter
-    def angle(self, ang):
-        self._set_angle(ang)
 
     def rotate_for(self, ang, speed):
         """
@@ -810,31 +743,21 @@ class PhysObject(pygame.sprite.Sprite):
         """
         pass
 
-    def _get_ang_vel(self):
-        """
-        Угловая скорость объекта
-        :return: float (degrees / second)
-        """
-        return math.degrees(self._body.angular_velocity)
-
-    def _set_ang_vel(self, angular_velocity):
-        self._body.angular_velocity = math.radians(angular_velocity)
-
-    ang_vel, angular_velocity = property(_get_ang_vel, _set_ang_vel), property(_get_ang_vel, _set_ang_vel)
-
     def _get_velocity(self):
         return self._body.velocity
 
     def _set_velocity(self, vel):
         self._body.velocity = (vel[0], vel[1])
 
-    @property
-    def velocity(self):
-        return self._get_velocity()
+    def _get_angular_velocity(self):
+        """
+        Угловая скорость объекта
+        :return: float (degrees / second)
+        """
+        return math.degrees(self._body.angular_velocity)
 
-    @velocity.setter
-    def velocity(self, vel):
-        self._set_velocity(vel)
+    def _set_angular_velocity(self, ang_vel):
+        self._body.angular_velocity = math.radians(ang_vel)
 
     def kill(self):
         """
@@ -842,10 +765,7 @@ class PhysObject(pygame.sprite.Sprite):
         Останавливает все издаваемые звуки (в течение секунды)
         """
         self.remove_pymunk()
-        # self._shape = None
-        # self._body = None
-        self.stop_sounds()
-        self.remove_pygame()
+        super().kill()
 
     def add_post_step_callback(self, f, fid=None):
         """
@@ -859,12 +779,6 @@ class PhysObject(pygame.sprite.Sprite):
         else:
             f()
 
-    def remove_pygame(self):
-        """
-        Выполняет удаление спрайта по правилам pygame.
-        """
-        super().kill()
-
     def remove_pymunk(self):
         """
         Удаляет объект, его pymunk.Body и все pymunk.Shape
@@ -877,44 +791,6 @@ class PhysObject(pygame.sprite.Sprite):
             if self._body is not None:
                 space.remove(self._body, *self._body.constraints)
             self._space = None
-
-    def stop_sounds(self, fadeout=1000):
-        """
-        Останавливает все издаваемые звуки с постепенным затуханием.
-        :param fadeout: int (ms) ( default=1000 )
-        """
-        for snd in self.sound.values():
-            if snd[0].get_num_channels() > 0:
-                snd[0].fadeout(fadeout)
-
-    def collideable(self, obj):
-        """
-        Переопределяемый.
-        Проверка столкновения с объектом.
-        Возвращение False хотя бы одним приведёт к прохождению друг через друга
-        :param obj: PhysObject
-        :return: bool
-        """
-        return True
-
-    def damage(self, val):
-        """
-        Переопределяемый.
-        Нанести урон объекту.
-        :param val:
-        """
-        pass
-
-    def _get_group(self):
-        return self.groups()[0]
-
-    @property
-    def group(self):
-        """
-        Группа объектов, содержащая данный.
-        :return: PhysGroup
-        """
-        return self._get_group()
 
     def velocity_for_distance(self, dist, time=1000):
         """

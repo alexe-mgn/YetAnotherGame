@@ -78,6 +78,7 @@ class Ballast(Segment):
     max_health = 300
     size_inc = .5
     hit_damage = 10
+    join_acceleration_coef = 4
 
     def __init__(self):
         super().__init__()
@@ -98,7 +99,11 @@ class Ballast(Segment):
     def start_step(self, upd_time):
         super().start_step(upd_time)
         if self.age > 3000 and self.pair:
-            self.velocity = self.pair.position - self.position
+            self.body.apply_force_at_world_point(
+                (self.pair.position - self.position) * (self.mass * self.join_acceleration_coef),
+                self.position
+            )
+            # self.velocity += (self.pair.position - self.position) / 10
 
 
 Ballast.init_class()

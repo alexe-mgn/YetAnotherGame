@@ -59,7 +59,7 @@ Explosion.init_class()
 
 class Projectile(BaseProjectile):
     size_inc = 1
-    damping = None
+    damping = 0
     max_health = 10
     lifetime = 3000
     hit_damage = 15
