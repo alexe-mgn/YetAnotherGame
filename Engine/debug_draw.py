@@ -11,7 +11,7 @@ def draw_debug(surface, camera, sprites):
         return [int(e) for e in (pos - tl) * zoom]
 
     for s in sprites:
-        pos, ang = s.pos, s.angle
+        pos, ang = s.position, s.angle
         shape = s.shape
         if isinstance(shape, pymunk.Poly):
             pygame.draw.polygon(surface, (255, 0, 0),

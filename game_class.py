@@ -49,7 +49,7 @@ class BaseEngine(YTGBaseComponent):
         self.parent_default_damping = 0
 
     def walk(self, vec):
-        cv = self.vel
+        cv = self.velocity
         if any(vec):
             tv = Vec2d(vec)
             tv.length = self.max_vel
@@ -111,8 +111,6 @@ class BaseEngine(YTGBaseComponent):
         else:
             self._body.angle = math.radians(ang)
         self.update_local_placement()
-
-    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
 
 class YTGBaseWeapon(BaseWeapon):

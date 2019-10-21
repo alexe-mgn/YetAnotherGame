@@ -54,11 +54,11 @@ class CameraGroup(ObjectGroup):
 
         for sprite in self.layer_sorted():
             if sprite.bb.intersects(cam_bb):
-                s_img = sprite.read_image()
+                s_img = sprite.image
                 img = pygame.transform.rotozoom(s_img, -sprite.angle, zoom)
 
                 img_size = img.get_size()
-                s_pos = sprite.pos
+                s_pos = sprite.position
                 sc = (
                     int(cam_offset[0] + (s_pos[0] - cam_tl[0]) * zoom - img_size[0] / 2),
                     int(cam_offset[1] + (s_pos[1] - cam_tl[1]) * zoom - img_size[1] / 2)
@@ -77,7 +77,7 @@ class CameraGroup(ObjectGroup):
             else:
                 c = sound.play(kwargs.get('loops', 0), kwargs.get('max_time', 0), kwargs.get('fade_ms', 0))
             if c is not None:
-                to_s = snd[1].pos - cam_c
+                to_s = snd[1].position - cam_c
                 d = to_s.get_length_sqrd()
                 v = SOUND_COEF / (math.sqrt(d + cam_h) + 1)
                 c.set_volume(v)
@@ -179,13 +179,251 @@ class PhysicsGroup(CameraGroup):
                 hs.append(c)
 
 
-class StaticImage(pygame.sprite.Sprite):
-    """
-    Non-physical sprite with only image, but still usable by PhysicsGroup.
-    """
-
-    draw_layer = DRAW_LAYER.VFX
+class BaseSprite(pygame.sprite.Sprite):
+    draw_layer = DRAW_LAYER.DEFAULT
     sound = {}
+
+    def __init__(self):
+        """
+        Necessary assignment
+           - rect
+           - image
+        """
+        self._pos = Vec2d(0, 0)
+        self._size = Vec2d(0, 0)
+        self._angle = 0
+
+        self._image = None
+
+        self.damping = 0
+        self.step_time = 1
+        self.age = 0
+        super().__init__()
+        self.play_sound('creation')
+
+    def play_sound(self, key):
+        s = self.sound.get(key, [])
+        if s:
+            self.group.que_sound(s[0], self, **s[1])
+
+    def _get_space(self):
+        return None
+
+    def _set_space(self, space):
+        pass
+
+    @property
+    def space(self):
+        return self._get_space()
+
+    @space.setter
+    def space(self, space):
+        self._set_space(space)
+
+    def is_own_body(self):
+        return True
+
+    def _get_body(self):
+        return None
+
+    def _set_body(self, body):
+        pass
+
+    @property
+    def body(self):
+        return self._get_body()
+
+    @body.setter
+    def body(self, body):
+        self._set_body(body)
+
+    def local_to_world(self, pos):
+        return self.position + Vec2d(pos).rotated(self.angle)
+
+    def world_to_local(self, pos):
+        return (Vec2d(pos) - self.position).rotated(-self.angle)
+
+    def _get_mass(self):
+        return 0
+
+    def _set_mass(self, mass):
+        pass
+
+    @property
+    def mass(self):
+        return self._get_mass()
+
+    @mass.setter
+    def mass(self, mass):
+        self._set_mass(mass)
+
+    def _get_moment(self):
+        return 0
+
+    def _set_moment(self, moment):
+        pass
+
+    @property
+    def moment(self):
+        return self._get_moment()
+
+    @moment.setter
+    def moment(self, moment):
+        self._set_moment(moment)
+
+    def _get_shape(self):
+        return None
+
+    def _set_shape(self, shape):
+        pass
+
+    @property
+    def shape(self):
+        return self._get_shape()
+
+    @shape.setter
+    def shape(self, shape):
+        self._set_shape(shape)
+
+    def _get_shapes(self):
+        return []
+
+    @property
+    def shapes(self):
+        return self._get_shapes()
+
+    def add_shape(self, shape):
+        pass
+
+    def remove_shape(self, shape):
+        pass
+
+    def _get_rect(self):
+        r = FRect(*self._pos, 0, 0)
+        r.inflate_ip(*self._size)
+        return r
+
+    def _set_rect(self, rect):
+        self._pos = Vec2d(rect.center)
+        self._size = Vec2d(rect.size)
+
+    @property
+    def rect(self):
+        return self._get_rect()
+
+    @rect.setter
+    def rect(self, rect):
+        self._set_rect(rect)
+
+    def _get_bb(self):
+        x, y = self._pos
+        size = self._size
+        hw, hh = size[0] / 2, size[1] / 2
+        return pymunk.BB(x - hw, y + hh, x + hw, y - hh)
+
+    @property
+    def bb(self):
+        return self._get_bb()
+
+    def read_image(self):
+        return self._image.read()
+
+    def _get_image(self):
+        return self._image.read()
+
+    def _set_image(self, surface):
+        self._image = surface
+
+    @property
+    def image(self):
+        return self._get_image()
+
+    @image.setter
+    def image(self, surface):
+        self._set_image(surface)
+
+    def effect(self, obj, arbiter, first=True):
+        pass
+
+    def post_update(self):
+        pass
+
+    def update(self):
+        pass
+
+    def start_step(self, upd_time):
+        self.step_time = upd_time
+
+    def end_step(self):
+        self.age += self.step_time
+
+    def _get_position(self):
+        return self._pos
+
+    def _set_position(self, p):
+        self._pos = Vec2d(p)
+
+    @property
+    def position(self):
+        return self._get_position()
+
+    @position.setter
+    def position(self, p):
+        self._set_position(p)
+
+    def _get_angle(self):
+        return self._angle
+
+    def _set_angle(self, ang):
+        self._angle = ang
+
+    @property
+    def angle(self):
+        return self._get_angle()
+
+    @angle.setter
+    def angle(self, ang):
+        self._set_angle(ang)
+
+    def _get_velocity(self):
+        return Vec2d(0, 0)
+
+    def _set_velocity(self, vel):
+        pass
+
+    @property
+    def velocity(self):
+        return self._get_velocity()
+
+    @velocity.setter
+    def velocity(self, vel):
+        self._set_velocity(vel)
+
+    def collideable(self, obj):
+        return False
+
+    def damage(self, val):
+        pass
+
+    def _get_group(self):
+        return self.groups()[0]
+
+    @property
+    def group(self):
+        return self._get_group()
+
+    def kill(self):
+        for snd in self.sound.values():
+            if snd[0].get_num_channels() > 0:
+                snd[0].fadeout(1000)
+        super().kill()
+
+    def __bool__(self):
+        return True
+
+
+class StaticImage(BaseSprite):
+    draw_layer = DRAW_LAYER.VFX
 
     def __init__(self):
         """
@@ -204,157 +442,9 @@ class StaticImage(pygame.sprite.Sprite):
         super().__init__()
         self.play_sound('creation')
 
-    def play_sound(self, key):
-        s = self.sound.get(key, [])
-        if s:
-            self.group.que_sound(s[0], self, **s[1])
-
-    @property
-    def space(self):
-        return None
-
-    @space.setter
-    def space(self, space):
-        pass
-
-    def is_own_body(self):
-        return True
-
-    @property
-    def body(self):
-        return None
-
-    @body.setter
-    def body(self, body):
-        pass
-
-    def local_to_world(self, pos):
-        return self.pos + Vec2d(pos).rotated(self.angle)
-
-    def world_to_local(self, pos):
-        return (Vec2d(pos) - self.pos).rotated(-self.angle)
-
-    @property
-    def mass(self):
-        return 0
-
-    @mass.setter
-    def mass(self, m):
-        pass
-
-    @property
-    def moment(self):
-        return 0
-
-    @moment.setter
-    def moment(self, m):
-        pass
-
-    @property
-    def shape(self):
-        return None
-
-    @shape.setter
-    def shape(self, shape):
-        pass
-
-    @property
-    def shapes(self):
-        return []
-
-    def add_shape(self, shape):
-        pass
-
-    def remove_shape(self, shape):
-        pass
-
-    @property
-    def rect(self):
-        r = FRect(*self._pos, 0, 0)
-        r.inflate_ip(*self._size)
-        return r
-
-    @rect.setter
-    def rect(self, rect):
-        self._pos = Vec2d(rect.center)
-        self._size = Vec2d(rect.size)
-
-    @property
-    def bb(self):
-        x, y = self._pos
-        size = self._size
-        hw, hh = size[0] / 2, size[1] / 2
-        return pymunk.BB(x - hw, y + hh, x + hw, y - hh)
-
-    @property
-    def image(self):
-        return self._image.read()
-
-    # THIS MUST be used for drawing, not .image
-    def read_image(self):
-        return self.image
-
-    @image.setter
-    def image(self, surf):
-        self._image = surf
-
-    def effect(self, obj, arbiter, first=True):
-        pass
-
-    def post_update(self):
-        pass
-
-    def update(self):
-        pass
-
-    def start_step(self, upd_time):
-        self.step_time = upd_time
-
     def end_step(self):
+        super().end_step()
         self._image.update(self.step_time)
-
-    def _get_pos(self):
-        return self._pos
-
-    def _set_pos(self, p):
-        self._pos = Vec2d(p)
-
-    pos, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
-
-    def _get_angle(self):
-        return self._angle
-
-    def _set_angle(self, ang):
-        self._angle = ang
-
-    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
-
-    def _get_velocity(self):
-        return Vec2d(0, 0)
-
-    def _set_velocity(self, vel):
-        pass
-
-    vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
-
-    def collideable(self, obj):
-        return False
-
-    def damage(self, val):
-        pass
-
-    @property
-    def group(self):
-        return self.groups()[0]
-
-    def kill(self):
-        for snd in self.sound.values():
-            if snd[0].get_num_channels() > 0:
-                snd[0].fadeout(1000)
-        super().kill()
-
-    def __bool__(self):
-        return True
 
 
 class PhysObject(pygame.sprite.Sprite):
@@ -393,15 +483,13 @@ class PhysObject(pygame.sprite.Sprite):
         if s:
             self.group.que_sound(s[0], self, **s[1])
 
-    @property
-    def space(self):
+    def _get_space(self):
         """
         :return: pymunk.Space
         """
         return self._space
 
-    @space.setter
-    def space(self, space):
+    def _set_space(self, space):
         """
         Установить пространство объектов pymunk.Space для self.body и всех его pymunk.Shape
         :param space: pymunk.Space
@@ -419,6 +507,14 @@ class PhysObject(pygame.sprite.Sprite):
             if shapes:
                 space.add(shapes)
 
+    @property
+    def space(self):
+        return self._get_space()
+
+    @space.setter
+    def space(self, space):
+        self._set_space(space)
+
     def is_own_body(self):
         """
         Переопределяется объектами классов Component.
@@ -427,16 +523,14 @@ class PhysObject(pygame.sprite.Sprite):
         """
         return True
 
-    @property
-    def body(self):
+    def _get_body(self):
         """
         "Тело" объекта. К нему привязываются pymunk.Shape частично определяющие массу, размеры, форму и т.д
         :return: pymunk.Body
         """
         return self._body
 
-    @body.setter
-    def body(self, body):
+    def _set_body(self, body):
         """
         Установить тело объекта, на данный момент все его pymunk.Shape не учитываются в процессе переноса.
         :param body: pymunk.Body
@@ -450,6 +544,14 @@ class PhysObject(pygame.sprite.Sprite):
         self._body = body
         if body is not None:
             body.sprite = self
+
+    @property
+    def body(self):
+        return self._get_body()
+
+    @body.setter
+    def body(self, body):
+        self._set_body(body)
 
     def local_to_world(self, pos):
         """
@@ -469,16 +571,21 @@ class PhysObject(pygame.sprite.Sprite):
         """
         return self._body.world_to_local(pos)
 
-    @property
-    def mass(self):
+    def _get_mass(self):
         return self._body.mass
 
-    @mass.setter
-    def mass(self, m):
-        self._body.mass = m
+    def _set_mass(self, mass):
+        self._body.mass = mass
 
     @property
-    def moment(self):
+    def mass(self):
+        return self._get_mass()
+
+    @mass.setter
+    def mass(self, mass):
+        self._set_mass(mass)
+
+    def _get_moment(self):
         """
         Момент инерции тела.
         Единицы измерения не проверены!
@@ -486,14 +593,21 @@ class PhysObject(pygame.sprite.Sprite):
         """
         return self._body.moment
 
-    @moment.setter
-    def moment(self, m):
+    def _set_moment(self, m):
         """
         Установить момент инерции.
         Единицы измерения не проверены!
         :param m: float
         """
         self._body.moment = m
+
+    @property
+    def moment(self):
+        return self._get_moment()
+
+    @moment.setter
+    def moment(self, moment):
+        self._set_moment(moment)
 
     def _get_shape(self):
         """
@@ -517,12 +631,21 @@ class PhysObject(pygame.sprite.Sprite):
             self._space.add(shape)
         self._shape = shape
 
-    shape = property(_get_shape, _set_shape)
+    @property
+    def shape(self):
+        return self._get_shape()
+
+    @shape.setter
+    def shape(self, shape):
+        self._set_shape(shape)
+
+    def _get_shapes(self):
+        body = self._body
+        return body.shapes if body is not None else []
 
     @property
     def shapes(self):
-        body = self._body
-        return body.shapes if body is not None else []
+        return self._get_shapes()
 
     def add_shape(self, shape):
         """
@@ -545,8 +668,7 @@ class PhysObject(pygame.sprite.Sprite):
             self._shape = None
         shape.body = None
 
-    @property
-    def rect(self):
+    def _get_rect(self):
         """
         Прямоугольник, описанный около объекта.
         Создаётся из pymunk.bb главного shape.
@@ -556,13 +678,19 @@ class PhysObject(pygame.sprite.Sprite):
         r = FRect(bb.left, bb.bottom, bb.right - bb.left, bb.top - bb.bottom)
         return r
 
-    @rect.setter
-    def rect(self, rect):
+    def _set_rect(self, rect):
         if self._body is not None:
             self._body.position = FRect(rect).center
 
     @property
-    def bb(self):
+    def rect(self):
+        return self._get_rect()
+
+    @rect.setter
+    def rect(self, rect):
+        self._set_rect(rect)
+
+    def _get_bb(self):
         """
         BoundingBox главного shape.
         :return: pymunk.BB
@@ -570,17 +698,22 @@ class PhysObject(pygame.sprite.Sprite):
         return self._shape.bb
 
     @property
-    def image(self):
+    def bb(self):
+        return self._get_bb()
+
+    def _get_image(self):
         return self._image
 
-    # THIS MUST be used for drawing, not .image
-    # (Уже не точно, ведь теперь вращение изображения производится в update группы)
-    def read_image(self):
-        return self.image
+    def _set_image(self, surface):
+        self._image = surface
+
+    @property
+    def image(self):
+        return self._get_image()
 
     @image.setter
-    def image(self, surf):
-        self._image = surf
+    def image(self, surface):
+        self._set_image(surface)
 
     def effect(self, obj, arbiter, first=True):
         """
@@ -631,13 +764,20 @@ class PhysObject(pygame.sprite.Sprite):
         """
         self.velocity *= (1 - coef * (self.step_time / 1000))
 
-    def _get_pos(self):
+    def _get_position(self):
+        # COMPONENT POSITION !!!
         return self._body.position
 
-    def _set_pos(self, p):
+    def _set_position(self, p):
         self._body.position = p
 
-    pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+    @property
+    def position(self):
+        return self._get_position()
+
+    @position.setter
+    def position(self, pos):
+        self._set_position(pos)
 
     def _get_angle(self):
         """
@@ -646,13 +786,20 @@ class PhysObject(pygame.sprite.Sprite):
         return math.degrees(self.body.angle)
 
     def _set_angle(self, ang):
+        # COMPONENT AND ENGINE ANGLE!!!
         """
         :param ang: float (degrees)
         """
         b = self._body
         b.angle = math.radians(ang)
 
-    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
+    @property
+    def angle(self):
+        return self._get_angle()
+
+    @angle.setter
+    def angle(self, ang):
+        self._set_angle(ang)
 
     def rotate_for(self, ang, speed):
         """
@@ -681,7 +828,13 @@ class PhysObject(pygame.sprite.Sprite):
     def _set_velocity(self, vel):
         self._body.velocity = (vel[0], vel[1])
 
-    vel, velocity = property(_get_velocity, _set_velocity), property(_get_velocity, _set_velocity)
+    @property
+    def velocity(self):
+        return self._get_velocity()
+
+    @velocity.setter
+    def velocity(self, vel):
+        self._set_velocity(vel)
 
     def kill(self):
         """
@@ -752,13 +905,16 @@ class PhysObject(pygame.sprite.Sprite):
         """
         pass
 
+    def _get_group(self):
+        return self.groups()[0]
+
     @property
     def group(self):
         """
         Группа объектов, содержащая данный.
         :return: PhysGroup
         """
-        return self.groups()[0]
+        return self._get_group()
 
     def velocity_for_distance(self, dist, time=1000):
         """
@@ -777,7 +933,7 @@ class PhysObject(pygame.sprite.Sprite):
 
 class ImageHandler(PhysObject):
     """
-    Sprite for storing image in class attributes for RAM economy
+    Sprite with GObject image in class attributes for RAM economy
     """
     size_inc = 1
     _frames = []
@@ -798,8 +954,7 @@ class ImageHandler(PhysObject):
     def image_to_local(cls, pos):
         return Vec2d(pos) * cls.size_inc + cls.IMAGE_SHIFT
 
-    @property
-    def image(self):
+    def _get_image(self):
         return self._image.read()
 
 
@@ -825,8 +980,6 @@ class DynamicObject(ImageHandler):
         super()._set_shape(shape)
         shape.collision_type = COLLISION_TYPE.TRACKED
 
-    shape = property(_get_shape, _set_shape)
-
     def damage(self, val):
         self.health -= val
         if self.health <= 0:
@@ -840,7 +993,7 @@ class DynamicObject(ImageHandler):
         if v:
             v = v()
             v.add(*self.groups())
-            v.pos = self.pos
+            v.position = self.position
 
     def death(self):
         """
@@ -885,8 +1038,8 @@ class BaseProjectile(DynamicObject):
         else:
             self.timeout = False
 
-    def _get_angle(self):
-        return math.degrees(self.velocity.angle)
+    # def _get_angle(self):
+    #     return math.degrees(self.velocity.angle)
 
 
 class Mount:
@@ -910,15 +1063,21 @@ class Mount:
         self.role = None
         self.top = top
 
-    def _get_pos(self):
+    def _get_position(self):
         return self._pos
 
-    def _set_pos(self, pos):
+    def _set_position(self, pos):
         if self.object is not None:
             self.object.position = pos
         self._pos = Vec2d(pos)
 
-    pos, position = property(_get_pos, _set_pos), property(_get_pos, _set_pos)
+    @property
+    def position(self):
+        return self._get_position()
+
+    @position.setter
+    def position(self, pos):
+        self._set_position(pos)
 
     def _get_angle(self):
         return self._ang
@@ -928,7 +1087,13 @@ class Mount:
             self.object.angle = ang
         self._ang = ang
 
-    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
+    @property
+    def angle(self):
+        return self._get_angle()
+
+    @angle.setter
+    def angle(self, ang):
+        self._set_angle(ang)
 
     def mount(self, obj):
         if not self.object and (self.allowed is True or getattr(obj, 'role', None) in self.allowed):
@@ -1154,15 +1319,15 @@ class BaseComponent(DynamicObject):
 
     def unmount(self):
         if self.mounted():
-            pos = self.pos
-            ang = self.ang
+            pos = self.position
+            ang = self.angle
             self._parent = None
             if self._space is not None:
                 self._space.add(self._i_body)
             self.body = self._i_body
             self.set_local_placement((0, 0), 0)
-            self.pos = pos
-            self.ang = ang
+            self.position = pos
+            self.angle = ang
 
     def activate(self):
         self.activated = True
@@ -1170,12 +1335,7 @@ class BaseComponent(DynamicObject):
     def deactivate(self):
         self.activated = False
 
-    @property
-    def space(self):
-        return self._space
-
-    @space.setter
-    def space(self, space):
+    def _set_space(self, space):
         if self._space is not space:
             own_body = self._body is not None and self._body is self._i_body
             shapes = self.shapes
@@ -1216,27 +1376,14 @@ class BaseComponent(DynamicObject):
         shape.collision_type = COLLISION_TYPE.TRACKED
         self.update_local_placement()
 
-    shape = property(_get_shape, _set_shape)
-
-    @property
-    def shapes(self):
+    def _get_shapes(self):
         shape = self.shape
         return [shape] if shape is not None else []
 
     def is_own_body(self):
         return self.body is self.i_body
 
-    @property
-    def body(self):
-        """
-        Тело компонента. Может оказаться как собственным так и не собственным.
-        См. self.i_body
-        :return: pymunk.Body
-        """
-        return self._body
-
-    @body.setter
-    def body(self, body):
+    def _set_body(self, body):
         self.space = None
         self._body = None
         if self._i_shape is not None:
@@ -1244,22 +1391,28 @@ class BaseComponent(DynamicObject):
         self.space = body.space
         self._body = body
 
-    @property
-    def i_body(self):
+    def _get_i_body(self):
         """
         Собственное тело компонента. Когда установлен оно уничтожается, а при отсоединении создаётся.
         :return: pymunk.Body
         """
         return self._i_body
 
-    @i_body.setter
-    def i_body(self, body):
+    def _set_i_body(self, body):
         if self.is_own_body():
             self.body = body
         if self._i_body is not None:
             self._i_body.sprite = None
         self._i_body = body
         body.sprite = self
+
+    @property
+    def i_body(self):
+        return self._get_i_body()
+
+    @i_body.setter
+    def i_body(self, body):
+        self._set_i_body(body)
 
     def preview(self, size):
         """
@@ -1293,32 +1446,42 @@ class BaseComponent(DynamicObject):
         self._ang = ang
         self.update_local_placement()
 
-    @property
-    def local_pos(self):
+    def _get_local_pos(self):
         return self._pos
 
-    @local_pos.setter
-    def local_pos(self, pos):
+    def _set_local_pos(self, pos):
         self._pos = Vec2d(pos)
         self.update_local_placement()
 
     @property
-    def local_angle(self):
+    def local_pos(self):
+        return self._get_local_pos()
+
+    @local_pos.setter
+    def local_pos(self, pos):
+        self._set_local_pos(pos)
+
+    def _get_local_angle(self):
         return self._ang
 
-    @local_angle.setter
-    def local_angle(self, ang):
+    def _set_local_angle(self, ang):
         self._ang = ang
         self.update_local_placement()
 
-    def _get_pos(self):
+    @property
+    def local_angle(self):
+        return self._get_local_angle()
+
+    @local_angle.setter
+    def local_angle(self, ang):
+        self._set_local_angle(ang)
+
+    def _get_position(self):
         return self._body.local_to_world(self._pos)
 
-    def _set_pos(self, p):
+    def _set_position(self, p):
         if not self.mounted():
             self._body.position = p
-
-    pos, position, center = property(_get_pos, _set_pos), property(_get_pos, _set_pos), property(_get_pos, _set_pos)
 
     def _get_angle(self):
         return math.degrees(self._body.angle) + self._ang
@@ -1329,8 +1492,6 @@ class BaseComponent(DynamicObject):
         else:
             self._body.angle = math.radians(ang)
         self.update_local_placement()
-
-    ang, angle = property(_get_angle, _set_angle), property(_get_angle, _set_angle)
 
     def local_to_world(self, pos):
         return self._body.local_to_world(self.local_pos + pos)
@@ -1365,7 +1526,7 @@ class BaseWeapon(BaseComponent):
     def spawn(self, cls):
         obj = cls()
         obj.add(*self.groups())
-        obj.pos = self.local_to_world(self.fire_pos)
+        obj.position = self.local_to_world(self.fire_pos)
         return obj
 
     def spawn_proj(self):

@@ -90,7 +90,7 @@ class Projectile(BaseProjectile):
         else:
             v = Explosion()
             v.add(*self.groups())
-            v.pos = self.pos
+            v.position = self.position
             v.set_parent(self)
         self.kill()
 
@@ -102,7 +102,7 @@ class Projectile(BaseProjectile):
                     tp = self.target()
                 else:
                     tp = list(self.target)
-                da = angular_distance(self.angle, (Vec2d(tp) - self.pos).angle)
+                da = angular_distance(self.angle, (Vec2d(tp) - self.position).angle)
                 self.angle += da * .1
 
     def launch(self):

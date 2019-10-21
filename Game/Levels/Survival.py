@@ -46,9 +46,9 @@ class SpawnEvent(Event):
         pos = [random.random() * size[0], random.random() * size[1]]
         s = SpawnCircle()
         s.add(level.phys_group)
-        s.pos = pos
+        s.position = pos
         e = char(level)
-        e.pos = pos
+        e.position = pos
 
 
 class SurvivalEventSystem(EventSystem):
@@ -94,21 +94,21 @@ class Survival(Level):
 
         for _ in range(10):
             s = Soldier(self)
-            s.pos = (200, 200)
+            s.position = (200, 200)
 
         self.gui = LevelGUI(main=self.main)
         self.event_system = SurvivalEventSystem(self)
         self.score = 0
 
         p_pos = [e / 2 for e in self.size]
-        self.camera.pos = p_pos
+        self.camera.position = p_pos
         self.camera.instant_move()
 
         self.player = Player(self, gui=self.gui.ingame)
-        self.player.pos = p_pos
+        self.player.position = p_pos
         s = SpawnCircle()
         s.add(self.phys_group)
-        s.pos = p_pos
+        s.position = p_pos
 
         self.gui.ingame.player = self.player
 

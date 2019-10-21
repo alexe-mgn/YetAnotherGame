@@ -113,7 +113,7 @@ class BasePlayer(YTGBaseCreature):
     def start_step(self, upd_time):
         super().start_step(upd_time)
         if not self.level.paused:
-            self.angle = (self.level.mouse_world - self.pos).angle
+            self.angle = (self.level.mouse_world - self.position).angle
             self.angular_velocity = 0
 
     def death(self):
@@ -142,15 +142,15 @@ class BaseEnemy(YTGBaseCreature):
         if self.target is None or not self.target.alive():
             self.target = self.level.player
         if not self.level.paused and self.target is not None:
-            t_pos = Vec2d(self.target.pos)
-            to_t = t_pos - self.pos
+            t_pos = Vec2d(self.target.position)
+            to_t = t_pos - self.position
             self.walk(to_t)
             self.angle = to_t.angle
             self.handle_fire()
 
     def handle_fire(self):
         if self.fire_after <= 0:
-            self.shot(target=self.target.pos)
+            self.shot(target=self.target.position)
             self.fire_after = self.fire_delay
         else:
             self.fire_after -= self.step_time

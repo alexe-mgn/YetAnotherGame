@@ -44,7 +44,7 @@ class Weapon(YTGBaseWeapon):
     def spawn(self, cls):
         obj = cls()
         obj.add(*self.groups())
-        obj.pos = self.local_to_world(self.fire_pos[self.fire_n])
+        obj.position = self.local_to_world(self.fire_pos[self.fire_n])
         return obj
 
     def force_fire(self, **kwargs):

@@ -98,7 +98,7 @@ class Ballast(Segment):
     def start_step(self, upd_time):
         super().start_step(upd_time)
         if self.age > 3000 and self.pair:
-            self.velocity = self.pair.pos - self.pos
+            self.velocity = self.pair.position - self.position
 
 
 Ballast.init_class()
@@ -135,13 +135,13 @@ class Weapon(YTGBaseWeapon):
 
         b_a = self.spawn(Ballast)
         b_a.set_parent(self)
-        b_a.ang = sa
-        b_a.vel = Vec2d.from_anglen(sa, vel)
+        b_a.angle = sa
+        b_a.velocity = Vec2d.from_anglen(sa, vel)
 
         b_b = self.spawn(Ballast)
         b_b.set_parent(self)
-        b_b.ang = sa + da
-        b_b.vel = Vec2d.from_anglen(sa + da, vel)
+        b_b.angle = sa + da
+        b_b.velocity = Vec2d.from_anglen(sa + da, vel)
 
         b_a.pair = b_b
         b_b.pair = b_a
@@ -156,8 +156,8 @@ class Weapon(YTGBaseWeapon):
 
             segments.append(proj)
             ang = sa + da * (n / frag)
-            proj.ang = ang - 90
-            proj.vel = Vec2d.from_anglen(ang, vel * .8)
+            proj.angle = ang - 90
+            proj.velocity = Vec2d.from_anglen(ang, vel * .8)
 
         Pivot(b_a.body, segments[0].body, (0, 0), (-w, 0))
         Pivot(b_b.body, segments[-1].body, (0, 0), (w, 0))

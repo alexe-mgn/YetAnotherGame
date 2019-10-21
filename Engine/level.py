@@ -338,7 +338,7 @@ class Level:
                 self.event_system.start_step(upd_time)
             if self.player is not None:
                 tp = self.mouse_window - self.screen.center
-                self.camera.center = self.player.pos + tp
+                self.camera.center = self.player.position + tp
         if self.gui is not None:
             self.gui.start_step(upd_time)
 

@@ -46,8 +46,8 @@ class Character(BasePlayer, Body):
                 ang = math.radians(self.angle)
                 vector = Vec2d(math.cos(ang), math.sin(ang))
                 mv = 1000000 / w.mass
-                vel = w.velocity_for_distance((self.level.mouse_world - self.pos).length)
+                vel = w.velocity_for_distance((self.level.mouse_world - self.position).length)
                 if vel > mv:
                     vel = mv
-                w.pos += vector * 75
+                w.position += vector * 75
                 w.velocity = vector * vel

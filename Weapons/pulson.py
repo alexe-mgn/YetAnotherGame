@@ -37,7 +37,7 @@ class Weapon(YTGBaseWeapon):
         ang = self.miss_angle()
         rad = math.radians(ang)
         if 'target' in kwargs.keys():
-            dis = (proj.pos - kwargs['target']).length
+            dis = (proj.position - kwargs['target']).length
             vel = proj.velocity_for_distance(dis, proj.life_left)
             if vel > self.proj_velocity:
                 vel = self.proj_velocity
