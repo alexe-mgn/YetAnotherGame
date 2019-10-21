@@ -332,11 +332,8 @@ class BaseSprite(pygame.sprite.Sprite):
     def bb(self):
         return self._get_bb()
 
-    def read_image(self):
-        return self._image.read()
-
     def _get_image(self):
-        return self._image.read()
+        return self._image
 
     def _set_image(self, surface):
         self._image = surface
@@ -505,10 +502,27 @@ class BaseSprite(pygame.sprite.Sprite):
 
 class StaticImage(BaseSprite):
     draw_layer = DRAW_LAYER.VFX
+    size_inc = 1
+    _frames = []
+    IMAGE_SHIFT = Vec2d(0, 0)
+
+    def __init__(self, obj=None):
+        super().__init__()
+        if obj is None:
+            self._image = GObject(self._frames)
+        else:
+            self._image = GObject(obj)
 
     def end_step(self):
         super().end_step()
         self._image.update(self.step_time)
+
+    @classmethod
+    def image_to_local(cls, pos):
+        return Vec2d(pos) * cls.size_inc + cls.IMAGE_SHIFT
+
+    def _get_image(self):
+        return self._image.read()
 
 
 class PhysObject(BaseSprite):
@@ -690,12 +704,6 @@ class PhysObject(BaseSprite):
         """
         return self._shape.bb
 
-    def _get_image(self):
-        return self._image
-
-    def _set_image(self, surface):
-        self._image = surface
-
     def end_step(self):
         super().end_step()
         self.apply_damping()
@@ -848,9 +856,6 @@ class DynamicObject(ImageHandler):
     def __init__(self):
         super().__init__()
         self.health = self.max_health
-
-    def _get_shape(self):
-        return super()._get_shape()
 
     def _set_shape(self, shape):
         super()._set_shape(shape)

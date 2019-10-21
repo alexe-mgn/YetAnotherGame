@@ -16,7 +16,7 @@ class Weapon(YTGBaseWeapon):
     name = NAME
     max_health = 40
     size_inc = 1.25
-    proj_velocity = 1000
+    proj_velocity = 1200
     fire_delay = 100
     sound = {
         'fire': [load_sound('Weapons\\Models\\explosion_dull'), {'channel': CHANNEL.PLASMA_WEAPON}]

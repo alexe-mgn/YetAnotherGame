@@ -17,7 +17,7 @@ class Projectile(BaseProjectile):
     mat = MAT_TYPE.ENERGY
     size_inc = 1
     damping = 0
-    lifetime = 1500
+    lifetime = 1600
     hit_damage = 15
     death_effect = VideoEffect
 
