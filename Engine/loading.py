@@ -195,9 +195,15 @@ class GObject:
                 self.last_upd -= self._ft
 
     def each_step(self):
+        """
+        Переопределяемый.
+        """
         pass
 
     def que_start(self, func):
+        """
+        Выполняет функцию в начале каждого цикла анимации.
+        """
         self.start_que.append(func)
 
     def start_cycle(self):
@@ -205,6 +211,9 @@ class GObject:
             func()
 
     def que_end(self, func):
+        """
+        Выполняет функцию в конце каждого цикла анимации.
+        """
         self.end_que.append(func)
 
     def end_cycle(self):

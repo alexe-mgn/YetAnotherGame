@@ -64,7 +64,7 @@ class Segment(BaseProjectile):
         cls._frames = segment_image
 
     def collideable(self, obj):
-        return self.age > 500 or obj.team != self.team
+        return self.age > 1000 or obj.team != self.team
 
     def effect(self, obj, arbiter, first=True):
         if obj.team != self.team:

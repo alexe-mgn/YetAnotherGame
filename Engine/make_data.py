@@ -30,3 +30,7 @@ pymunk_dir = os.path.dirname(pymunk.__file__)
 chipmunk_libs = [
     ('chipmunk.dll', os.path.join(pymunk_dir, 'chipmunk.dll'), 'DATA'),
 ]
+
+if __name__ == '__main__':
+    for i in datas:
+        print(i)

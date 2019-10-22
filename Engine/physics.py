@@ -96,6 +96,10 @@ class CameraGroup(ObjectGroup):
 
     @property
     def draw_offset(self):
+        """
+        Смещение области отображения от верхнего левого угла окна.
+        :return:
+        """
         return self._offset
 
     @draw_offset.setter
@@ -180,6 +184,10 @@ class PhysicsGroup(CameraGroup):
 
 
 class BaseSprite(pygame.sprite.Sprite):
+    """
+    Базовый спрайт для всех объектов.
+    Этот класс более ориентирован на работу с видеоэффектами.
+    """
     draw_layer = DRAW_LAYER.DEFAULT
     sound = {}
     damping = None
@@ -221,6 +229,11 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def space(self):
+        """
+        Возвращает пространство объектов, в котором расположен спрайт.
+        Присвоение также изменяет pymunk.Space для pymunk.Shape тела спрайта.
+        :return: pymunk.Space
+        """
         return self._get_space()
 
     @space.setter
@@ -228,6 +241,11 @@ class BaseSprite(pygame.sprite.Sprite):
         self._set_space(space)
 
     def is_own_body(self):
+        """
+        Переопределяется объектами классов Component.
+        Для обычного спрайта True
+        :return: bool
+        """
         return True
 
     def _get_body(self):
@@ -238,6 +256,12 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def body(self):
+        """
+        Возвращает физическое тело спрайта pymunk.Body.
+        Оно является опорным аттрибутом любого физического спрайта.
+        К нему привязываются pymunk.Shape частично определяющие массу, размеры, форму и т.д
+        :return: pymunk.Body
+        """
         return self._get_body()
 
     @body.setter
@@ -245,9 +269,21 @@ class BaseSprite(pygame.sprite.Sprite):
         self._set_body(body)
 
     def local_to_world(self, pos):
+        """
+        Конвертация из локальной системы координат в уровневую.
+        Положение точки в локальной системе не зависит от углов наклона тела к глобальным осям.
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
         return self.position + Vec2d(pos).rotated(self.angle)
 
     def world_to_local(self, pos):
+        """
+        Конвертация из уровневой системы координат в локальную.
+        Положение точки в локальной системе не зависит от углов наклона тела к глобальным осям.
+        :param pos: (x, y)
+        :return: Vec2d(x, y)
+        """
         return (Vec2d(pos) - self.position).rotated(-self.angle)
 
     def _get_mass(self):
@@ -272,6 +308,11 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def moment(self):
+        """
+        Момент инерции тела.
+        Единицы измерения не проверены!
+        :return: float
+        """
         return self._get_moment()
 
     @moment.setter
@@ -316,6 +357,10 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def rect(self):
+        """
+        Прямоугольник, содержащий форму столкновений спрайта (ну почти)
+        :return:
+        """
         return self._get_rect()
 
     @rect.setter
@@ -330,6 +375,10 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def bb(self):
+        """
+        self.rect создаётся из pymunk.BB, который и возвращает данный метод.
+        :return: pymunk.BB
+        """
         return self._get_bb()
 
     def _get_image(self):
@@ -401,6 +450,11 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def angle(self):
+        """
+        Угол наклона.
+        С текущим алгоритмом рендеринга отмеряется ПО ЧАСОВОЙ СТРЕЛКЕ от горизонтальной оси, направленной вправо.
+        :return: float (degrees)
+        """
         return self._get_angle()
 
     @angle.setter
@@ -422,10 +476,6 @@ class BaseSprite(pygame.sprite.Sprite):
         self._set_velocity(vel)
 
     def _get_angular_velocity(self):
-        """
-        Угловая скорость объекта
-        :return: float (degrees / second)
-        """
         return 0
 
     def _set_angular_velocity(self, ang_vel):
@@ -433,6 +483,10 @@ class BaseSprite(pygame.sprite.Sprite):
 
     @property
     def angular_velocity(self):
+        """
+        Угловая скорость объекта
+        :return: float (degrees / second)
+        """
         return self._get_angular_velocity()
 
     @angular_velocity.setter
@@ -484,9 +538,11 @@ class BaseSprite(pygame.sprite.Sprite):
     def add_post_step_callback(self, f, fid=None):
         """
         Единоразово выполняет функцию после завершения игровой итерации pymunk.Space.step.
-        Если пространство для объекта не определено, то выполняется немедленно.
+        Если пространство для объекта не определено
+        (Или спрайт не привязан к системе pymunk), то выполняется незамедтлительно.
         :param f:
-        :param fid: уникальный id ( default=id(f) ), необходим для pymunk.space.add_post_step_callback
+        :param fid: уникальный id callback функции ( default=id(f) ),
+        необходим для pymunk.space.add_post_step_callback
         """
         f()
 
@@ -527,7 +583,20 @@ class StaticImage(BaseSprite):
 
 class PhysObject(BaseSprite):
     """
-    Sprite bounded to single pymunk.Body and one MAIN shape
+    По сути частично является обёрткой для класса pymunk.Body.
+    Для работы следует иметь базовое представление о библиотеке pymunk.
+    Для добавления спрайта в мир следует.
+    1 - Присвоить self.body
+        (1.1) - Присвоить главный shape ( self.shape ) или добавить ( self.add_shape )
+        без этого тело не будет взаимодействовать физически с остальными.
+    2 - Добавить body и все shape в пространство pymunk.Space группы объектов ( PhysicsGroup )
+        PhysicsGroup.add() автоматически устанавливает аттрибут space.
+    Пока что не успел сделать адекватные примеры.
+    Советую посмотреть
+    BaseWeapon.spawn в совокупности с методом __init__ класса, наследованнаго от BaseProjectile.
+    Например
+    github.com/alexe-mgn/pygame/Projectiles/missile.py
+    github.com/alexe-mgn/pygame/Weapons/net_cannon.py
     """
 
     def __init__(self):
@@ -538,41 +607,29 @@ class PhysObject(BaseSprite):
            - shape
         """
         super().__init__()
-        self._space = None
         self._body = None
         self._shape = None
 
     def _get_space(self):
-        """
-        :return: pymunk.Space
-        """
-        return self._space
+        body = self._get_body()
+        return body.space if body is not None else None
 
     def _set_space(self, space):
-        """
-        Установить пространство объектов pymunk.Space для self.body и всех его pymunk.Shape
-        :param space: pymunk.Space
-        """
-        shapes = self.shapes
-        if self._space is not None:
-            if shapes:
-                self._space.remove(*shapes)
-            if self._body is not None:
-                self._space.remove(self._body)
-        self._space = space
-        if space is not None:
-            if self._body is not None:
-                space.add(self._body)
-            if shapes:
-                space.add(shapes)
-
-    def is_own_body(self):
-        """
-        Переопределяется объектами классов Component.
-        Для обычного спрайта True
-        :return: bool
-        """
-        return True
+        self_space = self._get_space()
+        if space is not self_space:
+            shapes = self.shapes
+            own_body = self.is_own_body()
+            body = self._get_body()
+            if self_space is not None:
+                if shapes:
+                    self_space.remove(*shapes)
+                if body and own_body:
+                    self_space.remove(body)
+            if space is not None:
+                if body and own_body:
+                    space.add(body)
+                if shapes:
+                    space.add(*shapes)
 
     def _get_body(self):
         """
@@ -583,18 +640,22 @@ class PhysObject(BaseSprite):
 
     def _set_body(self, body):
         """
-        Установить тело объекта, на данный момент все его pymunk.Shape не учитываются в процессе переноса.
+        Установить тело объекта, все pymunk.Shape прошлого тела, как и оно само, будут удалены из пространства.
         :param body: pymunk.Body
         """
-        # shapes !!!
-        if self._space is not None:
-            if self._body is not None:
-                self._body.sprite = None
-                self._space.remove(self._body)
-            self._space.add(body)
-        self._body = body
-        if body is not None:
-            body.sprite = self
+        self_body = self._get_body()
+        if body is not self_body:
+            space = self._get_space()
+            if space is not None and self_body is not None:
+                self_shapes = self._get_shapes()
+                if self_shapes:
+                    space.remove(*self_shapes)
+                self_body.sprite = None
+                space.remove(self_body)
+
+            self._body = body
+            if body is not None:
+                body.sprite = self
 
     def local_to_world(self, pos):
         """
@@ -603,22 +664,22 @@ class PhysObject(BaseSprite):
         :param pos: (x, y)
         :return: Vec2d(x, y)
         """
-        return self._body.local_to_world(pos)
+        return self._get_body().local_to_world(pos)
 
     def world_to_local(self, pos):
         """
-        Конвертация в локальную систему координат.
+        Конвертация из уровневой системы координат в локальную.
         Положение точки в локальной системе не зависит от углов наклона тела к глобальным осям.
         :param pos: (x, y)
         :return: Vec2d(x, y)
         """
-        return self._body.world_to_local(pos)
+        return self._get_body().world_to_local(pos)
 
     def _get_mass(self):
-        return self._body.mass
+        return self._get_body().mass
 
     def _set_mass(self, mass):
-        self._body.mass = mass
+        self._get_body().mass = mass
 
     def _get_moment(self):
         """
@@ -626,7 +687,7 @@ class PhysObject(BaseSprite):
         Единицы измерения не проверены!
         :return: float
         """
-        return self._body.moment
+        return self._get_body().moment
 
     def _set_moment(self, m):
         """
@@ -634,7 +695,7 @@ class PhysObject(BaseSprite):
         Единицы измерения не проверены!
         :param m: float
         """
-        self._body.moment = m
+        self._get_body().moment = m
 
     def _get_shape(self):
         """
@@ -648,40 +709,56 @@ class PhysObject(BaseSprite):
         Главный (!) shape объекта
         :param shape: pymunk.Shape
         """
-        if shape.space:
-            shape.space.remove(shape)
-        if shape.body is not self._body:
-            shape.body = self._body
-        if self._space is not None:
-            if self._shape is not None:
-                self._space.remove(self._shape)
-            self._space.add(shape)
-        self._shape = shape
+        self_shape = self._get_shape()
+        if shape is not self_shape:
+            self_space = self._get_space()
+            self_body = self._get_body()
+            if self_space:
+                self_space.remove(self_shape)
+                self_shape.body = None
+
+            if shape is not None:
+                if shape.space:
+                    shape.space.remove(shape)
+                if shape.body is not self_body:
+                    shape.body = self_body
+                if self_space:
+                    self_space.add(shape)
+
+            self._shape = shape
 
     def _get_shapes(self):
-        body = self._body
+        body = self._get_body()
         return body.shapes if body is not None else []
 
     def add_shape(self, shape):
         """
         :param shape: pymunk.Shape
         """
-        if shape.space:
-            shape.space.remove(shape)
-        if shape.body is not self._body:
-            shape.body = self._body
-        if self._space is not None:
-            self._space.add(shape)
+        if shape is not None:
+            shapes = self._get_shapes()
+            if shape not in shapes:
+                body = self._get_body()
+                if shape.space:
+                    shape.space.remove(shape)
+                if shape.body is not body:
+                    shape.body = body
+                self_space = self._get_space()
+                if self_space is not None:
+                    self_space.add(shape)
 
     def remove_shape(self, shape):
         """
         :param shape:
         """
-        if self._space is not None:
-            self._space.remove(shape)
-        if shape is self._shape:
-            self._shape = None
-        shape.body = None
+        shapes = self._get_shapes()
+        if shape in shapes:
+            self_space = self._get_space()
+            if self_space is not None:
+                self_space.remove(shape)
+            if shape is self._get_shape():
+                self._shape = None
+            shape.body = None
 
     def _get_rect(self):
         """
@@ -694,15 +771,16 @@ class PhysObject(BaseSprite):
         return r
 
     def _set_rect(self, rect):
-        if self._body is not None:
-            self._body.position = FRect(rect).center
+        body = self._get_body()
+        if body is not None:
+            body.position = FRect(rect).center
 
     def _get_bb(self):
         """
         BoundingBox главного shape.
         :return: pymunk.BB
         """
-        return self._shape.bb
+        return self._get_shape().bb
 
     def end_step(self):
         super().end_step()
@@ -724,23 +802,22 @@ class PhysObject(BaseSprite):
         self.velocity *= (1 - coef * (self.step_time / 1000))
 
     def _get_position(self):
-        return self._body.position
+        return self._get_body().position
 
-    def _set_position(self, p):
-        self._body.position = p
+    def _set_position(self, pos):
+        self._get_body().position = pos
 
     def _get_angle(self):
         """
         :return: float (degrees)
         """
-        return math.degrees(self.body.angle)
+        return math.degrees(self._get_body().angle)
 
     def _set_angle(self, ang):
         """
         :param ang: float (degrees)
         """
-        b = self._body
-        b.angle = math.radians(ang)
+        self._get_body().angle = math.radians(ang)
 
     def rotate_for(self, ang, speed):
         """
@@ -752,20 +829,20 @@ class PhysObject(BaseSprite):
         pass
 
     def _get_velocity(self):
-        return self._body.velocity
+        return self._get_body().velocity
 
     def _set_velocity(self, vel):
-        self._body.velocity = (vel[0], vel[1])
+        self._get_body().velocity = (vel[0], vel[1])
 
     def _get_angular_velocity(self):
         """
         Угловая скорость объекта
         :return: float (degrees / second)
         """
-        return math.degrees(self._body.angular_velocity)
+        return math.degrees(self._get_body().angular_velocity)
 
     def _set_angular_velocity(self, ang_vel):
-        self._body.angular_velocity = math.radians(ang_vel)
+        self._get_body().angular_velocity = math.radians(ang_vel)
 
     def kill(self):
         """
@@ -782,8 +859,9 @@ class PhysObject(BaseSprite):
         :param f:
         :param fid: уникальный id ( default=id(f) ), необходим для pymunk.space.add_post_step_callback
         """
-        if self._space is not None and self._space:
-            self._space.add_post_step_callback(f, fid if fid is not None else id(f))
+        self_space = self._get_space()
+        if self_space is not None:
+            self_space.add_post_step_callback(f, fid if fid is not None else id(f))
         else:
             f()
 
@@ -792,13 +870,11 @@ class PhysObject(BaseSprite):
         Удаляет объект, его pymunk.Body и все pymunk.Shape
         :return:
         """
-        space = self._space
+        space = self._get_space()
         if space is not None:
-            if self.shapes:
-                space.remove(*self.shapes)
-            if self._body is not None:
-                space.remove(self._body, *self._body.constraints)
-            self._space = None
+            body = self._get_body()
+            if body is not None:
+                space.remove(body, *body.shapes, *body.constraints)
 
     def velocity_for_distance(self, dist, time=1000):
         """
@@ -1196,16 +1272,18 @@ class BaseComponent(DynamicObject):
 
     def mount(self, parent):
         self._parent = parent
-        self.body = parent.body
+        self._set_body(parent.body)
 
     def unmount(self):
         if self.mounted():
             pos = self.position
             ang = self.angle
             self._parent = None
-            if self._space is not None:
-                self._space.add(self._i_body)
-            self.body = self._i_body
+            self_space = self._get_space()
+            i_body = self._get_i_body()
+            if self_space is not None:
+                self_space.add(i_body)
+            self.body = i_body
             self.set_local_placement((0, 0), 0)
             self.position = pos
             self.angle = ang
@@ -1216,22 +1294,6 @@ class BaseComponent(DynamicObject):
     def deactivate(self):
         self.activated = False
 
-    def _set_space(self, space):
-        if self._space is not space:
-            own_body = self._body is not None and self._body is self._i_body
-            shapes = self.shapes
-            if self._space is not None:
-                if shapes:
-                    self._space.remove(*shapes)
-                if own_body:
-                    self._space.remove(self._body)
-            self._space = space
-            if space is not None:
-                if own_body:
-                    space.add(self._body)
-                if shapes:
-                    space.add(shapes)
-
     @property
     def source_shape(self):
         """
@@ -1240,37 +1302,43 @@ class BaseComponent(DynamicObject):
         """
         return self._i_shape
 
-    def _get_shape(self):
-        return super()._get_shape()
-
     def _set_shape(self, shape):
         if shape.space:
             shape.space.remove(shape)
         shape.body = None
         self._i_shape = shape.copy()
-        shape.body = self._body
-        if self._space is not None:
-            if self._shape is not None:
-                self._space.remove(self._shape)
-            self._space.add(shape)
-        self._shape = shape
-        shape.collision_type = COLLISION_TYPE.TRACKED
+        super()._set_shape(shape)
         self.update_local_placement()
 
     def _get_shapes(self):
-        shape = self.shape
+        shape = self._get_shape()
         return [shape] if shape is not None else []
 
     def is_own_body(self):
-        return self.body is self.i_body
+        return self._get_body() is self._get_i_body()
 
     def _set_body(self, body):
-        self.space = None
-        self._body = None
-        if self._i_shape is not None:
-            self._shape.body = body
-        self.space = body.space
-        self._body = body
+        # self._set_space(None)
+        # self._body = None
+        # if self._i_shape is not None:
+        #     self._shape.body = body
+        # self._set_space(body.space)
+        # self._body = body
+        c_body = self._get_body()
+        if body is not c_body:
+            space = self._get_space()
+            own_shapes = self._get_shapes()
+            if space is not None and c_body is not None:
+                if own_shapes:
+                    space.remove(*own_shapes)
+                if c_body is self._get_i_body():
+                    space.remove(c_body)
+
+            self._body = body
+            for shape in own_shapes:
+                shape.body = body
+            if body.space:
+                body.space.add(*own_shapes)
 
     def _get_i_body(self):
         """
@@ -1280,10 +1348,17 @@ class BaseComponent(DynamicObject):
         return self._i_body
 
     def _set_i_body(self, body):
+        # if self.is_own_body():
+        #     self.body = body
+        # if self._i_body is not None:
+        #     self._i_body.sprite = None
+        # self._i_body = body
+        # body.sprite = self
+        i_body = self._get_i_body()
         if self.is_own_body():
-            self.body = body
-        if self._i_body is not None:
-            self._i_body.sprite = None
+            self._set_body(body)
+        if i_body is not None:
+            i_body.sprite = None
         self._i_body = body
         body.sprite = self
 
@@ -1400,26 +1475,51 @@ class BaseWeapon(BaseComponent):
             self.recharge -= self.step_time
 
     def shot(self, **kwargs):
+        """
+        Пробуем сделать выстрел. Если перезарядка ещё не прошла, то ничего не происходит.
+        :param kwargs:
+        :return:
+        """
         if self.recharge <= 0:
             self.force_fire(**kwargs)
             self.recharge = self.fire_delay
 
     def spawn(self, cls):
+        """
+        Получает дочерний класс BaseProjectile и создаёт в пространстве его экземпляр. т.е - снаряд.
+        Метод не фиксирует, кем был произведён выстрел.
+        :param cls: subclass(BaseProjectile)
+        :return: Projectile instance
+        """
         obj = cls()
         obj.add(*self.groups())
         obj.position = self.local_to_world(self.fire_pos)
         return obj
 
     def spawn_proj(self):
+        """
+        Создаёт снаряд из прикреплённого к классу Weapon через аттрибут Projectile класса снаряда.
+        :return: Projectile instance
+        """
         if self.Projectile:
             proj = self.spawn(self.Projectile)
             proj.set_parent(self)
             return proj
 
     def miss_angle(self):
+        """
+        Выбирает случайный угол отклонения для каждого выстрела.
+        Аттрибут self.innacuracy [0; 1] определяет область окружности,
+        в которой может оказаться вектор начальной скорости.
+        :return:
+        """
         return self.angle + 360 * (random.random() - .5) * self.inaccuracy
 
     def force_fire(self, **kwargs):
+        """
+        Совершает выстрел независимо от обстоятельств.
+        :param kwargs: Иногда нужен для прицеливания дочерним классам.
+        """
         self.play_sound('fire')
         proj = self.spawn_proj()
         ang = self.miss_angle()
