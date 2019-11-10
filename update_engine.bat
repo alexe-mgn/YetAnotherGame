@@ -8,3 +8,4 @@ if not exist .gitmodules (
 echo updating submodules
 git submodule update
 echo done
+pause
