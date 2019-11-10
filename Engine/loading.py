@@ -20,7 +20,14 @@ def load_image(path, alpha=True):
     return surface.convert_alpha() if alpha else surface.convert()
 
 
-def cast_image(source, center, size_inc):
+def cast_image(source, center=None, size_inc=1):
+    """
+    Обрезать по содержимому, центрировать и масштабировать изображение.
+    :param source: pygame.Surface
+    :param center: (x, y)
+    :param size_inc: int
+    :return: pygame.Surface, (x, y) - image shift
+    """
     i_size = source.get_size()
     if center is None:
         center = [e / 2 for e in i_size]
@@ -29,10 +36,16 @@ def cast_image(source, center, size_inc):
             center[0] = i_size[0] / 2
         if center[1] is None:
             center[1] = i_size[1] / 2
+    # Область, которую есть смысл отображать.
     b_rect = source.get_bounding_rect()
+    # Её размер после масштабирования.
     b_size = ceil(Vec2d(b_rect.size) * size_inc)
+    # Половина.
     h_size = b_size / 2
+    # Центр обрезанного и масштабированного изображения относительно просто обрезанного.
     img_center = ceil((Vec2d(center) - b_rect.topleft) * size_inc)
+    # Вектор масштабирования, вдоль которого растягивается новая поверхность,
+    # чтобы центрированное изображение вместилось.
     inc_vector = abs(img_center - h_size)
     hf_size = h_size + inc_vector
     tl = hf_size - img_center
@@ -42,6 +55,7 @@ def cast_image(source, center, size_inc):
     img.fill((255, 255, 255, 0))
     img.blit(pygame.transform.scale(bs, b_size),
              tl)
+
     if DEBUG.DRAW:
         r = img.get_rect()
         r.w -= 2
@@ -81,6 +95,13 @@ def load_frames(path):
 #     return frames, c0
 
 def cast_frames(source, centers, size_incs):
+    """
+    Обрезать по содержимому, центрировать и масштабировать кадры.
+    :param source: pygame.Surface
+    :param centers: [(x, y), ...]
+    :param size_incs: [int, ...]
+    :return: [pygame.Surface, ...], (x, y) - image shift
+    """
     frames = []
     c0 = Vec2d(0, 0)
     for n, f in enumerate(source):
@@ -225,9 +246,6 @@ class GObject:
 
     image = property(read)
 
-    def get_by_ind(self, n):
-        return self._frames[n]
-
     def set_ind(self, n):
         self.n = n
 
@@ -239,6 +257,11 @@ class GObject:
 
 
 def load_model(path):
+    """
+    Универсальная функция загрузки как для изображений, так и анимаций.
+    :param path: str
+    :return: pygame.Surface / [pygame.Surface, ...]
+    """
     fp = get_path(path)
     if os.path.isfile(fp + '.png'):
         return load_image(path + '.png')
@@ -247,6 +270,14 @@ def load_model(path):
 
 
 def cast_model(source, cs=None, sis=1):
+    """
+    Универсальная функция выравнивания.
+    Преобразует аргументы и избирательно применяет cast_image / cast_image.
+    :param source: pygame.Surface / [pygame.Surface, ...]
+    :param cs: (x, y) / [(x, y), ...] - центр(ы)
+    :param sis: int / [int, ...] - коэффициент(ы) масштабирования
+    :return: pygame.Surface / [pygame.Surface, ...]
+    """
     if not isinstance(source, pygame.Surface):
         ln = len(source)
         if cs is None or hasattr(cs[0], '__int__'):

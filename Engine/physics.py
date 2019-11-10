@@ -1109,13 +1109,12 @@ class Mount:
         return '{}.{}({})'.format(self.parent, self.__class__.__name__, self.object)
 
 
-class BaseCreature(DynamicObject):
+class BaseMounter(DynamicObject):
     """
     Объект с системой крепления компонентов и перемещения
     """
     draw_layer = DRAW_LAYER.CREATURE
     role = ROLE.CREATURE
-    max_health = 100
 
     def __init__(self):
         super().__init__()
@@ -1242,6 +1241,10 @@ class BaseCreature(DynamicObject):
         for i in self.get_weapons():
             i.shot(**kwargs)
 
+
+class BaseCreature(BaseMounter):
+    max_health = 100
+
     def kill(self):
         self.unmount_all()
         super().kill()
@@ -1297,7 +1300,9 @@ class BaseComponent(DynamicObject):
     @property
     def source_shape(self):
         """
-        Начальная форма объекта. Текущая обычно развёрнута с учётом наклона Mount.
+        Начальная форма объекта.
+        Текущая обычно развёрнута с учётом наклона относительно объекта
+        и не предназначена для непосредственного изменения.
         :return:
         """
         return self._i_shape
@@ -1331,7 +1336,7 @@ class BaseComponent(DynamicObject):
             if space is not None and c_body is not None:
                 if own_shapes:
                     space.remove(*own_shapes)
-                if c_body is self._get_i_body():
+                if self.is_own_body():
                     space.remove(c_body)
 
             self._body = body
@@ -1384,8 +1389,7 @@ class BaseComponent(DynamicObject):
 
     def update_local_placement(self):
         """
-        Устанавливает форму объекта в соответсвтие с локальным положением
-        :return:
+        Обновляет относительное положение объекта (Изменяет текущий shape в соответствии с локальной позицей).
         """
         pos, ang = self.local_pos, self.local_angle
         i_shape = self._i_shape
@@ -1398,19 +1402,34 @@ class BaseComponent(DynamicObject):
             shape.unsafe_set_offset(Vec2d(pos) + self._i_shape.offset)
 
     def set_local_placement(self, pos, ang):
+        """
+        Установить позицию и угол наклона относительно родителя.
+        :param pos: (x, y)
+        :param ang: float (degrees)
+        """
         self._pos = Vec2d(pos)
         self._ang = ang
         self.update_local_placement()
 
     def _get_local_pos(self):
+        """
+        :return: (x, y)
+        """
         return self._pos
 
     def _set_local_pos(self, pos):
+        """
+        :param pos: (x, y)
+        """
         self._pos = Vec2d(pos)
         self.update_local_placement()
 
     @property
     def local_pos(self):
+        """
+        Положение относительно родителя.
+        :return: (x, y)
+        """
         return self._get_local_pos()
 
     @local_pos.setter
@@ -1426,6 +1445,10 @@ class BaseComponent(DynamicObject):
 
     @property
     def local_angle(self):
+        """
+        Угол наклона относительно родителя.
+        :return: (x, y)
+        """
         return self._get_local_angle()
 
     @local_angle.setter
@@ -1478,15 +1501,17 @@ class BaseWeapon(BaseComponent):
         """
         Пробуем сделать выстрел. Если перезарядка ещё не прошла, то ничего не происходит.
         :param kwargs:
-        :return:
+        :return: bool - выстрел произведён.
         """
         if self.recharge <= 0:
             self.force_fire(**kwargs)
             self.recharge = self.fire_delay
+            return True
+        return False
 
     def spawn(self, cls):
         """
-        Получает дочерний класс BaseProjectile и создаёт в пространстве его экземпляр. т.е - снаряд.
+        Получает подкласс от BaseProjectile и создаёт в пространстве его экземпляр. т.е - снаряд.
         Метод не фиксирует, кем был произведён выстрел.
         :param cls: subclass(BaseProjectile)
         :return: Projectile instance
@@ -1498,7 +1523,7 @@ class BaseWeapon(BaseComponent):
 
     def spawn_proj(self):
         """
-        Создаёт снаряд из прикреплённого к классу Weapon через аттрибут Projectile класса снаряда.
+        Создаёт снаряд из прикреплённого к классу через аттрибут Projectile класса снаряда.
         :return: Projectile instance
         """
         if self.Projectile:
@@ -1509,9 +1534,9 @@ class BaseWeapon(BaseComponent):
     def miss_angle(self):
         """
         Выбирает случайный угол отклонения для каждого выстрела.
-        Аттрибут self.innacuracy [0; 1] определяет область окружности,
+        Аттрибут self.innacuracy [0; 1] определяет область окружности, ( [0; 180] в любую сторону от 0 )
         в которой может оказаться вектор начальной скорости.
-        :return:
+        :return: float (degrees)
         """
         return self.angle + 360 * (random.random() - .5) * self.inaccuracy
 
