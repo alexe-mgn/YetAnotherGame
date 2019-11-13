@@ -18,8 +18,8 @@ class Explosion(BaseProjectile):
     size_inc = .4
     mat = MAT_TYPE.ENERGY
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
@@ -69,8 +69,8 @@ class Projectile(BaseProjectile):
     }
     death_effect = VideoEffect
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Poly(self.body, self.POLY_SHAPE)

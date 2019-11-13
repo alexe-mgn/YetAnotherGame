@@ -16,8 +16,8 @@ class Engine(BaseEngine):
     max_vel = 175
     max_fps = 12
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.i_body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)

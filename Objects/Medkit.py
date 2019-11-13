@@ -13,8 +13,8 @@ class Object(YTGDynamicObject):
     size_inc = 1
     max_health = 120
 
-    def __init__(self, level):
-        super().__init__()
+    def __init__(self, level, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)

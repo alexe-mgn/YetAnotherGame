@@ -53,8 +53,8 @@ class SpawnEvent(Event):
 
 class SurvivalEventSystem(EventSystem):
 
-    def __init__(self, level):
-        super().__init__(level)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.add(SpawnEvent())
 
 

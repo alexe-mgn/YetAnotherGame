@@ -21,8 +21,8 @@ class Projectile(BaseProjectile):
     hit_damage = 15
     death_effect = VideoEffect
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)

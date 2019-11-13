@@ -33,8 +33,8 @@ class Segment(BaseProjectile):
     lifetime = 10000
     hit_damage = 2.5
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.body = pymunk.Body()
         self.shape = pymunk.Segment(self.body,
                                     (-self.LENGTH / 2 + self.RADIUS, 0),
@@ -80,8 +80,8 @@ class Ballast(Segment):
     hit_damage = 10
     join_acceleration_coef = 4
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)
         self.shape.density = 4
@@ -121,8 +121,8 @@ class Weapon(YTGBaseWeapon):
         'fire': [load_sound('Weapons\\Models\\undetach', ext='wav'), {'channel': CHANNEL.NET_WEAPON}]
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.i_body = pymunk.Body()
         self.shape = pymunk.Poly(self.body, self.POLY_SHAPE)

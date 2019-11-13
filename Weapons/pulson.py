@@ -24,8 +24,8 @@ class Weapon(YTGBaseWeapon):
         'fire': [load_sound('Weapons\\Models\\boing_x', ext='wav'), {'channel': CHANNEL.PULSON_WEAPON}]
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.i_body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS, self.image_to_local((48, 30)))

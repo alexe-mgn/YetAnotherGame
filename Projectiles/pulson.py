@@ -19,8 +19,8 @@ class Projectile(BaseProjectile):
         'explode': [load_sound('Projectiles\\Models\\flagdrop', ext='wav'), {'channel': CHANNEL.PULSON_EXPLOSION}]
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)

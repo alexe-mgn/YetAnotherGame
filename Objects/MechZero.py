@@ -15,8 +15,8 @@ class Creature(YTGBaseCreature):
     size_inc = 1
     max_health = 300
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.body = pymunk.Body()
         self.shape = pymunk.Circle(self.body, self.RADIUS)

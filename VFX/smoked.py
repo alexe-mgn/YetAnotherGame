@@ -11,8 +11,8 @@ CS = Vec2d(170, 170)
 class VideoEffect(StaticImage):
     size_inc = .6
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._image = GObject(self._frames)
         self._image.fps = 10
         self._image.que_end(self.kill)

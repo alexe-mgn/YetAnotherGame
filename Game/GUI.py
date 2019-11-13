@@ -70,7 +70,7 @@ class TutorialMenu(Menu):
 
 class CreditsMenu(Menu):
 
-    def __init__(self, parent):
+    def __init__(self, *args, **kwargs):
         sx, sy = 40, 25
 
         class CText(TextField):
@@ -83,7 +83,7 @@ class CreditsMenu(Menu):
             def update(self):
                 self.text_size = self.global_rect.size[0] / 15
 
-        super().__init__(parent)
+        super().__init__(*args, **kwargs)
         self.title = Title(self)
         st_y = 20
         dy = 5
@@ -202,7 +202,7 @@ class LeadersMenu(Menu):
 class MainMenu(Menu):
     class HomeMenu(Menu):
 
-        def __init__(self, parent):
+        def __init__(self, *args, **kwargs):
             class CBtn(BtnSmall):
 
                 def __init__(self, *args, **kwargs):
@@ -215,7 +215,7 @@ class MainMenu(Menu):
             class DisCBtn(Disabled, CBtn):
                 pass
 
-            super().__init__(parent)
+            super().__init__(*args, **kwargs)
             self.title = Title(self)
             dy = 10
             st_y = 35
@@ -267,7 +267,7 @@ class MainMenu(Menu):
 class LevelGUI(Menu):
     class HomeMenu(Menu):
 
-        def __init__(self, parent):
+        def __init__(self, *args, **kwargs):
             class CBtn(BtnSmall):
 
                 def __init__(self, *args, **kwargs):
@@ -280,7 +280,7 @@ class LevelGUI(Menu):
             class DisCBtn(Disabled, CBtn):
                 pass
 
-            super().__init__(parent)
+            super().__init__(*args, **kwargs)
             self.title = Title(self)
             dy = 10
             st_y = 35

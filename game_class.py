@@ -42,8 +42,8 @@ class BaseEngine(YTGBaseComponent):
     max_fps = 10
     default_damping = None
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.working = False
         self._image.fps = 0
         self.parent_default_damping = 0
