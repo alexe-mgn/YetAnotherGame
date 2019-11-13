@@ -1,3 +1,4 @@
 [submodule "Engine"]
 	path = Engine
 	url = http://github.com/alexe-mgn/pygameengine
+	update = merge
