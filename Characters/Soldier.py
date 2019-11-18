@@ -1,10 +1,10 @@
 from Objects.MechSoldier import Creature
-from Game.Character import BaseEnemy
+from Game.Character import YTGBaseEnemy
 from Components.LegsSoldier import Engine as Legs
 from Weapons.plasma_repeater import Weapon as DefaultW
 
 
-class Character(BaseEnemy, Creature):
+class Character(YTGBaseEnemy, Creature):
     score = 1
 
     def pregenerate(self):

@@ -82,7 +82,7 @@ class WeaponInv:
         self.checkout(n)
 
 
-class BasePlayer(YTGBaseCreature):
+class YTGBasePlayer(YTGBaseCreature):
     team = TEAM.PLAYER
     score = 0
 
@@ -121,7 +121,7 @@ class BasePlayer(YTGBaseCreature):
         self.level.end_game()
 
 
-class BaseEnemy(YTGBaseCreature):
+class YTGBaseEnemy(YTGBaseCreature):
     team = TEAM.ENEMY
     score = 0
 

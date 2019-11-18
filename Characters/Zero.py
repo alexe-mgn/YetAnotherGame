@@ -1,10 +1,10 @@
 from Objects.MechZero import Creature
-from Game.Character import BaseEnemy
+from Game.Character import YTGBaseEnemy
 from Components.LegsZero import Engine as Legs
 from Weapons.pulson import Weapon as DefaultW
 
 
-class Character(BaseEnemy, Creature):
+class Character(YTGBaseEnemy, Creature):
     score = 5
 
     def pregenerate(self):

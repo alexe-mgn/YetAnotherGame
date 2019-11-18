@@ -1,7 +1,8 @@
 import pygame
 import math
 from Engine.geometry import Vec2d
-from Game.Character import BasePlayer, WeaponInv
+from Game.Character import YTGBasePlayer
+from Engine.character import WeaponInv
 from Objects.MechPlayer import Creature as Body
 from Components.LegsPlayer import Engine as Legs
 from Engine.config import ROLE
@@ -11,7 +12,7 @@ from Weapons.net_cannon import Weapon as Net
 from Weapons.mini_launcher import Weapon as Launcher
 
 
-class Character(BasePlayer, Body):
+class Character(YTGBasePlayer, Body):
 
     def pregenerate(self):
         self.max_health = 500
