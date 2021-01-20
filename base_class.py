@@ -584,7 +584,7 @@ if __name__ == '__main__':
             sprite.image.fill((255, 255, 255, 0))
             fs = sprite.image.get_size()
             sprite.shape.centered((fs[0] / 2, fs[1] / 2)).draw(sprite.image, color=(255, 0, 0), width=0)
-            sprite.layer = 0
+            # sprite.layer = 0
             self.unique = sprite
 
         def send_event(self, event):
@@ -625,7 +625,7 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode(size, pygame.RESIZABLE)
     level = Test(screen_size=size, size=size)
     clock = pygame.time.Clock()
-    timer = pygame.time.set_timer(29, 100)
+    timer = pygame.time.set_timer(pygame.USEREVENT + 29, 100)
     running = True
     t = None
     while running:
