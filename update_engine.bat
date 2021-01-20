@@ -1,5 +1,6 @@
 @echo off
 if not exist Engine\update_engine.bat (
+
 echo initializing config
 git submodule init
 echo --done
