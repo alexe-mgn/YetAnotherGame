@@ -14,7 +14,7 @@ ABS_RECORDS_FILE = get_write_path(RECORDS_FILE)
 def preload_records():
     directory = os.path.dirname(ABS_RECORDS_FILE)
     if not os.path.isdir(directory):
-        os.mkdir(directory)
+        os.makedirs(directory)
     if not os.path.isfile(ABS_RECORDS_FILE):
         with open(ABS_RECORDS_FILE, mode='w') as out:
             out.write(json.dumps({}))
